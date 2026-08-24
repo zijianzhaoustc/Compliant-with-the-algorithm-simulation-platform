@@ -10,7 +10,7 @@ histResult=buildHistogram(matches,p);
 raw=calculateRawCoincidence(matches,histResult,p);
 raw.matchesIsTrue=matches.isTrue;
 acc=estimateAccidentals(A,B,matches,histResult,p);
-metrics=calculateMetrics(A,B,raw,acc,p);
+metrics=calculateMetrics(A,B,raw,acc,histResult,p,dataMode);
 out=struct("params",p,"source",source,"A",A,"B",B,"matches",matches, ...
     "hist",histResult,"raw",raw,"acc",acc,"metrics",metrics,"dataMode",dataMode);
 end

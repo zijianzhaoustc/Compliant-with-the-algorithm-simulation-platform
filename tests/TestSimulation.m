@@ -85,7 +85,106 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(h.peak,expectedPeak,'AbsTol',8e-12);
             testCase.verifyEqual(h.sigma,expectedSigma,'RelTol',.08);
         end
+
+        function compactEfficiencyDefinitions(testCase)
+            % 非对称双路参数用于验证条件效率的分母方向和 PDE 反推公式。
+            p=idealParams(); p.source.pairRate=1e5; p.measurementTime=1;
+            p.optics.A.transmission=.5; p.detector.A.efficiency=.4;
+            p.optics.B.transmission=.8; p.detector.B.efficiency=.75;
+            out=runSimulation(p); m=out.metrics;
+            testCase.verifyEqual(m.PDETheoryA,.4,'AbsTol',1e-12);
+            testCase.verifyEqual(m.PDETheoryB,.75,'AbsTol',1e-12);
+            testCase.verifyEqual(m.EtaConditionalTheoryA,.2,'AbsTol',1e-12);
+            testCase.verifyEqual(m.EtaConditionalTheoryB,.6,'AbsTol',1e-12);
+            testCase.verifyEqual(m.EtaConditionalEstimateA,.2,'RelTol',.04);
+            testCase.verifyEqual(m.EtaConditionalEstimateB,.6,'RelTol',.04);
+            testCase.verifyEqual(m.PDEEstimateA,.4,'RelTol',.04);
+            testCase.verifyEqual(m.PDEEstimateB,.75,'RelTol',.04);
+            testCase.verifyEqual(m.EtaJointEstimate,.12,'RelTol',.05);
+            testCase.verifyEqual(m.AccidentalFraction,m.Racc/m.Rraw,'RelTol',1e-12);
+            testCase.verifyGreaterThan(m.WindowCaptureRate,.99);
+        end
+
+        function resultSummaryMatchesRequestedGroups(testCase)
+            % GUI 与 CSV 共用的结果表必须包含截图要求的四个分组和精简效率项。
+            p=idealParams(); p.source.pairRate=2000; p.measurementTime=.1;
+            summary=buildMetricSummaryTable(runSimulation(p));
+            names=string(summary.('参数'));
+            testCase.verifyTrue(all(ismember(["【计数性能】","【时间性能】", ...
+                "【算法性能】","【系统效率与性能】"],names)));
+            testCase.verifyTrue(any(names=="偶然符合占比 facc"));
+            testCase.verifyTrue(any(names=="符合估计 PDEA / PDEB"));
+            testCase.verifyTrue(any(names=="符合估计双路联合探测效率"));
+        end
+
+        function timestampConnectionClasses(testCase)
+            % 局部连线分类必须把可记录真实对、TP 和 FP 分开。
+            p=idealParams(); p.source.pairRate=3000; p.measurementTime=.1;
+            out=runSimulation(p);
+            c=classifyTimestampConnections(out,0,p.measurementTime+10e-9);
+            testCase.verifyEqual(numel(c.truthPairID),out.metrics.Rtrue*p.measurementTime);
+            testCase.verifyEqual(numel(c.tpMatch),out.metrics.TP);
+            testCase.verifyEqual(numel(c.fpMatch),out.metrics.FP);
+            % 实测数据即使有窗口内匹配，也不得被误标为 FP。
+            measured=out; measured.dataMode="imported";
+            cm=classifyTimestampConnections(measured,0,p.measurementTime+10e-9);
+            testCase.verifyEmpty(cm.tpMatch); testCase.verifyEmpty(cm.fpMatch);
+            testCase.verifyEqual(numel(cm.unclassifiedMatch),out.raw.count);
+        end
+
+        function exportedCsvUsesUtf8Bom(testCase)
+            % Excel 依靠 UTF-8 BOM 自动识别含中文的 CSV 编码。
+            filename=[tempname '.csv']; cleanup=onCleanup(@()deleteIfPresent(filename));
+            source=table("计数性能",480870,'VariableNames',{'参数','数值'});
+            writeUtf8BomTable(source,filename);
+            fid=fopen(filename,'r'); bytes=fread(fid,3,'uint8=>uint8').'; fclose(fid);
+            testCase.verifyEqual(bytes,uint8([239 187 191]));
+            restored=readtable(filename,'TextType','string','Encoding','UTF-8', ...
+                'VariableNamingRule','preserve');
+            testCase.verifyEqual(string(restored.Properties.VariableNames(1)),"参数");
+            testCase.verifyEqual(restored{1,1},"计数性能");
+            clear cleanup
+        end
+
+        function windowSweepExportLayout(testCase)
+            % 导出表纵向对应窗口大小，横向对应各个扫描指标。
+            p=idealParams(); p.source.pairRate=5000; p.measurementTime=.1;
+            out=runSimulation(p); widths=[.1;.2;.5]*1e-9;
+            sweep=sweepCoincidenceWindow(out,widths);
+            sweepTable=buildSweepSummaryTable(sweep);
+            testCase.verifySize(sweepTable,[3 15]);
+            testCase.verifyEqual(sweepTable.('窗口大小_ns'),[.1;.2;.5],'AbsTol',1e-12);
+            expected=["Rraw_cps","Racc_cps","Rnet_cps","Precision","Recall", ...
+                "F1","窗口捕获率","CAR","SNR"];
+            testCase.verifyTrue(all(ismember(expected,string(sweepTable.Properties.VariableNames))));
+        end
+
+        function selectiveExportWritesSweepCsv(testCase)
+            % 选择性导出应单独产生可由 Excel 读取的窗口扫描 CSV。
+            p=idealParams(); p.source.pairRate=3000; p.measurementTime=.05;
+            out=runSimulation(p);
+            out.sweep=sweepCoincidenceWindow(out,[.1;.2]*1e-9);
+            folder=tempname; mkdir(folder); cleanup=onCleanup(@()removeFolderIfPresent(folder));
+            options=struct('settings',false,'histogram',false,'results',false, ...
+                'sweep',true,'timestamps',false,'unitSeconds',1e-12);
+            files=exportSelectedResults(out,folder,"test",options);
+            expectedFile=fullfile(folder,'test_window_sweep.csv');
+            testCase.verifyEqual(files,string(expectedFile));
+            exported=readtable(expectedFile,'Encoding','UTF-8','VariableNamingRule','preserve');
+            testCase.verifyEqual(exported.('窗口大小_ns'),[.1;.2],'AbsTol',1e-12);
+            clear cleanup
+        end
     end
+end
+
+function deleteIfPresent(filename)
+%DELETEIFPRESENT 清理 CSV 编码测试产生的临时文件。
+if isfile(filename), delete(filename); end
+end
+
+function removeFolderIfPresent(folder)
+%REMOVEFOLDERIFPRESENT 只删除本测试专用的 tempname 临时目录。
+if isfolder(folder), rmdir(folder,'s'); end
 end
 
 function p=idealParams()

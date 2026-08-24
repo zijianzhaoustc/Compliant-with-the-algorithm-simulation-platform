@@ -6,7 +6,8 @@ function sweep = sweepCoincidenceWindow(out, widths)
 
 widths=widths(:); n=numel(widths);
 % 预分配所有曲线字段，输出顺序与 widths 一一对应。
-names=["Rraw","Racc","Rnet","Precision","Recall","F1","Bias","CAR"];
+names=["Rraw","Racc","Rnet","AccidentalFraction","TP","FP","FN", ...
+    "Precision","Recall","F1","WindowCaptureRate","Bias","CAR","SNR"];
 for name=names, sweep.(name)=nan(n,1); end
 sweep.window=widths;
 for k=1:n
@@ -15,7 +16,7 @@ for k=1:n
     raw=calculateRawCoincidence(out.matches,out.hist,p);
     raw.matchesIsTrue=out.matches.isTrue;
     acc=estimateAccidentals(out.A,out.B,out.matches,out.hist,p);
-    m=calculateMetrics(out.A,out.B,raw,acc,p);
+    m=calculateMetrics(out.A,out.B,raw,acc,out.hist,p,out.dataMode);
     for name=names, sweep.(name)(k)=m.(name); end
 end
 end

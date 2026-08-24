@@ -39,9 +39,9 @@ classdef CoincidenceSimulatorApp < handle
             app.UIFigure=uifigure('Name','MATLAB 光子符合仿真与时间戳分析平台', ...
                 'Position',[figLeft figBottom figWidth figHeight],'Color',[0.965 0.975 0.985]);
             main=uigridlayout(app.UIFigure,[1 3]);
-            main.ColumnWidth={500,'1x',340}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
+            main.ColumnWidth={520,'1x',430}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
 
-            % 左栏：上方可横向滚动的参数页，下方局部时间戳及时间范围设置。
+            % 左栏：上方三个自适应参数页，下方局部时间戳及时间范围设置。
             left=uigridlayout(main,[2 1]); left.RowHeight={'3x','2x'}; left.RowSpacing=8;
             app.ParameterTabs=uitabgroup(left);
             app.buildSourceTab(p);
@@ -53,7 +53,8 @@ classdef CoincidenceSimulatorApp < handle
             center=uigridlayout(main,[2 1]); center.RowHeight={'1.15x','1x'}; center.RowSpacing=8;
             app.HistogramAxes=uiaxes(center); title(app.HistogramAxes,'符合时间差直方图');
             xlabel(app.HistogramAxes,'t_{Stop}-t_{Start} (ns)'); ylabel(app.HistogramAxes,'计数'); grid(app.HistogramAxes,'on');
-            sweepPanel=uipanel(center,'Title','Parameter Sweep：符合速率与算法指标');
+            % 扫描图直接放在无标题、无边框容器中，减少界面杂项。
+            sweepPanel=uipanel(center,'Title','','BorderType','none');
             sweepGrid=uigridlayout(sweepPanel,[1 2]); sweepGrid.Padding=[4 4 4 4];
             app.SweepRateAxes=uiaxes(sweepGrid); title(app.SweepRateAxes,'符合速率'); xlabel(app.SweepRateAxes,'窗口全宽 (ns)'); ylabel(app.SweepRateAxes,'cps'); grid(app.SweepRateAxes,'on');
             app.SweepMetricAxes=uiaxes(sweepGrid); title(app.SweepMetricAxes,'算法指标'); xlabel(app.SweepMetricAxes,'窗口全宽 (ns)'); ylim(app.SweepMetricAxes,[0 1.05]); grid(app.SweepMetricAxes,'on');
@@ -62,7 +63,7 @@ classdef CoincidenceSimulatorApp < handle
             right=uigridlayout(main,[8 1]);
             right.RowHeight={'1x',38,38,38,38,38,38,26}; right.RowSpacing=6;
             app.ResultTable=uitable(right,'ColumnName',{'指标','数值','说明'}, ...
-                'ColumnWidth',{145,85,'auto'},'RowName',[]);
+                'ColumnWidth',{205,90,'auto'},'RowName',[]);
             app.addActionButton(right,2,'运行新仿真',[0.12 0.45 0.82],@(~,~)app.runNewSimulation());
             app.addActionButton(right,3,'按当前算法重新计算',[0.18 0.58 0.42],@(~,~)app.recalculate());
             app.addActionButton(right,4,'导入 Start/Stop TXT',[0.36 0.50 0.70],@(~,~)app.importTimestamps());
@@ -71,16 +72,12 @@ classdef CoincidenceSimulatorApp < handle
             app.addActionButton(right,7,'选择性导出…',[0.78 0.43 0.18],@(~,~)app.openExport());
             app.StatusLabel=uilabel(right,'Text','就绪：可运行仿真或导入双通道 TXT', ...
                 'FontColor',[.18 .25 .34]); app.StatusLabel.Layout.Row=8;
-            % 固定宽度内容面板填满参数区；超出宽度时由 Tab 提供横向滑条。
-            drawnow; app.alignParameterContent();
         end
 
         function buildSourceTab(app,p)
-            app.SourceTab=uitab(app.ParameterTabs,'Title','光源光路参数','Scrollable','on');
-            content=uipanel(app.SourceTab,'BorderType','none','Position',[0 0 620 370]);
-            app.Controls.SourceContent=content;
-            g=uigridlayout(content,[14 2]); g.ColumnWidth={375,190};
-            g.RowHeight=[repmat({26},1,13),{'1x'}]; g.RowSpacing=4; g.Padding=[8 8 8 8];
+            app.SourceTab=uitab(app.ParameterTabs,'Title','光源光路参数','Scrollable','off');
+            g=uigridlayout(app.SourceTab,[13 2]); g.ColumnWidth={'1x',155};
+            g.RowHeight=repmat({26},1,13); g.RowSpacing=4; g.Padding=[8 8 8 8];
             app.Controls.SourceMode=app.addDrop(g,1,'仿真模式',{'直接光子对率','泵浦物理模型'}, ...
                 {'direct','pump'},p.source.mode);
             app.Controls.PairRate=app.addNum(g,2,'光子对生成率 Rpair (pair/s)',p.source.pairRate);
@@ -99,11 +96,9 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function buildDetectorTab(app,p)
-            app.DetectorTab=uitab(app.ParameterTabs,'Title','探测器TDC参数','Scrollable','on');
-            content=uipanel(app.DetectorTab,'BorderType','none','Position',[0 0 650 420]);
-            app.Controls.DetectorContent=content;
-            g=uigridlayout(content,[16 4]);
-            g.ColumnWidth={145,105,145,105}; g.RowHeight=[repmat({26},1,15),{'1x'}]; g.RowSpacing=4; g.Padding=[6 6 6 6];
+            app.DetectorTab=uitab(app.ParameterTabs,'Title','探测器TDC参数','Scrollable','off');
+            g=uigridlayout(app.DetectorTab,[15 4]);
+            g.ColumnWidth={120,'1x',120,'1x'}; g.RowHeight=repmat({26},1,15); g.RowSpacing=4; g.ColumnSpacing=4; g.Padding=[6 6 6 6];
             app.addPairHeader(g);
             [app.Controls.PDEA,app.Controls.PDEB]=app.addPair(g,2,'探测效率 ηdet',p.detector.A.efficiency,p.detector.B.efficiency);
             [app.Controls.RecA,app.Controls.RecB]=app.addPair(g,3,'记录效率 ηrec',p.detector.A.recordEfficiency,p.detector.B.recordEfficiency);
@@ -125,11 +120,9 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function buildAlgorithmTab(app,p)
-            app.AlgorithmTab=uitab(app.ParameterTabs,'Title','算法设置','Scrollable','on');
-            content=uipanel(app.AlgorithmTab,'BorderType','none','Position',[0 0 620 400]);
-            app.Controls.AlgorithmContent=content;
-            g=uigridlayout(content,[16 2]); g.ColumnWidth={375,190};
-            g.RowHeight=[repmat({25},1,15),{'1x'}]; g.RowSpacing=4; g.Padding=[7 6 7 6];
+            app.AlgorithmTab=uitab(app.ParameterTabs,'Title','算法设置','Scrollable','off');
+            g=uigridlayout(app.AlgorithmTab,[15 2]); g.ColumnWidth={'1x',155};
+            g.RowHeight=repmat({25},1,15); g.RowSpacing=4; g.Padding=[7 6 7 6];
             app.Controls.Range=app.addNum(g,1,'时间谱半范围 Tt (ns)',max(abs(p.algorithm.histRange))*1e9);
             app.Controls.Bin=app.addNum(g,2,'直方图 bin 宽 (ps)',p.algorithm.binWidth*1e12);
             app.Controls.Peak=app.addDrop(g,3,'寻峰方式',{'最大值寻峰','高斯拟合寻峰'}, ...
@@ -160,17 +153,23 @@ classdef CoincidenceSimulatorApp < handle
             yticklabels(app.TimestampAxes,{'Stop','Start'}); grid(app.TimestampAxes,'on');
 
             settings=uigridlayout(g,[2 5]); settings.Layout.Row=2;
-            settings.ColumnWidth={88,82,98,82,'1x'}; settings.RowHeight={26,26}; settings.Padding=[2 2 2 2];
+            settings.ColumnWidth={88,75,98,75,'1x'}; settings.RowHeight={26,26}; settings.Padding=[2 2 2 2];
             label=uilabel(settings,'Text','时间起点 (μs)'); label.Layout.Row=1; label.Layout.Column=1;
             app.Controls.ViewStart=uieditfield(settings,'numeric','Value',0,'Limits',[0 Inf]);
             app.Controls.ViewStart.Layout.Row=1; app.Controls.ViewStart.Layout.Column=2;
             label=uilabel(settings,'Text','时间长度 (μs)'); label.Layout.Row=1; label.Layout.Column=3;
             app.Controls.ViewLength=uieditfield(settings,'numeric','Value',10,'Limits',[0.001 100]);
             app.Controls.ViewLength.Layout.Row=1; app.Controls.ViewLength.Layout.Column=4;
+            app.Controls.ShowTP=uicheckbox(settings,'Text','显示 TP','Value',true, ...
+                'ValueChangedFcn',@(~,~)app.updateTimestampPlot());
+            app.Controls.ShowTP.Layout.Row=2; app.Controls.ShowTP.Layout.Column=1;
+            app.Controls.ShowFP=uicheckbox(settings,'Text','显示 FP','Value',true, ...
+                'ValueChangedFcn',@(~,~)app.updateTimestampPlot());
+            app.Controls.ShowFP.Layout.Row=2; app.Controls.ShowFP.Layout.Column=2;
             refresh=uibutton(settings,'Text','刷新显示','ButtonPushedFcn',@(~,~)app.updateTimestampPlot());
             refresh.Layout.Row=1; refresh.Layout.Column=5;
-            note=uilabel(settings,'Text','时间长度范围：0.001–100 μs；匹配线最多显示 300 条。', ...
-                'FontColor',[.35 .4 .48]); note.Layout.Row=2; note.Layout.Column=[1 5];
+            note=uilabel(settings,'Text','橙色：可记录真实对；红色：TP；蓝色：FP（FP 最多绘制 300 条）。', ...
+                'FontColor',[.35 .4 .48]); note.Layout.Row=2; note.Layout.Column=[3 5];
         end
 
         function p=readParameters(app)
@@ -203,18 +202,6 @@ classdef CoincidenceSimulatorApp < handle
             p.algorithm.window=c.Window.Value*1e-9; p.algorithm.windowMultiplier=c.WindowN.Value;
             p.algorithm.accidentalMethod=string(c.Acc.Value);
             p.algorithm.sidebandGuard=c.SideGuard.Value*1e-9; p.algorithm.timeShift=c.Shift.Value*1e-6;
-        end
-
-        function alignParameterContent(app)
-            % 内容至少填满 Tab 高度，较窄时由 Scrollable 提供横向滑条。
-            if isempty(app.ParameterTabs) || ~isvalid(app.ParameterTabs), return; end
-            viewportHeight=max(0,app.ParameterTabs.Position(4)-34);
-            specifications={app.Controls.SourceContent,620,402; ...
-                app.Controls.DetectorContent,650,458; app.Controls.AlgorithmContent,620,444};
-            for k=1:size(specifications,1)
-                content=specifications{k,1}; width=specifications{k,2}; minHeight=specifications{k,3};
-                if isvalid(content), content.Position=[0 0 width max(minHeight,viewportHeight)]; end
-            end
         end
 
         function populateControls(app,p)
@@ -316,6 +303,8 @@ classdef CoincidenceSimulatorApp < handle
             app.setBusy('正在扫描符合窗口…');
             try
                 s=sweepCoincidenceWindow(app.LastResult,widths);
+                % 保存本次扫描数据，供选择性导出直接生成纵向窗口表。
+                app.LastResult.sweep=s;
                 cla(app.SweepRateAxes); plot(app.SweepRateAxes,widths*1e9,[s.Rraw s.Racc s.Rnet],'LineWidth',1.25);
                 legend(app.SweepRateAxes,{'原始符合','偶然符合','净符合'},'Location','best');
                 cla(app.SweepMetricAxes); plot(app.SweepMetricAxes,widths*1e9,[s.Precision s.Recall s.F1],'LineWidth',1.25);
@@ -351,45 +340,71 @@ classdef CoincidenceSimulatorApp < handle
             t1=t0+viewLength*1e-6;
             aMask=o.A.time>=t0 & o.A.time<=t1; bMask=o.B.time>=t0 & o.B.time<=t1;
             aIdx=find(aMask); bIdx=find(bMask);
+
+            % 先画连线再画时间戳，使 Start/Stop 标记始终位于连线上方。
+            connections=classifyTimestampConnections(o,t0,t1);
+            showTP=app.Controls.ShowTP.Value; showFP=app.Controls.ShowFP.Value;
+            orange=[.95 .55 .10]; red=[.90 .10 .10]; blue=[.10 .40 .90]; neutral=[.35 .42 .52];
+            plot(ax,nan,nan,'-','Color',orange,'LineWidth',1.0,'DisplayName','可记录真实对');
+            if showTP, plot(ax,nan,nan,'-','Color',red,'LineWidth',1.4,'DisplayName','TP'); end
+            if showFP, plot(ax,nan,nan,'-','Color',blue,'LineWidth',1.0,'DisplayName','FP'); end
+
+            % 显示 TP 时，相同 pairID 的基础橙线由红线替代；关闭 TP 时仍以橙线展示。
+            orangeMask=true(size(connections.truthPairID));
+            if showTP && ~isempty(connections.tpMatch)
+                tpPairID=unique(o.matches.pairIDA(connections.tpMatch));
+                orangeMask=~ismember(connections.truthPairID,tpPairID);
+            end
+            for k=find(orangeMask).'
+                plot(ax,[o.A.time(connections.truthIndexA(k)) o.B.time(connections.truthIndexB(k))]*1e6, ...
+                    [1 0],'-','Color',orange,'LineWidth',1.0,'HandleVisibility','off');
+            end
+            if showTP
+                for k=connections.tpMatch(:).'
+                    plot(ax,[o.A.time(o.matches.indexA(k)) o.B.time(o.matches.indexB(k))]*1e6, ...
+                        [1 0],'-','Color',red,'LineWidth',1.4,'HandleVisibility','off');
+                end
+            end
+            fpDraw=connections.fpMatch(1:min(300,numel(connections.fpMatch)));
+            if showFP
+                for k=fpDraw(:).'
+                    plot(ax,[o.A.time(o.matches.indexA(k)) o.B.time(o.matches.indexB(k))]*1e6, ...
+                        [1 0],'-','Color',blue,'LineWidth',1.0,'HandleVisibility','off');
+                end
+            end
+            % 实测 TXT 无 pairID，不能把算法选中的连接判定为 TP 或 FP。
+            unknownDraw=connections.unclassifiedMatch(1:min(300,numel(connections.unclassifiedMatch)));
+            if o.dataMode=="imported" && (showTP || showFP)
+                plot(ax,nan,nan,'-','Color',neutral,'LineWidth',.9,'DisplayName','实测未分类匹配');
+                for k=unknownDraw(:).'
+                    plot(ax,[o.A.time(o.matches.indexA(k)) o.B.time(o.matches.indexB(k))]*1e6, ...
+                        [1 0],'-','Color',neutral,'LineWidth',.9,'HandleVisibility','off');
+                end
+            end
+
             scatter(ax,o.A.time(aIdx)*1e6,ones(size(aIdx)),28,[.90 .18 .18],'filled','DisplayName','Start');
             scatter(ax,o.B.time(bIdx)*1e6,zeros(size(bIdx)),28,[.12 .52 .85],'filled','DisplayName','Stop');
             % 暗计数/背景/后脉冲使用空心黑圈标记。
             badA=aIdx(o.A.type(aIdx)~="signal" & o.A.type(aIdx)~="measured");
             badB=bIdx(o.B.type(bIdx)~="signal" & o.B.type(bIdx)~="measured");
-            scatter(ax,o.A.time(badA)*1e6,ones(size(badA)),45,'k','o');
-            scatter(ax,o.B.time(badB)*1e6,zeros(size(badB)),45,'k','o');
-            m=o.matches; visible=o.A.time(m.indexA)>=t0 & o.A.time(m.indexA)<=t1 & ...
-                o.B.time(m.indexB)>=t0 & o.B.time(m.indexB)<=t1;
-            ids=find(visible,300,'first');
-            for k=ids(:).'
-                if m.isTrue(k), color=[.90 .10 .10]; elseif o.dataMode=="imported", color=[.25 .35 .55]; else, color=[.60 .60 .60]; end
-                plot(ax,[o.A.time(m.indexA(k)) o.B.time(m.indexB(k))]*1e6,[1 0],'-','Color',color,'LineWidth',.7);
-            end
+            scatter(ax,o.A.time(badA)*1e6,ones(size(badA)),45,'k','o','HandleVisibility','off');
+            scatter(ax,o.B.time(badB)*1e6,zeros(size(badB)),45,'k','o','HandleVisibility','off');
             xlim(ax,[t0 t1]*1e6); ylim(ax,[-.35 1.35]); hold(ax,'off');
-            title(ax,sprintf('局部时间戳：Start %d，Stop %d，显示匹配线 %d/%d',nnz(aMask),nnz(bMask),numel(ids),nnz(visible)));
+            legend(ax,'Location','best');
+            if o.dataMode=="simulation"
+                title(ax,sprintf('局部时间戳：Start %d，Stop %d；真实对 %d，TP %d，FP %d', ...
+                    nnz(aMask),nnz(bMask),numel(connections.truthPairID), ...
+                    numel(connections.tpMatch),numel(connections.fpMatch)));
+            else
+                title(ax,sprintf('局部时间戳：Start %d，Stop %d；实测匹配 %d（无 pairID，不能判定 TP/FP）', ...
+                    nnz(aMask),nnz(bMask),numel(connections.unclassifiedMatch)));
+            end
         end
 
         function updateResultTable(app)
             if isempty(app.LastResult), return; end
-            o=app.LastResult; m=o.metrics;
-            rows={
-                'Start单计数率 R_A',fmt(m.RA),'cps'; 'Stop单计数率 R_B',fmt(m.RB),'cps';
-                '原始符合率 R_raw',fmt(m.Rraw),'cps'; '偶然符合率 R_acc',fmt(m.Racc),'cps';
-                '净符合率 R_net',fmt(m.Rnet),'cps'; '真实符合率 R_true',fmt(m.Rtrue),'仿真ground truth';
-                '查准率 Precision',fmt(m.Precision),ratioText(m.Precision); '查全率 Recall',fmt(m.Recall),ratioText(m.Recall);
-                'F1综合指标',fmt(m.F1),'越接近1越好'; '相对偏差 Bias',fmt(m.Bias),'越接近0越好';
-                '符合偶然比 CAR',fmt(m.CAR),'R_net/R_acc'; 'TP / FP / FN',triple(m),'真实/误配/漏配';
-                '符合峰值',fmt(o.hist.peak*1e9),'ns'; '峰宽 σ',fmt(o.hist.sigma*1e12),'ps';
-                '符合窗口全宽',fmt(o.raw.window*1e9),'ns';
-                'A支路理论探测效率',fmt(m.EtaTheoryA),'ηA1·ηdet,A·ηrec,A';
-                'A支路实际探测效率',fmt(m.EtaActualA),'仿真检测ID/生成pair';
-                'A支路符合估计效率',fmt(m.EtaCoincidenceA),'R_net/R_B';
-                'B支路理论探测效率',fmt(m.EtaTheoryB),'ηB1·ηdet,B·ηrec,B';
-                'B支路实际探测效率',fmt(m.EtaActualB),'仿真检测ID/生成pair';
-                'B支路符合估计效率',fmt(m.EtaCoincidenceB),'R_net/R_A';
-                '系统理论量子效率',fmt(m.EtaSystemTheory),'ηA·ηB';
-                '系统符合估计效率',fmt(m.EtaSystemEstimate),'R_net/R_pair'};
-            app.ResultTable.Data=rows;
+            % 界面和 CSV 共用同一张指标定义表，避免名称或公式不一致。
+            app.ResultTable.Data=table2cell(buildMetricSummaryTable(app.LastResult));
         end
 
         function openExport(app)
@@ -448,17 +463,4 @@ classdef CoincidenceSimulatorApp < handle
         end
 
     end
-end
-
-function s=fmt(x)
-%FMT 将有限标量格式化；实测数据无法提供的 ground truth 显示为 N/A。
-if isnan(x), s='N/A'; elseif isinf(x), s='∞'; else, s=sprintf('%.6g',x); end
-end
-
-function s=ratioText(x)
-if isnan(x), s='实测TXT无pairID'; else, s=sprintf('%.2f%%',100*x); end
-end
-
-function s=triple(m)
-if isnan(m.TP), s='N/A'; else, s=sprintf('%d / %d / %d',m.TP,m.FP,m.FN); end
 end
