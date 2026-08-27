@@ -23,7 +23,7 @@ p.optics.A.transmission = 0.80; p.optics.B.transmission = 0.80;
 p.optics.A.delay = 0; p.optics.B.delay = 5e-9;
 
 % 探测效率与后端成功记录效率分开定义，避免重复计算系统效率。
-p.detector.A.efficiency = 0.60; p.detector.B.efficiency = 0.60;
+p.detector.A.efficiency = 0.55; p.detector.B.efficiency = 0.55;
 p.detector.A.recordEfficiency = 1.0; p.detector.B.recordEfficiency = 1.0;
 % 每路暗计数率、探测器时间抖动和非延长型死时间。
 p.detector.A.darkRate = 500; p.detector.B.darkRate = 500;
@@ -32,8 +32,8 @@ p.detector.A.backgroundRate = 0; p.detector.B.backgroundRate = 0;
 p.detector.A.jitter = 150e-12; p.detector.B.jitter = 150e-12;
 p.detector.A.deadTime = 50e-9; p.detector.B.deadTime = 50e-9;
 % 后脉冲采用“发生概率 + 指数延迟寿命”模型。
-p.detector.A.afterpulseProbability = 0.01; p.detector.B.afterpulseProbability = 0.01;
-p.detector.A.afterpulseLifetime = 200e-9; p.detector.B.afterpulseLifetime = 200e-9;
+p.detector.A.afterpulseProbability = 0.05; p.detector.B.afterpulseProbability = 0.05;
+p.detector.A.afterpulseLifetime = 50e-9; p.detector.B.afterpulseLifetime = 50e-9;
 % 各非理想效应可独立开关，便于进行对照实验。
 p.detector.enableDark = true;
 p.detector.enableDeadTime = false;
@@ -59,9 +59,14 @@ p.algorithm.peakMethod = "maximum";
 % fixed、sigma、bins、fwhm；后三者的 multiplier 默认取 3。
 p.algorithm.windowMode = "fixed";
 p.algorithm.windowMultiplier = 3;
-% 可选偶然符合估计：theory、sideband、time-shift。
+% 偶然符合修正：无修正、理论法、旁带法、旁窗法或时间戳平移法。
 p.algorithm.accidentalMethod = "theory";
-% 边带方法排除峰附近区域；时间平移法打破真实相关性。
+% 旁带法和旁窗法共用峰中心两侧的保护距离。
 p.algorithm.sidebandGuard = 3e-9;
-p.algorithm.timeShift = 1e-3;
+% 旁窗法默认在左右各放置 3 个与主符合窗等宽的背景窗。
+p.algorithm.sideWindowPairs = 3;
+% 时间戳平移法默认使用 1、2、3、4、5 μs 五个循环平移并取平均。
+p.algorithm.timeShiftStart = 1e-6;
+p.algorithm.timeShiftStep = 1e-6;
+p.algorithm.timeShiftCount = 5;
 end

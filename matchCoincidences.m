@@ -3,11 +3,14 @@ function matches = matchCoincidences(A, B, p)
 %   MATCHES = MATCHCOINCIDENCES(A,B,P) 返回 A/B 原数组下标、时间差、两路
 %   pairID 以及 ground-truth 标志。时间差约定为 deltaT = t_B - t_A。
 %
-%   支持文档规定的四种方法：
+%   支持原有四种规则及新增的三种最近邻/贪婪规则：
 %     one-to-one  - 每个 Start 与其后第一个 Stop 配对，双方均不复用；
 %     many-to-one - 每个 Start 与其后第一个 Stop 配对，Stop 可被复用；
 %     one-to-many - 每个 Start 与下一个 Start 前的所有 Stop 配对；
 %     many-to-many- 每个 Start 与正负搜索范围内所有 Stop 配对。
+%     nearest-no-reuse - 每个 Start 选择绝对时间差最小的未使用 Stop；
+%     nearest-reuse    - 每个 Start 选择最近 Stop，Stop 可重复使用；
+%     greedy-chronological - 两路从早到晚用双指针贪婪配对，事件均不复用。
 
 lo = p.algorithm.histRange(1); hi = p.algorithm.histRange(2);
 switch p.algorithm.matchMethod
@@ -15,10 +18,16 @@ switch p.algorithm.matchMethod
         [ia, ib] = allPairs(A.time, B.time, lo, hi);
     case "one-to-one"
         [ia, ib] = oneToOne(A.time, B.time, max(abs([lo hi])));
-    case {"many-to-one","nearest"}
+    case "many-to-one"
         [ia, ib] = manyToOne(A.time, B.time, max(abs([lo hi])));
     case "one-to-many"
         [ia, ib] = oneToMany(A.time, B.time, max(abs([lo hi])));
+    case "nearest-no-reuse"
+        [ia, ib] = nearestNeighbor(A.time,B.time,max(abs([lo hi])),false);
+    case {"nearest-reuse","nearest"}
+        [ia, ib] = nearestNeighbor(A.time,B.time,max(abs([lo hi])),true);
+    case "greedy-chronological"
+        [ia, ib] = greedyChronological(A.time,B.time,max(abs([lo hi])));
 end
 % 保存原事件数组下标，便于从输出追溯匹配来源。
 matches.indexA = ia; matches.indexB = ib;
@@ -96,4 +105,42 @@ for i=1:numel(a)
     j=k;
 end
 ia=vertcat(iaCell{:}); ib=vertcat(ibCell{:});
+end
+
+function [ia,ib] = nearestNeighbor(a,b,range,allowReuse)
+%NEARESTNEIGHBOR 按 Start 时间顺序选择绝对时间差最小的 Stop。
+%   allowReuse=false 时，已选 Stop 不再参与后续 Start 的最近邻比较。
+%   时间差相同时选择时间更早的 Stop，使结果可重复。
+ia=zeros(0,1); ib=zeros(0,1);
+if isempty(a) || isempty(b), return; end
+used=false(size(b)); left=1; right=0;
+for i=1:numel(a)
+    while left<=numel(b) && b(left)<a(i)-range, left=left+1; end
+    right=max(right,left-1);
+    while right+1<=numel(b) && b(right+1)<=a(i)+range, right=right+1; end
+    candidates=(left:right).';
+    if ~allowReuse, candidates=candidates(~used(candidates)); end
+    if isempty(candidates), continue; end
+    [~,position]=min(abs(b(candidates)-a(i)));
+    selected=candidates(position);
+    ia(end+1,1)=i; ib(end+1,1)=selected; %#ok<AGROW>
+    if ~allowReuse, used(selected)=true; end
+end
+end
+
+function [ia,ib] = greedyChronological(a,b,range)
+%GREEDYCHRONOLOGICAL 从最早事件开始执行时间顺序贪婪一对一匹配。
+%   |A(i)-B(j)|<=range 时配对并同时推进；A 过早则丢弃 A，
+%   B 过早则丢弃 B。每个事件最多使用一次。
+ia=zeros(0,1); ib=zeros(0,1); i=1; j=1;
+while i<=numel(a) && j<=numel(b)
+    if abs(a(i)-b(j))<=range
+        ia(end+1,1)=i; ib(end+1,1)=j; %#ok<AGROW>
+        i=i+1; j=j+1;
+    elseif a(i)<b(j)-range
+        i=i+1;
+    else
+        j=j+1;
+    end
+end
 end

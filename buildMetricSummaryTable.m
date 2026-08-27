@@ -9,7 +9,7 @@ rows={
     'A通道计数率 RA',fmt(m.RA),'判断 A 路总事件水平 (cps)';
     'B通道计数率 RB',fmt(m.RB),'判断 B 路总事件水平 (cps)';
     '原始符合率 Rraw',fmt(m.Rraw),'窗口内所有匹配事件 (cps)';
-    '偶然符合率 Racc',fmt(m.Racc),'理论/Sideband/Time-shift 估计的背景符合 (cps)';
+    '偶然符合率 Racc',fmt(m.Racc),'无修正/理论/旁带/旁窗/时间戳平移法 (cps)';
     '净符合率 Rnet',fmt(m.Rnet),'去除偶然符合后的有效符合 (cps)';
     '仿真真实符合率 Rtrue',fmt(m.Rtrue),'基于 pairID 的可记录真实符合（仅仿真）';
     '偶然符合占比 facc',fmt(m.AccidentalFraction),'Racc/Rraw';

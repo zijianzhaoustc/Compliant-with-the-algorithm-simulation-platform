@@ -42,7 +42,8 @@ end
 mustBeNonnegative(p.tdc.dnl);
 mustBeNonnegative(p.tdc.inl);
 if ~any(p.algorithm.matchMethod == ["one-to-one","many-to-one","one-to-many", ...
-        "many-to-many","all-pairs","nearest"])
+        "many-to-many","all-pairs","nearest","nearest-no-reuse","nearest-reuse", ...
+        "greedy-chronological"])
     error("CoincidenceSim:InvalidMethod", "Unknown matching method.");
 end
 if ~any(p.algorithm.peakMethod == ["maximum","gaussian"])
@@ -52,9 +53,14 @@ if ~any(p.algorithm.windowMode == ["fixed","sigma","bins","fwhm"])
     error("CoincidenceSim:InvalidMethod", "Unknown window mode.");
 end
 mustBePositive(p.algorithm.windowMultiplier);
-if ~any(p.algorithm.accidentalMethod == ["theory","sideband","time-shift"])
+if ~any(p.algorithm.accidentalMethod == ["none","theory","sideband","side-window","time-shift"])
     error("CoincidenceSim:InvalidMethod", "Unknown accidental method.");
 end
+mustBeNonnegative(p.algorithm.sidebandGuard);
+mustBePositive(p.algorithm.sideWindowPairs); mustBeInteger(p.algorithm.sideWindowPairs);
+mustBePositive(p.algorithm.timeShiftStart);
+mustBePositive(p.algorithm.timeShiftStep);
+mustBePositive(p.algorithm.timeShiftCount); mustBeInteger(p.algorithm.timeShiftCount);
 end
 
 function unitInterval(x, name)

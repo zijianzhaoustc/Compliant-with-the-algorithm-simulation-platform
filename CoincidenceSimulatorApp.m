@@ -33,7 +33,10 @@ classdef CoincidenceSimulatorApp < handle
         function buildUI(app)
             p=defaultParams();
             screen=get(groot,'ScreenSize');
-            figWidth=min(1600,screen(3)-40); figHeight=min(900,screen(4)-90);
+            % 主界面始终保持 16:9；在小屏幕上按相同比例缩小，并为
+            % Windows 任务栏、标题栏和屏幕边缘预留空间。
+            scale=min([100,(screen(3)-40)/16,(screen(4)-90)/9]);
+            figWidth=16*scale; figHeight=9*scale;
             figLeft=max(1,screen(1)+(screen(3)-figWidth)/2);
             figBottom=max(1,screen(2)+(screen(4)-figHeight)/2);
             app.UIFigure=uifigure('Name','MATLAB 光子符合仿真与时间戳分析平台', ...
@@ -121,28 +124,35 @@ classdef CoincidenceSimulatorApp < handle
 
         function buildAlgorithmTab(app,p)
             app.AlgorithmTab=uitab(app.ParameterTabs,'Title','算法设置','Scrollable','off');
-            g=uigridlayout(app.AlgorithmTab,[15 2]); g.ColumnWidth={'1x',155};
-            g.RowHeight=repmat({25},1,15); g.RowSpacing=4; g.Padding=[7 6 7 6];
+            g=uigridlayout(app.AlgorithmTab,[18 2]); g.ColumnWidth={'1x',210};
+            g.RowHeight=repmat({23},1,18); g.RowSpacing=2; g.Padding=[7 6 7 6];
             app.Controls.Range=app.addNum(g,1,'时间谱半范围 Tt (ns)',max(abs(p.algorithm.histRange))*1e9);
             app.Controls.Bin=app.addNum(g,2,'直方图 bin 宽 (ps)',p.algorithm.binWidth*1e12);
             app.Controls.Peak=app.addDrop(g,3,'寻峰方式',{'最大值寻峰','高斯拟合寻峰'}, ...
                 {'maximum','gaussian'},p.algorithm.peakMethod);
-            app.Controls.Match=app.addDrop(g,4,'时间匹配规则',{'单对单','多对单','单对多','多对多'}, ...
-                {'one-to-one','many-to-one','one-to-many','many-to-many'},p.algorithm.matchMethod);
+            app.Controls.Match=app.addDrop(g,4,'时间匹配规则', ...
+                {'单对单（后继首个）','多对单（Stop可复用）','单对多','多对多', ...
+                '最近邻匹配（不复用）','最近邻匹配（复用）','时间顺序贪婪一对一'}, ...
+                {'one-to-one','many-to-one','one-to-many','many-to-many', ...
+                'nearest-no-reuse','nearest-reuse','greedy-chronological'},p.algorithm.matchMethod);
             app.Controls.WindowMode=app.addDrop(g,5,'符合窗口方式',{'固定全宽','峰值左右 nσ','峰值左右 n bin','峰值左右 n FWHM'}, ...
                 {'fixed','sigma','bins','fwhm'},p.algorithm.windowMode);
             app.Controls.Window=app.addNum(g,6,'固定窗口全宽 (ns)',p.algorithm.window*1e9);
             app.Controls.WindowN=app.addNum(g,7,'自动窗口系数 n',p.algorithm.windowMultiplier);
-            app.Controls.Acc=app.addDrop(g,8,'偶然符合修正',{'理论估计','Sideband','Time shift'}, ...
-                {'theory','sideband','time-shift'},p.algorithm.accidentalMethod);
-            app.Controls.SideGuard=app.addNum(g,9,'Sideband保护区 (ns)',p.algorithm.sidebandGuard*1e9);
-            app.Controls.Shift=app.addNum(g,10,'Time shift (μs)',p.algorithm.timeShift*1e6);
-            app.Controls.SweepStart=app.addNum(g,11,'扫描起点 (ns)',0.1);
-            app.Controls.SweepStop=app.addNum(g,12,'扫描终点 (ns)',8);
-            app.Controls.SweepStep=app.addNum(g,13,'扫描步进 (ns)',0.1);
-            app.Controls.ImportUnit=app.addDrop(g,14,'TXT原始时间单位',{'ps','ns','s','LSB'}, ...
+            app.Controls.Acc=app.addDrop(g,8,'偶然符合修正', ...
+                {'无修正','理论估计','旁带法','旁窗法','时间戳平移法'}, ...
+                {'none','theory','sideband','side-window','time-shift'},p.algorithm.accidentalMethod);
+            app.Controls.SideGuard=app.addNum(g,9,'峰保护距离 (ns)',p.algorithm.sidebandGuard*1e9);
+            app.Controls.SideWindowPairs=app.addNum(g,10,'旁窗左右对数 K',p.algorithm.sideWindowPairs);
+            app.Controls.ShiftStart=app.addNum(g,11,'平移起点 (μs)',p.algorithm.timeShiftStart*1e6);
+            app.Controls.ShiftStep=app.addNum(g,12,'平移步进 (μs)',p.algorithm.timeShiftStep*1e6);
+            app.Controls.ShiftCount=app.addNum(g,13,'平移次数 Nshift',p.algorithm.timeShiftCount);
+            app.Controls.SweepStart=app.addNum(g,14,'扫描起点 (ns)',0.1);
+            app.Controls.SweepStop=app.addNum(g,15,'扫描终点 (ns)',8);
+            app.Controls.SweepStep=app.addNum(g,16,'扫描步进 (ns)',0.1);
+            app.Controls.ImportUnit=app.addDrop(g,17,'TXT原始时间单位',{'ps','ns','s','LSB'}, ...
                 {1e-12,1e-9,1,NaN},1e-12);
-            app.Controls.ImportLSB=app.addNum(g,15,'TXT的 LSB (ps)',p.tdc.resolution*1e12);
+            app.Controls.ImportLSB=app.addNum(g,18,'TXT的 LSB (ps)',p.tdc.resolution*1e12);
         end
 
         function buildTimestampPanel(app,parent)
@@ -201,7 +211,11 @@ classdef CoincidenceSimulatorApp < handle
             p.algorithm.matchMethod=string(c.Match.Value); p.algorithm.windowMode=string(c.WindowMode.Value);
             p.algorithm.window=c.Window.Value*1e-9; p.algorithm.windowMultiplier=c.WindowN.Value;
             p.algorithm.accidentalMethod=string(c.Acc.Value);
-            p.algorithm.sidebandGuard=c.SideGuard.Value*1e-9; p.algorithm.timeShift=c.Shift.Value*1e-6;
+            p.algorithm.sidebandGuard=c.SideGuard.Value*1e-9;
+            p.algorithm.sideWindowPairs=round(c.SideWindowPairs.Value);
+            p.algorithm.timeShiftStart=c.ShiftStart.Value*1e-6;
+            p.algorithm.timeShiftStep=c.ShiftStep.Value*1e-6;
+            p.algorithm.timeShiftCount=round(c.ShiftCount.Value);
         end
 
         function populateControls(app,p)
@@ -228,11 +242,19 @@ classdef CoincidenceSimulatorApp < handle
             c.Peak.Value=char(p.algorithm.peakMethod); c.Match.Value=char(p.algorithm.matchMethod);
             c.WindowMode.Value=char(p.algorithm.windowMode); c.Window.Value=p.algorithm.window*1e9;
             c.WindowN.Value=p.algorithm.windowMultiplier; c.Acc.Value=char(p.algorithm.accidentalMethod);
-            c.SideGuard.Value=p.algorithm.sidebandGuard*1e9; c.Shift.Value=p.algorithm.timeShift*1e6;
+            c.SideGuard.Value=p.algorithm.sidebandGuard*1e9;
+            c.SideWindowPairs.Value=p.algorithm.sideWindowPairs;
+            c.ShiftStart.Value=p.algorithm.timeShiftStart*1e6;
+            c.ShiftStep.Value=p.algorithm.timeShiftStep*1e6;
+            c.ShiftCount.Value=p.algorithm.timeShiftCount;
         end
 
         function runNewSimulation(app)
             app.setBusy('正在生成新的 Monte Carlo 时间戳并分析…');
+            % 新仿真开始时立即删除上一批时间戳和连线，避免计算期间
+            % 仍显示旧数据，也防止新旧图元在后续刷新中叠加。
+            app.resetTimestampAxes('正在生成新的时间戳…');
+            drawnow;
             try
                 app.LastResult=runSimulation(app.readParameters());
                 app.refreshAll();
@@ -284,9 +306,14 @@ classdef CoincidenceSimulatorApp < handle
                 else
                     error('CoincidenceSim:MissingParams','MAT 文件中未找到 params、p 或 out.params。');
                 end
+                % 旧版 MAT 只有单个 timeShift，导入时将它迁移为新的平移起点。
+                if isfield(p,'algorithm') && isfield(p.algorithm,'timeShift') && ...
+                        ~isfield(p.algorithm,'timeShiftStart')
+                    p.algorithm.timeShiftStart=p.algorithm.timeShift;
+                end
                 p=mergeParamsWithDefaults(defaultParams(),p);
                 if string(p.algorithm.matchMethod)=="all-pairs", p.algorithm.matchMethod="many-to-many"; end
-                if string(p.algorithm.matchMethod)=="nearest", p.algorithm.matchMethod="many-to-one"; end
+                if string(p.algorithm.matchMethod)=="nearest", p.algorithm.matchMethod="nearest-reuse"; end
                 p=validateParams(p); app.populateControls(p); app.StatusLabel.Text='设置参数已导入；点击运行或重新计算生效';
             catch ME
                 app.showError(ME,'导入设置失败');
@@ -333,7 +360,10 @@ classdef CoincidenceSimulatorApp < handle
 
         function updateTimestampPlot(app)
             if isempty(app.LastResult), return; end
-            o=app.LastResult; ax=app.TimestampAxes; cla(ax); hold(ax,'on');
+            o=app.LastResult; ax=app.TimestampAxes;
+            % cla reset 和显式删除图例确保旧仿真的连线句柄不会残留。
+            app.resetTimestampAxes('选定时间范围内时间戳与匹配');
+            hold(ax,'on');
             t0=app.Controls.ViewStart.Value*1e-6;
             viewLength=min(100,max(0.001,app.Controls.ViewLength.Value));
             app.Controls.ViewLength.Value=viewLength;
@@ -401,10 +431,39 @@ classdef CoincidenceSimulatorApp < handle
             end
         end
 
+        function resetTimestampAxes(app,titleText)
+            %RESETTIMESTAMPAXES 彻底清空局部时间戳图并恢复固定坐标设置。
+            ax=app.TimestampAxes;
+            if isempty(ax) || ~isvalid(ax), return; end
+            legend(ax,'off');
+            cla(ax,'reset');
+            title(ax,titleText);
+            xlabel(ax,'相对时间 (μs)');
+            yticks(ax,[0 1]); yticklabels(ax,{'Stop','Start'});
+            grid(ax,'on');
+        end
+
         function updateResultTable(app)
             if isempty(app.LastResult), return; end
             % 界面和 CSV 共用同一张指标定义表，避免名称或公式不一致。
-            app.ResultTable.Data=table2cell(buildMetricSummaryTable(app.LastResult));
+            summary=buildMetricSummaryTable(app.LastResult);
+            app.ResultTable.Data=table2cell(summary);
+
+            % 四个分组标题使用不同的强调色，普通指标行保持默认样式。
+            % 先清除旧样式，避免重新仿真或导入数据后重复叠加。
+            removeStyle(app.ResultTable);
+            sectionNames=["【计数性能】","【时间性能】","【算法性能】","【系统效率与性能】"];
+            fontColors={[.05 .32 .68],[.82 .36 .04],[.05 .48 .25],[.48 .20 .66]};%改变颜色
+            backgroundColors={[.88 .93 1.00],[1.00 .94 .86],[.88 .97 .91],[.95 .89 .99]};%改变背景颜色
+            parameters=string(summary.('参数'));
+            for k=1:numel(sectionNames)
+                row=find(parameters==sectionNames(k),1);
+                if ~isempty(row)
+                    style=uistyle('FontColor',fontColors{k},'BackgroundColor',backgroundColors{k}, ...
+                        'FontWeight','bold');
+                    addStyle(app.ResultTable,style,'row',row);
+                end
+            end
         end
 
         function openExport(app)

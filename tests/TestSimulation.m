@@ -53,12 +53,45 @@ classdef TestSimulation < matlab.unittest.TestCase
             % 边带和时间平移方法在包含暗计数的数据上应返回有限非负估计。
             p=idealParams(); p.source.pairRate=1e4; p.measurementTime=.2;
             p.detector.enableDark=true; p.detector.A.darkRate=1000; p.detector.B.darkRate=1000;
-            for method=["sideband","time-shift"]
+            for method=["none","sideband","side-window","time-shift"]
                 p.algorithm.accidentalMethod=method;
                 out=runSimulation(p);
                 testCase.verifyTrue(isfinite(out.metrics.Racc));
                 testCase.verifyGreaterThanOrEqual(out.metrics.Racc,0);
             end
+        end
+
+        function noAccidentalCorrection(testCase)
+            % 无修正模式必须令 Racc=0 且 Rnet=Rraw。
+            p=idealParams(); p.source.pairRate=3000; p.measurementTime=.1;
+            p.algorithm.accidentalMethod="none";
+            out=runSimulation(p);
+            testCase.verifyEqual(out.metrics.Racc,0,'AbsTol',0);
+            testCase.verifyEqual(out.metrics.Rnet,out.metrics.Rraw,'AbsTol',0);
+        end
+
+        function sideWindowUsesPairedEqualWidthWindows(testCase)
+            % 左右各两个等宽旁窗每窗各有一个事件，平均应为 1 count/s。
+            p=idealParams(); p.measurementTime=1; p.algorithm.window=1e-9;
+            p.algorithm.histRange=[-10 10]*1e-9; p.algorithm.sidebandGuard=1e-9;
+            p.algorithm.sideWindowPairs=2; p.algorithm.accidentalMethod="side-window";
+            emptyEvents=struct('time',zeros(0,1),'pairID',zeros(0,1),'type',strings(0,1));
+            matches=struct('deltaT',[-2.5;-1.5;1.5;2.5]*1e-9);
+            histResult=struct('peak',0,'sigma',1e-10,'fwhm',2.355e-10);
+            acc=estimateAccidentals(emptyEvents,emptyEvents,matches,histResult,p);
+            testCase.verifyEqual(acc.rate,1,'AbsTol',1e-12);
+            testCase.verifyEqual(acc.sampleCounts,ones(4,1));
+        end
+
+        function multipleTimeShiftParameters(testCase)
+            % 默认平移量必须为 1、2、3、4、5 μs，并保留每次计数供检查。
+            p=idealParams(); p.source.pairRate=2000; p.measurementTime=.02;
+            p.algorithm.accidentalMethod="time-shift";
+            out=runSimulation(p);
+            testCase.verifyEqual(out.acc.sampleOffsets,(1:5)'*1e-6,'AbsTol',1e-15);
+            testCase.verifySize(out.acc.sampleCounts,[5 1]);
+            testCase.verifyEqual(out.acc.rate,mean(out.acc.sampleCounts)/p.measurementTime, ...
+                'AbsTol',1e-12);
         end
 
         function fourDocumentMatchingRules(testCase)
@@ -73,6 +106,37 @@ classdef TestSimulation < matlab.unittest.TestCase
                 testCase.verifyEqual(numel(m.deltaT),expected(k));
                 if methods(k)~="many-to-many", testCase.verifyGreaterThanOrEqual(min(m.deltaT),0); end
             end
+        end
+
+        function nearestNeighborReuseRules(testCase)
+            % 最近邻必须按绝对时间差选择；复用开关只影响 B 事件能否再次被选。
+            p=idealParams(); p.algorithm.histRange=[-3 3]*1e-9;
+            A=struct('time',[0;2]*1e-9,'pairID',[1;2],'type',repmat("signal",2,1));
+            B=struct('time',1e-9,'pairID',3,'type',"signal");
+            p.algorithm.matchMethod="nearest-no-reuse"; withoutReuse=matchCoincidences(A,B,p);
+            p.algorithm.matchMethod="nearest-reuse"; withReuse=matchCoincidences(A,B,p);
+            testCase.verifyEqual(numel(withoutReuse.indexA),1);
+            testCase.verifyEqual(numel(withReuse.indexA),2);
+            testCase.verifyEqual(withReuse.indexB,[1;1]);
+
+            % 最近候选可以在 A 之前或之后，不限于“后继首个”。
+            A.time=10e-9; A.pairID=1; A.type="signal";
+            B.time=[8;10.5]*1e-9; B.pairID=[2;3]; B.type=repmat("signal",2,1);
+            nearest=matchCoincidences(A,B,p);
+            testCase.verifyEqual(nearest.indexB,2);
+        end
+
+        function chronologicalGreedyIsOneToOne(testCase)
+            % 双指针贪婪算法允许 B 早于 A，但两路事件都不得复用。
+            p=idealParams(); p.algorithm.histRange=[-2 2]*1e-9;
+            p.algorithm.matchMethod="greedy-chronological";
+            A=struct('time',[1;10]*1e-9,'pairID',[1;2],'type',repmat("signal",2,1));
+            B=struct('time',[0;11]*1e-9,'pairID',[3;4],'type',repmat("signal",2,1));
+            matches=matchCoincidences(A,B,p);
+            testCase.verifyEqual(matches.indexA,[1;2]);
+            testCase.verifyEqual(matches.indexB,[1;2]);
+            testCase.verifyEqual(numel(unique(matches.indexA)),numel(matches.indexA));
+            testCase.verifyEqual(numel(unique(matches.indexB)),numel(matches.indexB));
         end
 
         function gaussianPeakFit(testCase)
