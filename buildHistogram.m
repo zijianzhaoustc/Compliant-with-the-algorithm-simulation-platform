@@ -5,8 +5,22 @@ function h = buildHistogram(matches, p)
 %   自动符合窗口使用。该实现只依赖 MATLAB 基础函数。
 
 lo=p.algorithm.histRange(1); hi=p.algorithm.histRange(2); bw=p.algorithm.binWidth;
-nBins = max(1, ceil((hi-lo)/bw));
-edges = linspace(lo,hi,nBins+1);
+span=hi-lo;
+ratio=span/bw;
+% 当范围与 bin 宽理论上整除时，浮点除法可能得到 200+ε；直接 ceil 会
+% 错误地产生 201 个 bin。先将机器精度范围内的近整数归一为整数。
+nearestInteger=round(ratio);
+ratioTolerance=64*eps(max(1,abs(ratio)));
+if abs(ratio-nearestInteger)<=ratioTolerance
+    nBins=max(1,nearestInteger);
+else
+    % 不能整除时使用一个完整宽度的末 bin 覆盖上限，而不压缩所有 bin。
+    nBins=max(1,ceil(ratio));
+end
+% 必须按用户指定的 bw 逐项构造边界；linspace(lo,hi,...) 会重新等分范围，
+% 从而改变实际 bin 宽。非整除情况下最后一个边界可能略高于 hi，但每个
+% bin 的宽度都严格保持为用户设置值。
+edges=lo+(0:nBins)*bw;
 counts = histcounts(matches.deltaT,edges);
 centers = (edges(1:end-1)+edges(2:end))/2;
 

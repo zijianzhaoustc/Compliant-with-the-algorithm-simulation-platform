@@ -1,4 +1,4 @@
-function m = calculateMetrics(A, B, raw, acc, histResult, p, dataMode)
+function m = calculateMetrics(A, B, matches, raw, acc, histResult, p, dataMode)
 %CALCULATEMETRICS 计算计数、时间、算法和系统效率指标。
 %   “可恢复真实符合”定义为经过所有损耗和 TDC 后仍同时出现在 A、B 两路的
 %   正 pairID。算法选中且两路 pairID 相同为 TP；选中但不同为 FP；可恢复
@@ -27,17 +27,26 @@ end
 rNet=max(0,raw.rate-acc.rate);
 m.RA=numel(A.time)/T; m.RB=numel(B.time)/T;
 m.Rraw=raw.rate; m.Racc=acc.rate; m.Rnet=rNet; m.Rtrue=rTrue;
+% 计数与计数率同时保留：Nraw 是当前窗口内实际选中的整数事件数，
+% Nacc 是偶然估计率在本次测量时长内对应的期望计数，可能为小数。
+m.Nraw=raw.count;
+m.Nacc=acc.countEquivalent;
+m.AccidentalMethod=string(acc.method);
 m.AccidentalFraction=safeDivide(m.Racc,m.Rraw);
 m.TP=tp; m.FP=fp; m.FN=fn;
 m.Precision=precision; m.Recall=recall; m.F1=f1;
-% 时间性能直接使用寻峰结果；实测数据没有理论峰位，峰位误差记为 NaN。
+% PeakSigma 来自实际符合时间谱的寻峰/拟合；TrueSigma 则只对
+% pairID 相同的匹配时间差计算 N-1 归一化的样本标准差。
 m.PeakPosition=histResult.peak;
 m.PeakSigma=histResult.sigma;
 m.FWHM=histResult.fwhm;
 if string(dataMode)=="simulation"
+    deltaTrue=matches.deltaT(matches.isTrue);
+    if isempty(deltaTrue), m.TrueSigma=NaN; else, m.TrueSigma=std(deltaTrue,0); end
     theoreticalPeak=(p.optics.B.delay+p.tdc.B.bias)-(p.optics.A.delay+p.tdc.A.bias);
     m.PeakPositionError=histResult.peak-theoreticalPeak;
 else
+    m.TrueSigma=NaN;
     m.PeakPositionError=NaN;
 end
 
@@ -47,7 +56,16 @@ if hasTruth && eligible>0
     [~,idxA,idxB]=intersect(A.pairID(A.pairID>0),B.pairID(B.pairID>0));
     posA=find(A.pairID>0); posB=find(B.pairID>0);
     trueDelta=B.time(posB(idxB))-A.time(posA(idxA));
-    m.WindowCaptureRate=nnz(abs(trueDelta-histResult.peak)<=raw.window/2)/eligible;
+    if isfield(raw,'lowerEdge') && isfield(raw,'upperEdge')
+        captured=trueDelta>=raw.lowerEdge & trueDelta<raw.upperEdge;
+        if isfield(raw,'includeUpperEdge') && raw.includeUpperEdge
+            captured=captured | trueDelta==raw.upperEdge;
+        end
+    else
+        % 兼容旧版保存的 raw 结构体。
+        captured=abs(trueDelta-histResult.peak)<=raw.window/2;
+    end
+    m.WindowCaptureRate=nnz(captured)/eligible;
 else
     m.WindowCaptureRate=NaN;
 end

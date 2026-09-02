@@ -53,6 +53,8 @@ if ~any(p.algorithm.windowMode == ["fixed","sigma","bins","fwhm"])
     error("CoincidenceSim:InvalidMethod", "Unknown window mode.");
 end
 mustBePositive(p.algorithm.windowMultiplier);
+% bin 的个数必须是整数；sigma 和 FWHM 的倍数仍允许使用小数。
+if p.algorithm.windowMode=="bins", mustBeInteger(p.algorithm.windowMultiplier); end
 if ~any(p.algorithm.accidentalMethod == ["none","theory","sideband","side-window","time-shift"])
     error("CoincidenceSim:InvalidMethod", "Unknown accidental method.");
 end

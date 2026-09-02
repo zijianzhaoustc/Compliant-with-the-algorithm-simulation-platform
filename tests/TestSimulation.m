@@ -35,6 +35,22 @@ classdef TestSimulation < matlab.unittest.TestCase
             measured=std(out.matches.deltaT(out.matches.isTrue));
             expected=sqrt(2*(150e-12)^2+2*(10e-12)^2);
             testCase.verifyEqual(measured,expected,'RelTol',.05);
+            testCase.verifyEqual(out.metrics.TrueSigma,measured,'AbsTol',1e-18);
+            testCase.verifyTrue(isfinite(out.metrics.PeakSigma));
+        end
+
+        function trueAndPeakSigmaAreSeparated(testCase)
+            % σtrue 必须严格使用 matches.isTrue；实测模式只保留可观测的 σpeak。
+            p=idealParams(); p.source.pairRate=1e4; p.measurementTime=.1;
+            p.detector.A.jitter=120e-12; p.detector.B.jitter=180e-12;
+            out=runSimulation(p);
+            expected=std(out.matches.deltaT(out.matches.isTrue),0);
+            testCase.verifyEqual(out.metrics.TrueSigma,expected,'AbsTol',1e-18);
+
+            A=out.A; B=out.B; A.pairID=zeros(size(A.pairID)); B.pairID=zeros(size(B.pairID));
+            measured=analyzeTimestampData(A,B,out.params,out.source,"imported");
+            testCase.verifyTrue(isnan(measured.metrics.TrueSigma));
+            testCase.verifyTrue(isfinite(measured.metrics.PeakSigma));
         end
 
         function oneToOneDoesNotReuseEvents(testCase)
@@ -68,6 +84,9 @@ classdef TestSimulation < matlab.unittest.TestCase
             out=runSimulation(p);
             testCase.verifyEqual(out.metrics.Racc,0,'AbsTol',0);
             testCase.verifyEqual(out.metrics.Rnet,out.metrics.Rraw,'AbsTol',0);
+            testCase.verifyEqual(out.metrics.Nraw,out.raw.count);
+            testCase.verifyEqual(out.metrics.Nacc,0,'AbsTol',0);
+            testCase.verifyEqual(out.metrics.AccidentalMethod,"none");
         end
 
         function sideWindowUsesPairedEqualWidthWindows(testCase)
@@ -150,6 +169,37 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(h.sigma,expectedSigma,'RelTol',.08);
         end
 
+        function histogramPreservesRequestedBinWidth(testCase)
+            % ±30 ns 和 300 ps 理论上正好对应 200 个 bin；不得因浮点 ceil
+            % 误生成 201 个 bin，并被 linspace 压缩为约 298.5075 ps。
+            p=idealParams();
+            p.algorithm.histRange=[-30 30]*1e-9;
+            p.algorithm.binWidth=300e-12;
+            matches=struct('deltaT',zeros(0,1));
+            h=buildHistogram(matches,p);
+            testCase.verifyEqual(numel(h.counts),200);
+            testCase.verifyEqual(diff(h.edges),repmat(300e-12,1,200),'AbsTol',1e-18);
+            testCase.verifyEqual(diff(h.centers),repmat(300e-12,1,199),'AbsTol',1e-18);
+        end
+
+        function binWindowIncludesPeakAndBothSides(testCase)
+            % n=1 时必须统计“左 1 个 + 峰值所在 bin + 右 1 个”，共 3 个 bin。
+            p=idealParams(); p.measurementTime=1;
+            p.algorithm.windowMode="bins"; p.algorithm.windowMultiplier=1;
+            p.algorithm.binWidth=1e-9;
+            histResult=struct('edges',(0:5)*1e-9,'centers',(.5:1:4.5)*1e-9, ...
+                'peak',2.5e-9,'sigma',1e-9,'fwhm',2.355e-9);
+            % 五个 bin 中分别放置 1、2、3、4、5 个事件。
+            deltaT=[repmat(.5,1,1),repmat(1.5,1,2),repmat(2.5,1,3), ...
+                repmat(3.5,1,4),repmat(4.5,1,5)]'*1e-9;
+            raw=calculateRawCoincidence(struct('deltaT',deltaT),histResult,p);
+            testCase.verifyEqual(raw.count,2+3+4);
+            testCase.verifyEqual(raw.window,3e-9,'AbsTol',1e-18);
+            testCase.verifyEqual(raw.lowerEdge,1e-9,'AbsTol',1e-18);
+            testCase.verifyEqual(raw.upperEdge,4e-9,'AbsTol',1e-18);
+            testCase.verifyEqual(resolveCoincidenceWindow(histResult,p),3e-9,'AbsTol',1e-18);
+        end
+
         function compactEfficiencyDefinitions(testCase)
             % 非对称双路参数用于验证条件效率的分母方向和 PDE 反推公式。
             p=idealParams(); p.source.pairRate=1e5; p.measurementTime=1;
@@ -177,6 +227,9 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyTrue(all(ismember(["【计数性能】","【时间性能】", ...
                 "【算法性能】","【系统效率与性能】"],names)));
             testCase.verifyTrue(any(names=="偶然符合占比 facc"));
+            testCase.verifyTrue(any(names=="原始符合计数 Nraw"));
+            testCase.verifyTrue(any(names=="偶然符合计数 Nacc"));
+            testCase.verifyTrue(any(names=="偶然符合修正算法"));
             testCase.verifyTrue(any(names=="符合估计 PDEA / PDEB"));
             testCase.verifyTrue(any(names=="符合估计双路联合探测效率"));
         end
@@ -216,11 +269,15 @@ classdef TestSimulation < matlab.unittest.TestCase
             out=runSimulation(p); widths=[.1;.2;.5]*1e-9;
             sweep=sweepCoincidenceWindow(out,widths);
             sweepTable=buildSweepSummaryTable(sweep);
-            testCase.verifySize(sweepTable,[3 15]);
+            testCase.verifySize(sweepTable,[3 18]);
             testCase.verifyEqual(sweepTable.('窗口大小_ns'),[.1;.2;.5],'AbsTol',1e-12);
-            expected=["Rraw_cps","Racc_cps","Rnet_cps","Precision","Recall", ...
+            expected=["偶然符合修正算法","Nraw_count","Nacc_count", ...
+                "Rraw_cps","Racc_cps","Rnet_cps","Precision","Recall", ...
                 "F1","窗口捕获率","CAR","SNR"];
             testCase.verifyTrue(all(ismember(expected,string(sweepTable.Properties.VariableNames))));
+            testCase.verifyEqual(sweepTable.('偶然符合修正算法'),repmat("理论法",3,1));
+            testCase.verifyEqual(sweepTable.Nraw_count,sweep.Nraw);
+            testCase.verifyEqual(sweepTable.Nacc_count,sweep.Nacc);
         end
 
         function selectiveExportWritesSweepCsv(testCase)
@@ -236,6 +293,10 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(files,string(expectedFile));
             exported=readtable(expectedFile,'Encoding','UTF-8','VariableNamingRule','preserve');
             testCase.verifyEqual(exported.('窗口大小_ns'),[.1;.2],'AbsTol',1e-12);
+            testCase.verifyEqual(string(exported.('偶然符合修正算法')),repmat("理论法",2,1));
+            testCase.verifyEqual(exported.Nraw_count,out.sweep.Nraw);
+            % CSV 十进制文本往返允许机器精度量级的浮点舍入误差。
+            testCase.verifyEqual(exported.Nacc_count,out.sweep.Nacc,'AbsTol',1e-15);
             clear cleanup
         end
     end

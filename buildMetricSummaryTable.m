@@ -10,12 +10,16 @@ rows={
     'B通道计数率 RB',fmt(m.RB),'判断 B 路总事件水平 (cps)';
     '原始符合率 Rraw',fmt(m.Rraw),'窗口内所有匹配事件 (cps)';
     '偶然符合率 Racc',fmt(m.Racc),'无修正/理论/旁带/旁窗/时间戳平移法 (cps)';
+    '原始符合计数 Nraw',fmt(m.Nraw),'当前测量时间内窗口中的实际匹配数';
+    '偶然符合计数 Nacc',fmt(m.Nacc),'Racc×T，对应本次测量时长的期望偶然计数';
+    '偶然符合修正算法',char(accidentalMethodDisplayName(m.AccidentalMethod)),'本次结果采用的偶然符合处理方式';
     '净符合率 Rnet',fmt(m.Rnet),'去除偶然符合后的有效符合 (cps)';
     '仿真真实符合率 Rtrue',fmt(m.Rtrue),'基于 pairID 的可记录真实符合（仅仿真）';
     '偶然符合占比 facc',fmt(m.AccidentalFraction),'Racc/Rraw';
     '【时间性能】','','';
     '符合峰位置 t0',fmt(m.PeakPosition*1e9),'ns';
-    'RMS 标准差 σΔt',fmt(m.PeakSigma*1e12),'ps';
+    '真实光子对 RMS σtrue',fmt(m.TrueSigma*1e12),'std(相同 pairID 的 Δt)，仅仿真 (ps)';
+    '符合峰 RMS σpeak',fmt(m.PeakSigma*1e12),'实际符合时间谱寻峰/拟合宽度 (ps)';
     'FWHM',fmt(m.FWHM*1e12),'ps';
     '峰位置误差',fmt(m.PeakPositionError*1e12),'寻峰值与仿真理论峰值之差 (ps)';
     '【算法性能】','','';

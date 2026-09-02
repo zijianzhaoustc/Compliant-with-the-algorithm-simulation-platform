@@ -336,7 +336,9 @@ classdef CoincidenceSimulatorApp < handle
                 legend(app.SweepRateAxes,{'原始符合','偶然符合','净符合'},'Location','best');
                 cla(app.SweepMetricAxes); plot(app.SweepMetricAxes,widths*1e9,[s.Precision s.Recall s.F1],'LineWidth',1.25);
                 legend(app.SweepMetricAxes,{'查准率','查全率','F1'},'Location','best'); ylim(app.SweepMetricAxes,[0 1.05]);
-                app.StatusLabel.Text=sprintf('符合窗口扫描完成：%d 个点',numel(widths));
+                methodName=accidentalMethodDisplayName(s.accidentalMethod);
+                app.StatusLabel.Text=sprintf('符合窗口扫描完成：%d 个点；偶然修正：%s', ...
+                    numel(widths),methodName);
             catch ME
                 app.showError(ME,'窗口扫描失败');
             end
@@ -352,8 +354,14 @@ classdef CoincidenceSimulatorApp < handle
             bar(ax,h.centers*1e9,h.counts,1,'FaceColor',[.28 .57 .82],'EdgeColor','none'); hold(ax,'on');
             if any(isfinite(h.fitCounts)), plot(ax,h.centers*1e9,h.fitCounts,'Color',[.93 .55 .12],'LineWidth',1.5); end
             xline(ax,h.peak*1e9,'--r','峰值','LineWidth',1.3);
-            xline(ax,(h.peak-o.raw.window/2)*1e9,'--k','窗口');
-            xline(ax,(h.peak+o.raw.window/2)*1e9,'--k'); hold(ax,'off');
+            if isfield(o.raw,'lowerEdge') && isfield(o.raw,'upperEdge')
+                windowLeft=o.raw.lowerEdge; windowRight=o.raw.upperEdge;
+            else
+                % 兼容旧版 MAT 结果。
+                windowLeft=h.peak-o.raw.window/2; windowRight=h.peak+o.raw.window/2;
+            end
+            xline(ax,windowLeft*1e9,'--k','窗口');
+            xline(ax,windowRight*1e9,'--k'); hold(ax,'off');
             title(ax,sprintf('符合直方图：峰值 %.4f ns，σ %.3f ps，窗口全宽 %.3f ns', ...
                 h.peak*1e9,h.sigma*1e12,o.raw.window*1e9));
         end

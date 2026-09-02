@@ -67,7 +67,10 @@ switch p.algorithm.accidentalMethod
             shifted.pairID=zeros(size(shifted.pairID(order)));
             shifted.type=shifted.type(order);
             shiftedMatches=matchCoincidences(A,shifted,p);
-            sampleCounts(k)=nnz(abs(shiftedMatches.deltaT-histResult.peak)<=W/2);
+            % 与主符合计数共用同一窗口选择；bins 模式下同样取峰值 bin
+            % 及左右各 n 个 bin，而不是近似成连续对称窗口。
+            shiftedRaw=calculateRawCoincidence(shiftedMatches,histResult,p);
+            sampleCounts(k)=shiftedRaw.count;
         end
         rate=mean(sampleCounts)/T;
         details=sprintf("mean of %d circular time shifts",p.algorithm.timeShiftCount);
