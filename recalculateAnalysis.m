@@ -6,4 +6,8 @@ function out = recalculateAnalysis(previous, p)
 p.measurementTime=previous.params.measurementTime;
 if isfield(previous.params,"analysis"), p.analysis=previous.params.analysis; end
 out=analyzeTimestampData(previous.A,previous.B,p,previous.source,previous.dataMode);
+% 对导入数据重新计算时，也按当前界面的分窗开关、窗长和算法参数重建逐窗结果。
+if string(previous.dataMode)=="imported" && p.algorithm.timestampWindowMode
+    out.timeWindows=analyzeTimestampWindows(previous.A,previous.B,p,previous.source,"imported");
+end
 end

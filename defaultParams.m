@@ -69,4 +69,7 @@ p.algorithm.sideWindowPairs = 3;
 p.algorithm.timeShiftStart = 1e-6;
 p.algorithm.timeShiftStep = 1e-6;
 p.algorithm.timeShiftCount = 5;
+% 导入实测 Start/Stop 时可按固定时长分窗；默认关闭，默认窗长 5 s。
+p.algorithm.timestampWindowMode = false;
+p.algorithm.timestampWindowSize = 5;
 end

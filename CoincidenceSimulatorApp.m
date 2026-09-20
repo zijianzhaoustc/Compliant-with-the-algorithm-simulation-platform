@@ -124,8 +124,8 @@ classdef CoincidenceSimulatorApp < handle
 
         function buildAlgorithmTab(app,p)
             app.AlgorithmTab=uitab(app.ParameterTabs,'Title','算法设置','Scrollable','off');
-            g=uigridlayout(app.AlgorithmTab,[18 2]); g.ColumnWidth={'1x',210};
-            g.RowHeight=repmat({23},1,18); g.RowSpacing=2; g.Padding=[7 6 7 6];
+            g=uigridlayout(app.AlgorithmTab,[20 2]); g.ColumnWidth={'1x',210};
+            g.RowHeight=repmat({21},1,20); g.RowSpacing=1; g.Padding=[7 6 7 6];
             app.Controls.Range=app.addNum(g,1,'时间谱半范围 Tt (ns)',max(abs(p.algorithm.histRange))*1e9);
             app.Controls.Bin=app.addNum(g,2,'直方图 bin 宽 (ps)',p.algorithm.binWidth*1e12);
             app.Controls.Peak=app.addDrop(g,3,'寻峰方式',{'最大值寻峰','高斯拟合寻峰'}, ...
@@ -150,9 +150,13 @@ classdef CoincidenceSimulatorApp < handle
             app.Controls.SweepStart=app.addNum(g,14,'扫描起点 (ns)',0.1);
             app.Controls.SweepStop=app.addNum(g,15,'扫描终点 (ns)',8);
             app.Controls.SweepStep=app.addNum(g,16,'扫描步进 (ns)',0.1);
-            app.Controls.ImportUnit=app.addDrop(g,17,'TXT原始时间单位',{'ps','ns','s','LSB'}, ...
+            app.Controls.TimestampWindowMode=app.addDrop(g,17,'时间戳分析模式', ...
+                {'整段分析','按固定时长分窗'}, {false,true},p.algorithm.timestampWindowMode);
+            app.Controls.TimestampWindowSize=app.addNum(g,18,'时间戳分窗大小 (s)', ...
+                p.algorithm.timestampWindowSize);
+            app.Controls.ImportUnit=app.addDrop(g,19,'TXT原始时间单位',{'ps','ns','s','LSB'}, ...
                 {1e-12,1e-9,1,NaN},1e-12);
-            app.Controls.ImportLSB=app.addNum(g,18,'TXT的 LSB (ps)',p.tdc.resolution*1e12);
+            app.Controls.ImportLSB=app.addNum(g,20,'TXT的 LSB (ps)',p.tdc.resolution*1e12);
         end
 
         function buildTimestampPanel(app,parent)
@@ -216,6 +220,8 @@ classdef CoincidenceSimulatorApp < handle
             p.algorithm.timeShiftStart=c.ShiftStart.Value*1e-6;
             p.algorithm.timeShiftStep=c.ShiftStep.Value*1e-6;
             p.algorithm.timeShiftCount=round(c.ShiftCount.Value);
+            p.algorithm.timestampWindowMode=logical(c.TimestampWindowMode.Value);
+            p.algorithm.timestampWindowSize=c.TimestampWindowSize.Value;
         end
 
         function populateControls(app,p)
@@ -247,6 +253,8 @@ classdef CoincidenceSimulatorApp < handle
             c.ShiftStart.Value=p.algorithm.timeShiftStart*1e6;
             c.ShiftStep.Value=p.algorithm.timeShiftStep*1e6;
             c.ShiftCount.Value=p.algorithm.timeShiftCount;
+            c.TimestampWindowMode.Value=p.algorithm.timestampWindowMode;
+            c.TimestampWindowSize.Value=p.algorithm.timestampWindowSize;
         end
 
         function runNewSimulation(app)
@@ -286,8 +294,15 @@ classdef CoincidenceSimulatorApp < handle
                 app.LastResult=importTimestampFiles(fullfile(sp,sf),fullfile(tp,tf),factor,app.readParameters());
                 app.Controls.Time.Value=app.LastResult.params.measurementTime;
                 app.refreshAll();
-                app.StatusLabel.Text=sprintf('实测数据导入完成：时长 %.6g s，Start %d，Stop %d', ...
-                    app.LastResult.params.measurementTime,numel(app.LastResult.A.time),numel(app.LastResult.B.time));
+                if isfield(app.LastResult,'timeWindows')
+                    app.StatusLabel.Text=sprintf(['实测数据导入完成：时长 %.6g s，Start %d，Stop %d；' ...
+                        '已分为 %d 个 %.6g s 时间窗'],app.LastResult.params.measurementTime, ...
+                        numel(app.LastResult.A.time),numel(app.LastResult.B.time), ...
+                        app.LastResult.timeWindows.count,app.LastResult.timeWindows.windowSize);
+                else
+                    app.StatusLabel.Text=sprintf('实测数据导入完成：时长 %.6g s，Start %d，Stop %d', ...
+                        app.LastResult.params.measurementTime,numel(app.LastResult.A.time),numel(app.LastResult.B.time));
+                end
             catch ME
                 app.showError(ME,'导入时间戳失败');
             end

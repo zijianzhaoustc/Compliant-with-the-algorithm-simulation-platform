@@ -299,6 +299,42 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(exported.Nacc_count,out.sweep.Nacc,'AbsTol',1e-15);
             clear cleanup
         end
+
+        function timestampWindowImportAndExport(testCase)
+            % 5 s 分窗应生成 [0,5) 和 [5,10] 两段；5 s 边界事件只进入第二窗。
+            startFile=[tempname '.txt']; stopFile=[tempname '.txt']; folder=tempname;
+            cleanup=onCleanup(@()cleanupTimestampWindowArtifacts(startFile,stopFile,folder));
+            timestamps=[0;1;4.9;5;7;10];
+            writematrix(timestamps,startFile,'Delimiter','tab');
+            writematrix(timestamps,stopFile,'Delimiter','tab');
+
+            p=idealParams(); p.algorithm.accidentalMethod="none";
+            p.algorithm.timestampWindowMode=true;
+            p.algorithm.timestampWindowSize=5;
+            out=importTimestampFiles(startFile,stopFile,1,p);
+            testCase.verifyTrue(isfield(out,'timeWindows'));
+            testCase.verifyEqual(out.timeWindows.count,2);
+            summary=buildTimeWindowSummaryTable(out.timeWindows);
+            testCase.verifyEqual(summary.('起始时间_s'),[0;5]);
+            testCase.verifyEqual(summary.('终止时间_s'),[5;10]);
+            testCase.verifyEqual(summary.('A通道计数'),[3;3]);
+            testCase.verifyEqual(summary.('B通道计数'),[3;3]);
+            testCase.verifyEqual(summary.('原始符合计数_Nraw'),[3;3]);
+            testCase.verifyEqual(summary.('偶然符合计数_Nacc'),[0;0]);
+
+            mkdir(folder);
+            options=struct('settings',false,'histogram',false,'results',false, ...
+                'sweep',false,'timeWindows',true,'timestamps',false,'unitSeconds',1e-12);
+            files=exportSelectedResults(out,folder,"test",options);
+            testCase.verifyEqual(numel(files),3);
+            summaryFile=fullfile(folder,'test_time_windows','test_time_window_summary.csv');
+            testCase.verifyTrue(isfile(summaryFile));
+            testCase.verifyTrue(isfile(fullfile(folder,'test_time_windows', ...
+                'test_time_window_0001_histogram.csv')));
+            restored=readtable(summaryFile,'Encoding','UTF-8','VariableNamingRule','preserve');
+            testCase.verifyEqual(restored.('原始符合计数_Nraw'),[3;3]);
+            clear cleanup
+        end
     end
 end
 
@@ -309,6 +345,13 @@ end
 
 function removeFolderIfPresent(folder)
 %REMOVEFOLDERIFPRESENT 只删除本测试专用的 tempname 临时目录。
+if isfolder(folder), rmdir(folder,'s'); end
+end
+
+function cleanupTimestampWindowArtifacts(startFile,stopFile,folder)
+%CLEANUPTIMESTAMPWINDOWARTIFACTS 清理时间戳分窗测试的临时输入和输出。
+if isfile(startFile), delete(startFile); end
+if isfile(stopFile), delete(stopFile); end
 if isfolder(folder), rmdir(folder,'s'); end
 end
 

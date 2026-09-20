@@ -63,6 +63,14 @@ mustBePositive(p.algorithm.sideWindowPairs); mustBeInteger(p.algorithm.sideWindo
 mustBePositive(p.algorithm.timeShiftStart);
 mustBePositive(p.algorithm.timeShiftStep);
 mustBePositive(p.algorithm.timeShiftCount); mustBeInteger(p.algorithm.timeShiftCount);
+% 时间戳分窗开关必须是逻辑标量；窗长即使在关闭状态也保持有效，便于随时启用。
+if ~isscalar(p.algorithm.timestampWindowMode) || ...
+        ~(islogical(p.algorithm.timestampWindowMode) || isnumeric(p.algorithm.timestampWindowMode))
+    error("CoincidenceSim:InvalidTimestampWindowMode", ...
+        "Timestamp window mode must be a logical scalar.");
+end
+p.algorithm.timestampWindowMode=logical(p.algorithm.timestampWindowMode);
+mustBePositive(p.algorithm.timestampWindowSize);
 end
 
 function unitInterval(x, name)

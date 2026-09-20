@@ -22,6 +22,10 @@ source=struct("time",zeros(0,1),"pairID",zeros(0,1),"type",strings(0,1), ...
     "startFile",string(startFile),"stopFile",string(stopFile),"unitSeconds",unitSeconds, ...
     "rawOrigin",t0);
 out=analyzeTimestampData(A,B,p,source,"imported");
+% 分窗模式保留整段分析作为主界面结果，同时附加每个子时间窗的独立结果。
+if out.params.algorithm.timestampWindowMode
+    out.timeWindows=analyzeTimestampWindows(A,B,out.params,source,"imported");
+end
 end
 
 function values=readTimestampColumn(filename)
