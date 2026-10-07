@@ -69,7 +69,7 @@ classdef CoincidenceSimulatorApp < handle
                 'ColumnWidth',{205,90,'auto'},'RowName',[]);
             app.addActionButton(right,2,'运行新仿真',[0.12 0.45 0.82],@(~,~)app.runNewSimulation());
             app.addActionButton(right,3,'按当前算法重新计算',[0.18 0.58 0.42],@(~,~)app.recalculate());
-            app.addActionButton(right,4,'导入 Start/Stop TXT',[0.36 0.50 0.70],@(~,~)app.importTimestamps());
+            app.addActionButton(right,4,'导入 Start/Stop TXT/BIN',[0.36 0.50 0.70],@(~,~)app.importTimestamps());
             app.addActionButton(right,5,'导入设置参数 MAT',[0.42 0.50 0.58],@(~,~)app.importSettings());
             app.addActionButton(right,6,'扫描符合窗口',[0.58 0.42 0.68],@(~,~)app.runSweep());
             app.addActionButton(right,7,'选择性导出…',[0.78 0.43 0.18],@(~,~)app.openExport());
@@ -100,26 +100,28 @@ classdef CoincidenceSimulatorApp < handle
 
         function buildDetectorTab(app,p)
             app.DetectorTab=uitab(app.ParameterTabs,'Title','探测器TDC参数','Scrollable','off');
-            g=uigridlayout(app.DetectorTab,[15 4]);
-            g.ColumnWidth={120,'1x',120,'1x'}; g.RowHeight=repmat({26},1,15); g.RowSpacing=4; g.ColumnSpacing=4; g.Padding=[6 6 6 6];
+            g=uigridlayout(app.DetectorTab,[17 4]);
+            g.ColumnWidth={120,'1x',120,'1x'}; g.RowHeight=repmat({23},1,17); g.RowSpacing=2; g.ColumnSpacing=4; g.Padding=[6 6 6 6];
             app.addPairHeader(g);
             [app.Controls.PDEA,app.Controls.PDEB]=app.addPair(g,2,'探测效率 ηdet',p.detector.A.efficiency,p.detector.B.efficiency);
             [app.Controls.RecA,app.Controls.RecB]=app.addPair(g,3,'记录效率 ηrec',p.detector.A.recordEfficiency,p.detector.B.recordEfficiency);
             [app.Controls.DarkA,app.Controls.DarkB]=app.addPair(g,4,'暗计数 Rd (cps)',p.detector.A.darkRate,p.detector.B.darkRate);
             [app.Controls.BgA,app.Controls.BgB]=app.addPair(g,5,'背景计数 Rbg (cps)',p.detector.A.backgroundRate,p.detector.B.backgroundRate);
             [app.Controls.JitterA,app.Controls.JitterB]=app.addPair(g,6,'探测抖动 σ (ps)',p.detector.A.jitter*1e12,p.detector.B.jitter*1e12);
-            [app.Controls.DeadA,app.Controls.DeadB]=app.addPair(g,7,'死时间 τd (ns)',p.detector.A.deadTime*1e9,p.detector.B.deadTime*1e9);
+            [app.Controls.DeadA,app.Controls.DeadB]=app.addPair(g,7,'探测器死时间 (ns)',p.detector.A.deadTime*1e9,p.detector.B.deadTime*1e9);
             [app.Controls.ApA,app.Controls.ApB]=app.addPair(g,8,'后脉冲概率 Pap',p.detector.A.afterpulseProbability,p.detector.B.afterpulseProbability);
             [app.Controls.ApTauA,app.Controls.ApTauB]=app.addPair(g,9,'后脉冲常数 (ns)',p.detector.A.afterpulseLifetime*1e9,p.detector.B.afterpulseLifetime*1e9);
             [app.Controls.TdcJitterA,app.Controls.TdcJitterB]=app.addPair(g,10,'TDC抖动 (ps)',p.tdc.A.jitter*1e12,p.tdc.B.jitter*1e12);
-            [app.Controls.BiasA,app.Controls.BiasB]=app.addPair(g,11,'通道偏置 (ps)',p.tdc.A.bias*1e12,p.tdc.B.bias*1e12);
-            app.Controls.Resolution=app.addWideNum(g,12,'TDC分辨率 LSB (ps)',p.tdc.resolution*1e12);
-            app.Controls.DNL=app.addHalfNum(g,13,1,'DNL (LSB)',p.tdc.dnl);
-            app.Controls.INL=app.addHalfNum(g,13,3,'INL (LSB)',p.tdc.inl);
-            app.Controls.EnableDark=app.addHalfCheck(g,14,1,'启用暗计数',p.detector.enableDark);
-            app.Controls.EnableDead=app.addHalfCheck(g,14,3,'启用死时间',p.detector.enableDeadTime);
-            app.Controls.EnableAfter=app.addHalfCheck(g,15,1,'启用后脉冲',p.detector.enableAfterpulse);
-            app.Controls.EnableTdcJitter=app.addHalfCheck(g,15,3,'启用TDC抖动',p.tdc.enableJitter);
+            [app.Controls.TdcDeadA,app.Controls.TdcDeadB]=app.addPair(g,11,'TDC死时间 (ns)',p.tdc.A.deadTime*1e9,p.tdc.B.deadTime*1e9);
+            [app.Controls.BiasA,app.Controls.BiasB]=app.addPair(g,12,'通道偏置 (ps)',p.tdc.A.bias*1e12,p.tdc.B.bias*1e12);
+            app.Controls.Resolution=app.addWideNum(g,13,'TDC分辨率 LSB (ps)',p.tdc.resolution*1e12);
+            app.Controls.DNL=app.addHalfNum(g,14,1,'DNL (LSB)',p.tdc.dnl);
+            app.Controls.INL=app.addHalfNum(g,14,3,'INL (LSB)',p.tdc.inl);
+            app.Controls.EnableDark=app.addHalfCheck(g,15,1,'启用暗计数',p.detector.enableDark);
+            app.Controls.EnableDead=app.addHalfCheck(g,15,3,'启用探测器死时间',p.detector.enableDeadTime);
+            app.Controls.EnableAfter=app.addHalfCheck(g,16,1,'启用后脉冲',p.detector.enableAfterpulse);
+            app.Controls.EnableTdcJitter=app.addHalfCheck(g,16,3,'启用TDC抖动',p.tdc.enableJitter);
+            app.Controls.EnableTdcDead=app.addHalfCheck(g,17,1,'启用TDC死时间',p.tdc.enableDeadTime);
         end
 
         function buildAlgorithmTab(app,p)
@@ -205,10 +207,12 @@ classdef CoincidenceSimulatorApp < handle
                 p.detector.(ch).afterpulseProbability=c.(['Ap' suffix]).Value;
                 p.detector.(ch).afterpulseLifetime=c.(['ApTau' suffix]).Value*1e-9;
                 p.tdc.(ch).jitter=c.(['TdcJitter' suffix]).Value*1e-12;
+                p.tdc.(ch).deadTime=c.(['TdcDead' suffix]).Value*1e-9;
                 p.tdc.(ch).bias=c.(['Bias' suffix]).Value*1e-12;
             end
             p.detector.enableDark=c.EnableDark.Value; p.detector.enableDeadTime=c.EnableDead.Value;
             p.detector.enableAfterpulse=c.EnableAfter.Value; p.tdc.enableJitter=c.EnableTdcJitter.Value;
+            p.tdc.enableDeadTime=c.EnableTdcDead.Value;
             p.tdc.resolution=c.Resolution.Value*1e-12; p.tdc.dnl=c.DNL.Value; p.tdc.inl=c.INL.Value;
             range=c.Range.Value*1e-9; p.algorithm.histRange=[-range range];
             p.algorithm.binWidth=c.Bin.Value*1e-12; p.algorithm.peakMethod=string(c.Peak.Value);
@@ -239,10 +243,13 @@ classdef CoincidenceSimulatorApp < handle
                 c.(['Dark' s]).Value=p.detector.(ch).darkRate; c.(['Bg' s]).Value=p.detector.(ch).backgroundRate;
                 c.(['Jitter' s]).Value=p.detector.(ch).jitter*1e12; c.(['Dead' s]).Value=p.detector.(ch).deadTime*1e9;
                 c.(['Ap' s]).Value=p.detector.(ch).afterpulseProbability; c.(['ApTau' s]).Value=p.detector.(ch).afterpulseLifetime*1e9;
-                c.(['TdcJitter' s]).Value=p.tdc.(ch).jitter*1e12; c.(['Bias' s]).Value=p.tdc.(ch).bias*1e12;
+                c.(['TdcJitter' s]).Value=p.tdc.(ch).jitter*1e12;
+                c.(['TdcDead' s]).Value=p.tdc.(ch).deadTime*1e9;
+                c.(['Bias' s]).Value=p.tdc.(ch).bias*1e12;
             end
             c.EnableDark.Value=p.detector.enableDark; c.EnableDead.Value=p.detector.enableDeadTime;
             c.EnableAfter.Value=p.detector.enableAfterpulse; c.EnableTdcJitter.Value=p.tdc.enableJitter;
+            c.EnableTdcDead.Value=p.tdc.enableDeadTime;
             c.Resolution.Value=p.tdc.resolution*1e12; c.DNL.Value=p.tdc.dnl; c.INL.Value=p.tdc.inl;
             c.Range.Value=max(abs(p.algorithm.histRange))*1e9; c.Bin.Value=p.algorithm.binWidth*1e12;
             c.Peak.Value=char(p.algorithm.peakMethod); c.Match.Value=char(p.algorithm.matchMethod);
@@ -285,11 +292,13 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function importTimestamps(app)
-            [sf,sp]=uigetfile({'*.txt','TXT 时间戳'},'选择 Start 通道时间戳'); if isequal(sf,0), return; end
-            [tf,tp]=uigetfile({'*.txt','TXT 时间戳'},'选择 Stop 通道时间戳',sp); if isequal(tf,0), return; end
+            filters={'*.txt;*.bin','时间戳文件 (*.txt, *.bin)';'*.txt','TXT 时间戳'; ...
+                '*.bin','SSI DAQ BIN 时间戳'};
+            [sf,sp]=uigetfile(filters,'选择 Start 通道时间戳'); if isequal(sf,0), return; end
+            [tf,tp]=uigetfile(filters,'选择 Stop 通道时间戳',sp); if isequal(tf,0), return; end
             factor=app.Controls.ImportUnit.Value;
             if isnan(factor), factor=app.Controls.ImportLSB.Value*1e-12; end
-            app.setBusy('正在读取并分析双通道 TXT（大文件可能需要一些时间）…');
+            app.setBusy('正在读取并分析双通道 TXT/BIN（大文件可能需要一些时间）…');
             try
                 app.LastResult=importTimestampFiles(fullfile(sp,sf),fullfile(tp,tf),factor,app.readParameters());
                 app.Controls.Time.Value=app.LastResult.params.measurementTime;

@@ -27,6 +27,7 @@ for ch = ["A","B"]
     unitInterval(p.detector.(ch).afterpulseProbability, "afterpulse probability");
     mustBePositive(p.detector.(ch).afterpulseLifetime);
     mustBeNonnegative(p.tdc.(ch).jitter);
+    mustBeNonnegative(p.tdc.(ch).deadTime);
     if ~isscalar(p.tdc.(ch).bias) || ~isfinite(p.tdc.(ch).bias)
         error("CoincidenceSim:InvalidBias", "TDC channel bias must be finite.");
     end

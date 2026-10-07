@@ -41,9 +41,12 @@ p.detector.enableAfterpulse = false;
 
 % TDC 每通道电子学抖动及公共量化分辨率。
 p.tdc.A.jitter = 10e-12; p.tdc.B.jitter = 10e-12;
+p.tdc.A.deadTime = 50e-9; p.tdc.B.deadTime = 50e-9;
 p.tdc.A.bias = 0; p.tdc.B.bias = 0;
 p.tdc.resolution = 10e-12;
 p.tdc.enableJitter = true;
+% TDC 死时间与探测器使用相同的非延长型模型，默认关闭以保持旧版结果。
+p.tdc.enableDeadTime = false;
 % DNL/INL 使用 LSB 为单位；0 表示理想均匀量化。
 p.tdc.dnl = 0;
 p.tdc.inl = 0;

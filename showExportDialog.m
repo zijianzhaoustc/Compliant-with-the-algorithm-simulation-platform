@@ -1,14 +1,14 @@
 function dialogFigure = showExportDialog(parent, out)
 %SHOWEXPORTDIALOG 打开选择性导出窗口。
-%   用户可独立选择设置参数、直方图、计算结果、窗口扫描、时间分窗结果和两路时间戳；
+%   用户可独立选择设置、直方图、结果、扫描、分窗、逐秒分析和时间戳；
 %   时间戳仍采用
 %   每行一个数值、无表头格式，便于再次导入平台。
 
 parentPos=parent.Position;
 dialogFigure=uifigure('Name','选择导出内容','WindowStyle','modal', ...
-    'Position',[parentPos(1)+parentPos(3)/2-220 parentPos(2)+parentPos(4)/2-225 440 450]);
-g=uigridlayout(dialogFigure,[12 2]); g.ColumnWidth={145,'1x'};
-g.RowHeight={30,30,30,30,30,30,30,30,30,30,36,24}; g.Padding=[12 12 12 12];
+    'Position',[parentPos(1)+parentPos(3)/2-220 parentPos(2)+parentPos(4)/2-240 440 480]);
+g=uigridlayout(dialogFigure,[13 2]); g.ColumnWidth={145,'1x'};
+g.RowHeight={30,30,30,30,30,30,30,30,30,30,30,36,24}; g.Padding=[12 12 12 12];
 
 settings=uicheckbox(g,'Text','设置参数 MAT','Value',true); settings.Layout.Row=1; settings.Layout.Column=[1 2];
 histogram=uicheckbox(g,'Text','符合直方图 CSV','Value',true); histogram.Layout.Row=2; histogram.Layout.Column=[1 2];
@@ -24,18 +24,20 @@ if hasTimeWindows, timeWindowText='时间戳分窗直方图与汇总 CSV'; timeW
 else, timeWindowText='时间戳分窗结果（请启用分窗后导入）'; timeWindowEnable='off'; end
 timeWindowResults=uicheckbox(g,'Text',timeWindowText,'Value',hasTimeWindows,'Enable',timeWindowEnable);
 timeWindowResults.Layout.Row=5; timeWindowResults.Layout.Column=[1 2];
-timestamps=uicheckbox(g,'Text','Start/Stop 时间戳 TXT','Value',false); timestamps.Layout.Row=6; timestamps.Layout.Column=[1 2];
+countRates=uicheckbox(g,'Text','每秒计数率与拟合时间性能 CSV','Value',false);
+countRates.Layout.Row=6; countRates.Layout.Column=[1 2];
+timestamps=uicheckbox(g,'Text','Start/Stop 时间戳（导出为 TXT）','Value',false); timestamps.Layout.Row=7; timestamps.Layout.Column=[1 2];
 
-l=uilabel(g,'Text','时间戳/直方图单位'); l.Layout.Row=7; l.Layout.Column=1;
-unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12); unit.Layout.Row=7; unit.Layout.Column=2;
-l=uilabel(g,'Text','文件名前缀'); l.Layout.Row=8; l.Layout.Column=1;
-base=uieditfield(g,'text','Value','coincidence_result'); base.Layout.Row=8; base.Layout.Column=2;
-l=uilabel(g,'Text','导出目录'); l.Layout.Row=9; l.Layout.Column=1;
-folder=uieditfield(g,'text','Value',pwd); folder.Layout.Row=9; folder.Layout.Column=2;
-browse=uibutton(g,'Text','选择目录…','ButtonPushedFcn',@browseFolder); browse.Layout.Row=10; browse.Layout.Column=[1 2];
+l=uilabel(g,'Text','时间戳/直方图单位'); l.Layout.Row=8; l.Layout.Column=1;
+unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12); unit.Layout.Row=8; unit.Layout.Column=2;
+l=uilabel(g,'Text','文件名前缀'); l.Layout.Row=9; l.Layout.Column=1;
+base=uieditfield(g,'text','Value','coincidence_result'); base.Layout.Row=9; base.Layout.Column=2;
+l=uilabel(g,'Text','导出目录'); l.Layout.Row=10; l.Layout.Column=1;
+folder=uieditfield(g,'text','Value',pwd); folder.Layout.Row=10; folder.Layout.Column=2;
+browse=uibutton(g,'Text','选择目录…','ButtonPushedFcn',@browseFolder); browse.Layout.Row=11; browse.Layout.Column=[1 2];
 exportButton=uibutton(g,'Text','开始导出','FontWeight','bold','BackgroundColor',[.16 .52 .35], ...
-    'FontColor','white','ButtonPushedFcn',@doExport); exportButton.Layout.Row=11; exportButton.Layout.Column=[1 2];
-status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=12; status.Layout.Column=[1 2];
+    'FontColor','white','ButtonPushedFcn',@doExport); exportButton.Layout.Row=12; exportButton.Layout.Column=[1 2];
+status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=13; status.Layout.Column=[1 2];
 
     function browseFolder(~,~)
         selected=uigetdir(folder.Value,'选择导出目录');
@@ -46,10 +48,11 @@ status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=12;
         if strlength(string(base.Value))==0, uialert(dialogFigure,'文件名前缀不能为空。','导出错误'); return; end
         options=struct('settings',settings.Value,'histogram',histogram.Value, ...
             'results',results.Value,'sweep',sweepResults.Value, ...
-            'timeWindows',timeWindowResults.Value,'timestamps',timestamps.Value, ...
+            'timeWindows',timeWindowResults.Value,'countRates',countRates.Value, ...
+            'timestamps',timestamps.Value, ...
             'unitSeconds',unit.Value);
         if ~any([options.settings options.histogram options.results options.sweep ...
-                options.timeWindows options.timestamps])
+                options.timeWindows options.countRates options.timestamps])
             uialert(dialogFigure,'至少选择一种导出内容。','导出错误'); return
         end
         try

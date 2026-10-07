@@ -55,11 +55,3 @@ while true
     last = a(end);
 end
 end
-
-function keep = nonParalyzableKeep(t, deadTime)
-%NONPARALYZABLEKEEP 返回非延长型死时间模型下被接受的事件掩码。
-keep = false(size(t)); last = -inf;
-for k = 1:numel(t)
-    if t(k)-last >= deadTime, keep(k) = true; last = t(k); end
-end
-end

@@ -39,6 +39,23 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyTrue(isfinite(out.metrics.PeakSigma));
         end
 
+        function tdcUsesNonParalyzableDeadTime(testCase)
+            % 被拒绝的 10/49/60 ns 事件不得延长死时间；50 和 100 ns 应被接受。
+            p=idealParams(); p.measurementTime=200e-9;
+            p.tdc.enableDeadTime=true; p.tdc.A.deadTime=50e-9;
+            inputTime=[0;10;49;50;60;100]*1e-9;
+            events=struct('time',inputTime,'pairID',(1:6)', ...
+                'type',repmat("signal",6,1));
+            output=simulateTDC(events,p,"A");
+            testCase.verifyEqual(output.time,[0;50;100]*1e-9,'AbsTol',1e-18);
+            testCase.verifyEqual(output.pairID,[1;4;6]);
+
+            % 关闭开关后，同样的死时间参数不应删除任何事件。
+            p.tdc.enableDeadTime=false;
+            unchanged=simulateTDC(events,p,"A");
+            testCase.verifyEqual(unchanged.time,inputTime,'AbsTol',1e-18);
+        end
+
         function trueAndPeakSigmaAreSeparated(testCase)
             % σtrue 必须严格使用 matches.isTrue；实测模式只保留可观测的 σpeak。
             p=idealParams(); p.source.pairRate=1e4; p.measurementTime=.1;
@@ -335,6 +352,104 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(restored.('原始符合计数_Nraw'),[3;3]);
             clear cleanup
         end
+
+        function perSecondCountRateUsesOneSecondNormalization(testCase)
+            % 最后 0.4 s 仍按 1 s 归一化，因此末段 2 个事件对应 2 cps。
+            startFile=[tempname '.txt']; stopFile=[tempname '.txt']; folder=tempname;
+            cleanup=onCleanup(@()cleanupTimestampWindowArtifacts(startFile,stopFile,folder));
+            timestamps=[0;.2;.9;1;1.9;2;2.4];
+            writematrix(timestamps,startFile,'Delimiter','tab');
+            writematrix(timestamps,stopFile,'Delimiter','tab');
+            p=idealParams(); p.algorithm.accidentalMethod="none";
+            out=importTimestampFiles(startFile,stopFile,1,p);
+
+            [rates,timing]=buildPerSecondCountRateTable(out);
+            testCase.verifyEqual(rates.('起始时间_s'),[0;1;2]);
+            testCase.verifyEqual(rates.('终止时间_s'),[1;2;2.4],'AbsTol',1e-12);
+            testCase.verifyEqual(rates.('实际时长_s'),[1;1;.4],'AbsTol',1e-12);
+            testCase.verifyEqual(rates.('计数率归一化时长_s'),ones(3,1));
+            testCase.verifyFalse(ismember('A通道计数',rates.Properties.VariableNames));
+            testCase.verifyFalse(ismember('原始符合计数_Nraw',rates.Properties.VariableNames));
+            testCase.verifyEqual(rates.('A通道计数率_cps'),[3;2;2]);
+            testCase.verifyEqual(rates.('B通道计数率_cps'),[3;2;2]);
+            testCase.verifyEqual(rates.('原始符合计数率_Rraw_cps'),[3;2;2]);
+            testCase.verifyEqual(timing.('起始时间_s'),[0;1;2]);
+            testCase.verifyTrue(all(ismember({'t_peak_ns','sigma_fit_ps','FWHM_fit_ps'}, ...
+                timing.Properties.VariableNames)));
+
+            mkdir(folder);
+            options=struct('settings',false,'histogram',false,'results',false, ...
+                'sweep',false,'timeWindows',false,'countRates',true, ...
+                'timestamps',false,'unitSeconds',1e-12);
+            files=exportSelectedResults(out,folder,"test",options);
+            analysisFolder=fullfile(folder,'test_per_second_analysis');
+            countRateFile=fullfile(analysisFolder,'test_per_second_count_rates.csv');
+            timingFile=fullfile(analysisFolder,'test_per_second_timing_fit.csv');
+            testCase.verifyEqual(files,[string(countRateFile);string(timingFile)]);
+            testCase.verifyTrue(isfolder(analysisFolder));
+            restored=readtable(countRateFile,'Encoding','UTF-8','VariableNamingRule','preserve');
+            testCase.verifyFalse(ismember('A通道计数',restored.Properties.VariableNames));
+            testCase.verifyFalse(ismember('原始符合计数_Nraw',restored.Properties.VariableNames));
+            testCase.verifyEqual(restored.('A通道计数率_cps'),[3;2;2]);
+            restoredTiming=readtable(timingFile,'Encoding','UTF-8','VariableNamingRule','preserve');
+            testCase.verifyTrue(all(ismember({'t_peak_ns','sigma_fit_ps','FWHM_fit_ps'}, ...
+                restoredTiming.Properties.VariableNames)));
+            clear cleanup
+        end
+
+        function perSecondTimingReportsGaussianFit(testCase)
+            % 构造两个相同的一秒时间谱，验证逐秒表输出真实 Gaussian 拟合量。
+            startFile=[tempname '.txt']; stopFile=[tempname '.txt'];
+            cleanup=onCleanup(@()deleteBinaryTimestampArtifacts(startFile,stopFile));
+            sampleCount=201;
+            withinSecond=linspace(.01,.99,sampleCount)';
+            quantile=((1:sampleCount)'-.5)/sampleCount;
+            expectedPeak=.3e-9; expectedSigma=.12e-9;
+            delta=expectedPeak+expectedSigma*sqrt(2)*erfinv(2*quantile-1);
+            startValues=[withinSecond;1+withinSecond];
+            stopValues=startValues+[delta;delta];
+            writematrix(startValues,startFile,'Delimiter','tab');
+            writematrix(stopValues,stopFile,'Delimiter','tab');
+            p=idealParams(); p.algorithm.accidentalMethod="none";
+            out=importTimestampFiles(startFile,stopFile,1,p);
+
+            [~,timing]=buildPerSecondCountRateTable(out);
+            testCase.verifyEqual(timing.('t_peak_ns'),repmat(expectedPeak*1e9,2,1), ...
+                'AbsTol',.03);
+            testCase.verifyEqual(timing.('sigma_fit_ps'),repmat(expectedSigma*1e12,2,1), ...
+                'AbsTol',20);
+            testCase.verifyEqual(timing.('FWHM_fit_ps'), ...
+                2*sqrt(2*log(2))*timing.('sigma_fit_ps'),'AbsTol',1e-9);
+            clear cleanup
+        end
+
+        function ssiDaqBinaryTimestampImport(testCase)
+            % SSI DAQ BIN 使用大端 QString 文件头和分块 double；BIN 单位固定为 ps。
+            startFile=[tempname '.bin']; stopFile=[tempname '.bin'];
+            cleanup=onCleanup(@()deleteBinaryTimestampArtifacts(startFile,stopFile));
+            values=[0;1e12;4.9e12;5e12;7e12;10e12];
+            writeTestSsiDaqBin(startFile,"CH1.bin",{values(1:3),values(4:6)});
+            writeTestSsiDaqBin(stopFile,"CH2.bin",{values(1:2),values(3:6)});
+
+            [restored,metadata]=readSsiDaqTimestampBin(startFile);
+            testCase.verifyEqual(restored,values);
+            testCase.verifyEqual(metadata.magic,"SSI_DAQ_TDC_TIMESTAMP_V1");
+            testCase.verifyEqual(metadata.channelName,"CH1.bin");
+            testCase.verifyEqual(metadata.blockCount,2);
+
+            p=idealParams(); p.algorithm.accidentalMethod="none";
+            % 故意传入错误的 TXT 单位 1 s，验证 BIN 仍固定按 ps 解释。
+            out=importTimestampFiles(startFile,stopFile,1,p);
+            testCase.verifyEqual(out.params.measurementTime,10,'AbsTol',1e-12);
+            testCase.verifyEqual(numel(out.A.time),6);
+            testCase.verifyEqual(numel(out.B.time),6);
+            testCase.verifyEqual(out.metrics.Nraw,6);
+            testCase.verifyEqual(out.source.startFormat,"ssi-daq-bin");
+            testCase.verifyEqual(out.source.stopFormat,"ssi-daq-bin");
+            testCase.verifyEqual(out.source.startChannelName,"CH1.bin");
+            testCase.verifyEqual(out.source.stopChannelName,"CH2.bin");
+            clear cleanup
+        end
     end
 end
 
@@ -353,6 +468,34 @@ function cleanupTimestampWindowArtifacts(startFile,stopFile,folder)
 if isfile(startFile), delete(startFile); end
 if isfile(stopFile), delete(stopFile); end
 if isfolder(folder), rmdir(folder,'s'); end
+end
+
+function writeTestSsiDaqBin(filename,channelName,blocks)
+%WRITETESTSSIDAQBIN 写入最小 SSI DAQ BIN 测试文件。
+fid=fopen(filename,'wb','ieee-be');
+if fid<0, error('TestSimulation:CannotCreateBinary','无法创建测试 BIN。'); end
+cleanup=onCleanup(@()fclose(fid));
+writeQtString(fid,"SSI_DAQ_TDC_TIMESTAMP_V1");
+writeQtString(fid,channelName);
+for k=1:numel(blocks)
+    block=blocks{k}(:);
+    fwrite(fid,numel(block),'uint32');
+    fwrite(fid,block,'double');
+end
+clear cleanup
+end
+
+function writeQtString(fid,value)
+%WRITEQTSTRING 按大端 UTF-16 字节长度格式写入测试 QString。
+codeUnits=uint16(char(value));
+fwrite(fid,2*numel(codeUnits),'uint32');
+fwrite(fid,codeUnits,'uint16');
+end
+
+function deleteBinaryTimestampArtifacts(startFile,stopFile)
+%DELETEBINARYTIMESTAMPARTIFACTS 清理 SSI DAQ BIN 测试输入。
+if isfile(startFile), delete(startFile); end
+if isfile(stopFile), delete(stopFile); end
 end
 
 function p=idealParams()

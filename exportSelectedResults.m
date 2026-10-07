@@ -1,7 +1,7 @@
 function files = exportSelectedResults(out, folder, baseName, options)
-%EXPORTSELECTEDRESULTS 按用户选择导出设置、直方图、结果表、窗口扫描和时间戳。
-%   OPTIONS 包含 settings、histogram、results、sweep、timeWindows、timestamps、
-%   unitSeconds 字段。为兼容旧调用，缺少 sweep/timeWindows 字段时默认不导出。
+%EXPORTSELECTEDRESULTS 按用户选择导出设置、直方图、结果表、扫描和时间戳。
+%   OPTIONS 包含 settings、histogram、results、sweep、timeWindows、countRates、
+%   timestamps、unitSeconds 字段。缺少新增字段时默认不导出，以兼容旧调用。
 %   时间戳文件采用与实测样例相同的“每行一个数值、无表头”格式。
 
 if ~isfolder(folder), mkdir(folder); end
@@ -53,6 +53,18 @@ if isfield(options,'timeWindows') && options.timeWindows
         writeUtf8BomTable(histogramTable,histogramFile);
         files(end+1,1)=histogramFile;
     end
+end
+if isfield(options,'countRates') && options.countRates
+    % 逐秒计数率和拟合时间性能不进入右侧指标表，只在勾选时计算；两张表
+    % 集中写入同一目录，便于对导入 TXT/BIN 的同一秒数据进行联合分析。
+    [countRateTable,timingTable]=buildPerSecondCountRateTable(out);
+    analysisFolder=fullfile(folder,baseName+"_per_second_analysis");
+    if ~isfolder(analysisFolder), mkdir(analysisFolder); end
+    countRateFile=fullfile(analysisFolder,baseName+"_per_second_count_rates.csv");
+    timingFile=fullfile(analysisFolder,baseName+"_per_second_timing_fit.csv");
+    writeUtf8BomTable(countRateTable,countRateFile);
+    writeUtf8BomTable(timingTable,timingFile);
+    files=[files;string(countRateFile);string(timingFile)];
 end
 if options.timestamps
     origin=0;
