@@ -31,7 +31,8 @@ p.detector.A.darkRate = 500; p.detector.B.darkRate = 500;
 p.detector.A.backgroundRate = 0; p.detector.B.backgroundRate = 0;
 p.detector.A.jitter = 150e-12; p.detector.B.jitter = 150e-12;
 p.detector.A.deadTime = 50e-9; p.detector.B.deadTime = 50e-9;
-% 后脉冲采用“发生概率 + 指数延迟寿命”模型。
+% 每个通过死时间判定的雪崩，以给定概率生成一个指数延迟后脉冲。
+% 后脉冲同样接受死时间判定；只有被接受时才可能继续生成下一代。
 p.detector.A.afterpulseProbability = 0.05; p.detector.B.afterpulseProbability = 0.05;
 p.detector.A.afterpulseLifetime = 50e-9; p.detector.B.afterpulseLifetime = 50e-9;
 % 各非理想效应可独立开关，便于进行对照实验。

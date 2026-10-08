@@ -24,6 +24,8 @@ normalizationSeconds=ones(nWindows,1);
 rateA=zeros(nWindows,1); rateB=zeros(nWindows,1);
 rRaw=zeros(nWindows,1); rAcc=zeros(nWindows,1); rNet=zeros(nWindows,1);
 method=strings(nWindows,1);
+etaW=nan(nWindows,1); epsilonAcc=nan(nWindows,1);
+epsilonNet=nan(nWindows,1); gEff=nan(nWindows,1);
 tPeakNs=nan(nWindows,1);
 sigmaFitPs=nan(nWindows,1);
 fwhmFitPs=nan(nWindows,1);
@@ -49,6 +51,10 @@ for k=1:nWindows
     rRaw(k)=result.metrics.Rraw; rAcc(k)=result.metrics.Racc;
     rNet(k)=result.metrics.Rnet;
     method(k)=accidentalMethodDisplayName(result.metrics.AccidentalMethod);
+    etaW(k)=result.metrics.EtaW;
+    epsilonAcc(k)=result.metrics.EpsilonAcc;
+    epsilonNet(k)=result.metrics.EpsilonNet;
+    gEff(k)=result.metrics.Geff;
 
     % 时间性能明确要求拟合量，因此不受界面“最大值/高斯拟合”选择影响。
     % 匹配结果仍完全遵循当前界面的事件匹配算法和直方图范围、bin 宽设置。
@@ -65,11 +71,12 @@ end
 % 每段固定按 1 s 归一化，因此计数与 cps 数值完全相同；导出只保留计数率，
 % 避免同一信息以“计数”和“计数率”重复出现。
 rateTable=table(index,startSeconds,stopSeconds,actualDuration,normalizationSeconds, ...
-    rateA,rateB,rRaw,rAcc,rNet,method, ...
+    rateA,rateB,rRaw,rAcc,rNet,method,etaW,epsilonAcc,epsilonNet,gEff, ...
     'VariableNames',{'秒序号','起始时间_s','终止时间_s','实际时长_s', ...
     '计数率归一化时长_s','A通道计数率_cps','B通道计数率_cps', ...
     '原始符合计数率_Rraw_cps','偶然符合计数率_Racc_cps', ...
-    '净符合计数率_Rnet_cps','偶然符合修正算法'});
+    '净符合计数率_Rnet_cps','偶然符合修正算法', ...
+    'eta_W','epsilon_acc','epsilon_net','g_eff'});
 
 % 拟合时间性能单独成表，导出时与计数率表放入同一个逐秒分析目录。
 timingTable=table(index,startSeconds,stopSeconds,actualDuration, ...

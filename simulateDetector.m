@@ -1,7 +1,8 @@
 function events = simulateDetector(photons, p, channel)
 %SIMULATEDETECTOR 模拟单通道探测器及记录电子学。
 %   EVENTS = SIMULATEDETECTOR(PHOTONS,P,CHANNEL) 依次施加 PDE/记录效率、
-%   探测器 Gaussian 抖动、暗计数、后脉冲、采集区间裁剪和非延长型死时间。
+%   探测器 Gaussian 抖动、暗计数/背景和采集区间裁剪，再按时间顺序处理
+%   非延长型死时间与后脉冲；只有被接受的雪崩才可生成下一代后脉冲。
 %   信号事件保留原 pairID；暗计数和后脉冲的 pairID 固定为 0。
 
 cfg = p.detector.(channel);
@@ -23,25 +24,23 @@ if cfg.backgroundRate > 0
     time = [time; background]; pairID = [pairID; zeros(numel(background),1)];
     type = [type; repmat("background",numel(background),1)];
 end
-if p.detector.enableAfterpulse && cfg.afterpulseProbability > 0 && ~isempty(time)
-    % 每次已有 avalanche 以给定概率触发一个指数延迟后脉冲。
-    make = rand(size(time)) < cfg.afterpulseProbability;
-    ap = time(make) - cfg.afterpulseLifetime*log(rand(nnz(make),1));
-    inside = ap >= 0 & ap <= p.measurementTime;
-    time = [time; ap(inside)]; pairID = [pairID; zeros(nnz(inside),1)];
-    type = [type; repmat("afterpulse",nnz(inside),1)];
-end
 % 合并各种事件后按时间排序，同时保持 pairID/type 对齐。
 [time, order] = sort(time); pairID = pairID(order); type = type(order);
-% 探测器抖动或后脉冲延迟可能使事件超出有效采集区间。
+% 先裁剪抖动造成的越界原始候选；后脉冲生成时另外检查采集终点。
 inside = time >= 0 & time <= p.measurementTime;
 time = time(inside); pairID = pairID(inside); type = type(inside);
-if p.detector.enableDeadTime && cfg.deadTime > 0
+events = struct("time",time,"pairID",pairID,"type",type);
+if p.detector.enableAfterpulse && cfg.afterpulseProbability > 0
+    deadTime=0;
+    if p.detector.enableDeadTime, deadTime=cfg.deadTime; end
+    events=processDetectorAvalanches(events,deadTime,cfg.afterpulseProbability, ...
+        cfg.afterpulseLifetime,p.measurementTime);
+elseif p.detector.enableDeadTime && cfg.deadTime > 0
     % 非延长型模型只由最近一次“被接受”事件开启死时间。
     keep = nonParalyzableKeep(time, cfg.deadTime);
     time = time(keep); pairID = pairID(keep); type = type(keep);
+    events = struct("time",time,"pairID",pairID,"type",type);
 end
-events = struct("time",time,"pairID",pairID,"type",type);
 end
 
 function t = localPoissonTimes(rate, duration)

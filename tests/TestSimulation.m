@@ -56,6 +56,64 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(unchanged.time,inputTime,'AbsTol',1e-18);
         end
 
+        function rejectedPrimariesDoNotSeedAfterpulses(testCase)
+            % 插入必被死时间拒绝的原始事件，不能改变输出或后脉冲随机抽样。
+            primary=struct('time',0,'pairID',1,'type',"signal");
+            extra=struct('time',[0;.01],'pairID',[1;2], ...
+                'type',["signal";"signal"]);
+            rng(37); expected=processDetectorAvalanches(primary,.1,.8,.5,10);
+            rng(37); actual=processDetectorAvalanches(extra,.1,.8,.5,10);
+            testCase.verifyEqual(actual,expected);
+        end
+
+        function afterpulsesRecurAndObeyDeadTime(testCase)
+            % 概率为 1 时，接受的后脉冲可产生第二代；落在死时间内则终止该链。
+            primary=struct('time',0,'pairID',1,'type',"signal");
+            rng(37); rand; first=-log(rand); rand; second=first-log(rand);
+            rng(37); recursive=processDetectorAvalanches(primary,0,1,1,second);
+            testCase.verifyEqual(recursive.time,[0;first;second],'AbsTol',1e-14);
+            testCase.verifyEqual(recursive.pairID,[1;0;0]);
+            testCase.verifyEqual(recursive.type,["signal";"afterpulse";"afterpulse"]);
+            rng(37); rejected=processDetectorAvalanches(primary,2*first,1,1,10*second);
+            testCase.verifyEqual(rejected,primary);
+
+            % 接受的后脉冲也开启死时间，能拒绝其后到达的原始事件。
+            deadTime=first/2;
+            primary.time=[0;first+deadTime/2]; primary.pairID=[1;2];
+            primary.type=["signal";"signal"];
+            rng(37); coupled=processDetectorAvalanches(primary,deadTime,1,1,second+1);
+            testCase.verifyFalse(any(coupled.pairID==2));
+            testCase.verifyGreaterThanOrEqual(diff(coupled.time), ...
+                repmat(deadTime,numel(coupled.time)-1,1));
+        end
+
+        function avalancheQueueMatchesSortedReference(testCase)
+            % 用独立的逐次排序参考实现检验多个待处理后脉冲的时间顺序。
+            primary=struct('time',(0:.1:5)','pairID',(1:51)', ...
+                'type',repmat("signal",51,1));
+            rng(23); expected=referenceAvalanches(primary,.03,.8,.5,6);
+            rng(23); actual=processDetectorAvalanches(primary,.03,.8,.5,6);
+            testCase.verifyEqual(actual,expected);
+        end
+
+        function detectorRoutesThroughCoupledAvalanches(testCase)
+            % 验证探测器入口使用耦合逻辑，且无后脉冲时仍遵循非延长型死时间。
+            p=idealParams(); p.measurementTime=1;
+            p.detector.enableDeadTime=true; p.detector.A.deadTime=.1;
+            p.detector.enableAfterpulse=true;
+            p.detector.A.afterpulseProbability=.8; p.detector.A.afterpulseLifetime=.2;
+            photons=struct('time',[0;.01;.4],'pairID',[1;2;3]);
+            primary=photons; primary.type=repmat("signal",3,1);
+            rng(71); rand(3,1); randn(3,1); % 与入口的效率/抖动抽样对齐。
+            expected=processDetectorAvalanches(primary,.1,.8,.2,1);
+            rng(71); actual=simulateDetector(photons,p,"A");
+            testCase.verifyEqual(actual,expected);
+            p.detector.enableAfterpulse=false;
+            rng(71); actual=simulateDetector(photons,p,"A");
+            testCase.verifyEqual(actual.time,[0;.4]);
+            testCase.verifyEqual(actual.pairID,[1;3]);
+        end
+
         function trueAndPeakSigmaAreSeparated(testCase)
             % σtrue 必须严格使用 matches.isTrue；实测模式只保留可观测的 σpeak。
             p=idealParams(); p.source.pairRate=1e4; p.measurementTime=.1;
@@ -236,6 +294,49 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyGreaterThan(m.WindowCaptureRate,.99);
         end
 
+        function truthEvaluationMetricsFollowCountDefinitions(testCase)
+            % 四个可记录真实对，但算法只找到两个 TP；几何落窗比例仍为 1。
+            p=idealParams(); p.measurementTime=2;
+            A=struct('time',[0;.2;.4;.6],'pairID',(1:4)', ...
+                'type',repmat("signal",4,1));
+            B=A; B.time=A.time+.01;
+            matches=struct('deltaT',[.01;.01;.02;.03], ...
+                'isTrue',[true;true;false;false]);
+            raw=struct('mask',true(4,1),'count',4,'rate',2,'window',.1, ...
+                'matchesIsTrue',matches.isTrue);
+            acc=struct('rate',1.5,'countEquivalent',3,'method',"theory");
+            h=struct('peak',.01,'sigma',.001,'fwhm',.002355);
+            m=calculateMetrics(A,B,matches,raw,acc,h,p,"simulation");
+            testCase.verifyEqual(m.Nrec,4); testCase.verifyEqual(m.Nnet,1);
+            testCase.verifyEqual(m.EtaW,.5);
+            testCase.verifyEqual(m.WindowCaptureRate,1);
+            testCase.verifyEqual(m.EpsilonAcc,.5);
+            testCase.verifyEqual(m.EpsilonNet,-.5);
+            testCase.verifyEqual(m.Geff,2.5,'AbsTol',1e-12);
+
+            % 减少偶然估计后，误差符号应翻转；geff 随实际全宽反比变化。
+            acc.rate=.25; acc.countEquivalent=.5; raw.window=.05;
+            m=calculateMetrics(A,B,matches,raw,acc,h,p,"simulation");
+            testCase.verifyEqual(m.EpsilonAcc,-.75);
+            testCase.verifyEqual(m.EpsilonNet,.75);
+            testCase.verifyEqual(m.Geff,5,'AbsTol',1e-12);
+
+            % FP=0 时偶然相对误差无定义；不能输出无穷大或伪造为零。
+            raw.mask=[true;true;false;false]; raw.count=2; raw.rate=1;
+            m=calculateMetrics(A,B,matches,raw,acc,h,p,"simulation");
+            testCase.verifyTrue(isnan(m.EpsilonAcc));
+            testCase.verifyEqual(m.Geff,0);
+
+            % 空仿真有已知零真值，但全部归一化评价指标的分母均为零。
+            A.time=zeros(0,1); A.pairID=zeros(0,1); A.type=strings(0,1); B=A;
+            matches.deltaT=zeros(0,1); matches.isTrue=false(0,1);
+            raw.mask=false(0,1); raw.matchesIsTrue=false(0,1); raw.count=0; raw.rate=0;
+            acc.rate=0; acc.countEquivalent=0;
+            m=calculateMetrics(A,B,matches,raw,acc,h,p,"simulation");
+            testCase.verifyEqual([m.Nrec m.TP m.FP],[0 0 0]);
+            testCase.verifyTrue(all(isnan([m.EtaW m.EpsilonAcc m.EpsilonNet m.Geff])));
+        end
+
         function resultSummaryMatchesRequestedGroups(testCase)
             % GUI 与 CSV 共用的结果表必须包含截图要求的四个分组和精简效率项。
             p=idealParams(); p.source.pairRate=2000; p.measurementTime=.1;
@@ -249,6 +350,8 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyTrue(any(names=="偶然符合修正算法"));
             testCase.verifyTrue(any(names=="符合估计 PDEA / PDEB"));
             testCase.verifyTrue(any(names=="符合估计双路联合探测效率"));
+            testCase.verifyTrue(all(ismember(["窗口捕获率 ηW","偶然符合误差 εacc", ...
+                "净符合恢复误差 εnet","有效局部背景因子 geff"],names)));
         end
 
         function timestampConnectionClasses(testCase)
@@ -286,15 +389,20 @@ classdef TestSimulation < matlab.unittest.TestCase
             out=runSimulation(p); widths=[.1;.2;.5]*1e-9;
             sweep=sweepCoincidenceWindow(out,widths);
             sweepTable=buildSweepSummaryTable(sweep);
-            testCase.verifySize(sweepTable,[3 18]);
+            testCase.verifySize(sweepTable,[3 22]);
             testCase.verifyEqual(sweepTable.('窗口大小_ns'),[.1;.2;.5],'AbsTol',1e-12);
             expected=["偶然符合修正算法","Nraw_count","Nacc_count", ...
                 "Rraw_cps","Racc_cps","Rnet_cps","Precision","Recall", ...
-                "F1","窗口捕获率","CAR","SNR"];
+                "F1","几何窗口捕获率","CAR","SNR", ...
+                "eta_W","epsilon_acc","epsilon_net","g_eff"];
             testCase.verifyTrue(all(ismember(expected,string(sweepTable.Properties.VariableNames))));
             testCase.verifyEqual(sweepTable.('偶然符合修正算法'),repmat("理论法",3,1));
             testCase.verifyEqual(sweepTable.Nraw_count,sweep.Nraw);
             testCase.verifyEqual(sweepTable.Nacc_count,sweep.Nacc);
+            testCase.verifyEqual(sweepTable.eta_W,sweep.EtaW);
+            testCase.verifyEqual(sweepTable.epsilon_acc,sweep.EpsilonAcc);
+            testCase.verifyEqual(sweepTable.epsilon_net,sweep.EpsilonNet);
+            testCase.verifyEqual(sweepTable.g_eff,sweep.Geff);
         end
 
         function selectiveExportWritesSweepCsv(testCase)
@@ -314,6 +422,10 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(exported.Nraw_count,out.sweep.Nraw);
             % CSV 十进制文本往返允许机器精度量级的浮点舍入误差。
             testCase.verifyEqual(exported.Nacc_count,out.sweep.Nacc,'AbsTol',1e-15);
+            testCase.verifyEqual(exported.eta_W,out.sweep.EtaW,'AbsTol',1e-12);
+            testCase.verifyEqual(exported.epsilon_acc,out.sweep.EpsilonAcc,'AbsTol',1e-12);
+            testCase.verifyEqual(exported.epsilon_net,out.sweep.EpsilonNet,'AbsTol',1e-12);
+            testCase.verifyEqual(exported.g_eff,out.sweep.Geff,'AbsTol',1e-12);
             clear cleanup
         end
 
@@ -330,6 +442,17 @@ classdef TestSimulation < matlab.unittest.TestCase
             p.algorithm.timestampWindowSize=5;
             out=importTimestampFiles(startFile,stopFile,1,p);
             testCase.verifyTrue(isfield(out,'timeWindows'));
+            testCase.verifyTrue(all(isnan([out.metrics.EtaW out.metrics.EpsilonAcc ...
+                out.metrics.EpsilonNet out.metrics.Geff])));
+            metricTable=buildMetricSummaryTable(out);
+            evaluationRows=ismember(string(metricTable.('参数')), ...
+                ["窗口捕获率 ηW","偶然符合误差 εacc","净符合恢复误差 εnet", ...
+                "有效局部背景因子 geff"]);
+            testCase.verifyEqual(nnz(evaluationRows),4);
+            testCase.verifyEqual(string(metricTable.('数值')(evaluationRows)),repmat("N/A",4,1));
+            importedSweep=buildSweepSummaryTable(sweepCoincidenceWindow(out,[1;2]*1e-9));
+            testCase.verifyTrue(all(isnan(importedSweep{:, ...
+                {'eta_W','epsilon_acc','epsilon_net','g_eff'}}),'all'));
             testCase.verifyEqual(out.timeWindows.count,2);
             summary=buildTimeWindowSummaryTable(out.timeWindows);
             testCase.verifyEqual(summary.('起始时间_s'),[0;5]);
@@ -350,6 +473,8 @@ classdef TestSimulation < matlab.unittest.TestCase
                 'test_time_window_0001_histogram.csv')));
             restored=readtable(summaryFile,'Encoding','UTF-8','VariableNamingRule','preserve');
             testCase.verifyEqual(restored.('原始符合计数_Nraw'),[3;3]);
+            testCase.verifyTrue(all(isnan(restored{:, ...
+                {'eta_W','epsilon_acc','epsilon_net','g_eff'}}),'all'));
             clear cleanup
         end
 
@@ -391,6 +516,8 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyFalse(ismember('A通道计数',restored.Properties.VariableNames));
             testCase.verifyFalse(ismember('原始符合计数_Nraw',restored.Properties.VariableNames));
             testCase.verifyEqual(restored.('A通道计数率_cps'),[3;2;2]);
+            testCase.verifyTrue(all(isnan(restored{:, ...
+                {'eta_W','epsilon_acc','epsilon_net','g_eff'}}),'all'));
             restoredTiming=readtable(timingFile,'Encoding','UTF-8','VariableNamingRule','preserve');
             testCase.verifyTrue(all(ismember({'t_peak_ns','sigma_fit_ps','FWHM_fit_ps'}, ...
                 restoredTiming.Properties.VariableNames)));
@@ -448,6 +575,8 @@ classdef TestSimulation < matlab.unittest.TestCase
             testCase.verifyEqual(out.source.stopFormat,"ssi-daq-bin");
             testCase.verifyEqual(out.source.startChannelName,"CH1.bin");
             testCase.verifyEqual(out.source.stopChannelName,"CH2.bin");
+            testCase.verifyTrue(all(isnan([out.metrics.EtaW out.metrics.EpsilonAcc ...
+                out.metrics.EpsilonNet out.metrics.Geff])));
             clear cleanup
         end
     end
@@ -496,6 +625,27 @@ function deleteBinaryTimestampArtifacts(startFile,stopFile)
 %DELETEBINARYTIMESTAMPARTIFACTS 清理 SSI DAQ BIN 测试输入。
 if isfile(startFile), delete(startFile); end
 if isfile(stopFile), delete(stopFile); end
+end
+
+function events=referenceAvalanches(queue,deadTime,probability,lifetime,duration)
+%REFERENCEAVALANCHES 小规模测试参考：每次插入后全量排序，不使用堆。
+events=struct('time',zeros(0,1),'pairID',zeros(0,1),'type',strings(0,1));
+last=-inf;
+while ~isempty(queue.time)
+    [~,order]=sort(queue.time);
+    index=order(1); t=queue.time(index); id=queue.pairID(index); kind=queue.type(index);
+    queue.time(index)=[]; queue.pairID(index)=[]; queue.type(index)=[];
+    if t-last<deadTime, continue; end
+    last=t;
+    events.time(end+1,1)=t; events.pairID(end+1,1)=id; events.type(end+1,1)=kind;
+    if rand<probability
+        afterTime=t-lifetime*log(rand);
+        if afterTime<=duration
+            queue.time(end+1,1)=afterTime; queue.pairID(end+1,1)=0;
+            queue.type(end+1,1)="afterpulse";
+        end
+    end
+end
 end
 
 function p=idealParams()

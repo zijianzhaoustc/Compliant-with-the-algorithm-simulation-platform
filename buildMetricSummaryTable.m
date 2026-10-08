@@ -27,7 +27,11 @@ rows={
     '查准率 P',fmt(m.Precision),'TP/(TP+FP)';
     '查全率 R',fmt(m.Recall),'TP/(TP+FN)';
     '调和平均数 F1',fmt(m.F1),'2PR/(P+R)';
-    '符合窗口捕获率',fmt(m.WindowCaptureRate),'当前窗口捕获的可记录真实符合比例';
+    '符合窗口几何捕获率',fmt(m.WindowCaptureRate),'仅检查真实对时差落窗比例，不含匹配算法漏配';
+    '窗口捕获率 ηW',fmt(m.EtaW),'TP/Nrec；Nrec 为双通道共有的不同非零 pairID 数';
+    '偶然符合误差 εacc',fmt(m.EpsilonAcc),'(Nacc-FP)/FP；有符号相对误差，仅仿真';
+    '净符合恢复误差 εnet',fmt(m.EpsilonNet),'(Nnet-TP)/TP；Nnet 为实际修正后的计数，仅仿真';
+    '有效局部背景因子 geff',fmt(m.Geff),'FP/(RA·RB·W·T)；W 为实际窗口全宽，仅仿真';
     '【系统效率与性能】','','';
     'CAR',fmt(m.CAR),'Rnet/Racc';
     'SNR',fmt(m.SNR),'Nnet/sqrt(Nraw+Nacc)';

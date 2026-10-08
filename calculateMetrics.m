@@ -9,7 +9,9 @@ function m = calculateMetrics(A, B, matches, raw, acc, histResult, p, dataMode)
 T=p.measurementTime;
 % 暗计数和后脉冲使用 pairID=0，不能进入真实 pair 集合。
 idsA=unique(A.pairID(A.pairID>0)); idsB=unique(B.pairID(B.pairID>0));
-hasTruth=~isempty(idsA) || ~isempty(idsB);
+% 空仿真或仅含噪声的仿真同样拥有真值：此时 Nrec/TP 为 0，而非未知。
+hasTruth=string(dataMode)=="simulation" || ~isempty(idsA) || ~isempty(idsB);
+eligible=NaN;
 if hasTruth
     eligible=numel(intersect(idsA,idsB));
     selectedTrue = raw.matchesIsTrue(raw.mask);
@@ -31,10 +33,20 @@ m.Rraw=raw.rate; m.Racc=acc.rate; m.Rnet=rNet; m.Rtrue=rTrue;
 % Nacc 是偶然估计率在本次测量时长内对应的期望计数，可能为小数。
 m.Nraw=raw.count;
 m.Nacc=acc.countEquivalent;
+m.Nnet=rNet*T;
+m.Nrec=eligible;
 m.AccidentalMethod=string(acc.method);
 m.AccidentalFraction=safeDivide(m.Racc,m.Rraw);
 m.TP=tp; m.FP=fp; m.FN=fn;
 m.Precision=precision; m.Recall=recall; m.F1=f1;
+% 截图中的四个真值评价指标，均为无量纲、有符号相对量。
+% Nrec 是完整链路后双通道共有的不同正 pairID 数；TP/FP 只统计当前
+% 算法选中的窗内匹配。Rs/Ri 采用 A/B 总计数率，W 使用实际窗口全宽。
+% 与下方纯几何 WindowCaptureRate 不同，EtaW 也体现匹配算法的漏配。
+m.EtaW=truthRatio(tp,eligible);
+m.EpsilonAcc=truthRatio(m.Nacc-fp,fp);
+m.EpsilonNet=truthRatio(m.Nnet-tp,tp);
+m.Geff=truthRatio(fp,m.RA*m.RB*raw.window*T);
 % PeakSigma 来自实际符合时间谱的寻峰/拟合；TrueSigma 则只对
 % pairID 相同的匹配时间差计算 N-1 归一化的样本标准差。
 m.PeakPosition=histResult.peak;
@@ -102,6 +114,15 @@ if isfield(p,"analysis") && isfield(p.analysis,"sourceCount") && isfinite(p.anal
     m.EtaJointEstimate=safeDivide(rNet,p.analysis.sourceCount/T);
 else
     m.EtaJointEstimate=NaN;
+end
+end
+
+function y=truthRatio(numerator,denominator)
+%TRUTHRATIO 真值未知或分母为零时返回 NaN，避免报告不存在的相对误差。
+if ~isfinite(numerator) || ~isfinite(denominator) || denominator<=0
+    y=NaN;
+else
+    y=numerator/denominator;
 end
 end
 

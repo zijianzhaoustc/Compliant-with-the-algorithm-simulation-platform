@@ -11,6 +11,7 @@ durationSeconds=stopSeconds-startSeconds;
 countA=zeros(n,1); countB=zeros(n,1);
 nRaw=zeros(n,1); nAcc=zeros(n,1); nNet=zeros(n,1);
 method=strings(n,1);
+etaW=nan(n,1); epsilonAcc=nan(n,1); epsilonNet=nan(n,1); gEff=nan(n,1);
 
 for k=1:n
     result=windowed.results{k};
@@ -20,11 +21,16 @@ for k=1:n
     nAcc(k)=result.metrics.Nacc;
     nNet(k)=max(0,nRaw(k)-nAcc(k));
     method(k)=accidentalMethodDisplayName(result.metrics.AccidentalMethod);
+    etaW(k)=result.metrics.EtaW;
+    epsilonAcc(k)=result.metrics.EpsilonAcc;
+    epsilonNet(k)=result.metrics.EpsilonNet;
+    gEff(k)=result.metrics.Geff;
 end
 
 summary=table(index,startSeconds,stopSeconds,durationSeconds,countA,countB, ...
-    nRaw,nAcc,nNet,method,'VariableNames', ...
+    nRaw,nAcc,nNet,method,etaW,epsilonAcc,epsilonNet,gEff,'VariableNames', ...
     {'分窗序号','起始时间_s','终止时间_s','有效时长_s','A通道计数', ...
     'B通道计数','原始符合计数_Nraw','偶然符合计数_Nacc', ...
-    '净符合计数_Nnet','偶然符合修正算法'});
+    '净符合计数_Nnet','偶然符合修正算法', ...
+    'eta_W','epsilon_acc','epsilon_net','g_eff'});
 end
