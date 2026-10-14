@@ -1,0 +1,2 @@
+﻿duration_s,channel1_count,channel2_count,channel1_rate_cps,channel2_rate_cps,Nraw_count,Nacc_side_count,Nnet_signed_count,actual_window_ps,peak_ps,sigma_ps,FWHM_ps,count_status,fit_status,warnings
+0.0999868408742373,8796,8892,87971.5762903595,88931.7026345926,541,353,188,70,4964.99956537938,206.959217922357,487.351714867496,OK,GAUSSIAN,"Specified side bins may contain the true peak tail; accidental estimate is a protocol value, not ground truth."

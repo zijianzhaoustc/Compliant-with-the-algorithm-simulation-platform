@@ -17,6 +17,8 @@ classdef CoincidenceSimulatorApp < handle
         ResultTable
         StatusLabel
         LastResult
+        WorkspaceTabs
+        DualTdcPanel
     end
 
     methods
@@ -41,7 +43,11 @@ classdef CoincidenceSimulatorApp < handle
             figBottom=max(1,screen(2)+(screen(4)-figHeight)/2);
             app.UIFigure=uifigure('Name','MATLAB 光子符合仿真与时间戳分析平台', ...
                 'Position',[figLeft figBottom figWidth figHeight],'Color',[0.965 0.975 0.985]);
-            main=uigridlayout(app.UIFigure,[1 3]);
+            pages=uigridlayout(app.UIFigure,[1 1]); pages.Padding=[0 0 0 0];
+            app.WorkspaceTabs=uitabgroup(pages);
+            originalPage=uitab(app.WorkspaceTabs,'Title','SPDC 仿真 / 单 TDC 分析');
+            dualPage=uitab(app.WorkspaceTabs,'Title','双 TDC 时间戳对比分析');
+            main=uigridlayout(originalPage,[1 3]);
             main.ColumnWidth={520,'1x',430}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
 
             % 左栏：上方三个自适应参数页，下方局部时间戳及时间范围设置。
@@ -75,6 +81,7 @@ classdef CoincidenceSimulatorApp < handle
             app.addActionButton(right,7,'选择性导出…',[0.78 0.43 0.18],@(~,~)app.openExport());
             app.StatusLabel=uilabel(right,'Text','就绪：可运行仿真或导入双通道 TXT', ...
                 'FontColor',[.18 .25 .34]); app.StatusLabel.Layout.Row=8;
+            app.DualTdcPanel=DualTdcComparisonPanel(dualPage,@()app.readParameters());
         end
 
         function buildSourceTab(app,p)

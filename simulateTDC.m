@@ -1,9 +1,10 @@
-function events = simulateTDC(events, p, channel)
+function [events, stats] = simulateTDC(events, p, channel)
 %SIMULATETDC 模拟 FPGA-TDC 的电子学抖动、时间量化和死时间。
 %   EVENTS = SIMULATETDC(EVENTS,P,CHANNEL) 对探测器输出事件添加指定通道
 %   的零均值 Gaussian 抖动，再按公共 TDC 分辨率舍入到最近量化格点；
 %   启用时，最后使用与探测器相同的非延长型死时间模型筛除事件。
 
+stats.inputCount=numel(events.time);
 % 电子学抖动和探测器抖动分开建模，便于验证方差平方和规律。
 if p.tdc.enableJitter
     events.time = events.time + p.tdc.(channel).jitter*randn(size(events.time));
@@ -32,4 +33,7 @@ if p.tdc.enableDeadTime && p.tdc.(channel).deadTime>0
     events.time=events.time(keep); events.pairID=events.pairID(keep);
     events.type=events.type(keep);
 end
+stats.acceptedCount=numel(events.time);
+stats.inputRate=stats.inputCount/p.measurementTime;
+stats.acceptedRate=stats.acceptedCount/p.measurementTime;
 end

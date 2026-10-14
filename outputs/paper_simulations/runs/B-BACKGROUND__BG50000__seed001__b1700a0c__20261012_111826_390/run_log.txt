@@ -1,0 +1,8 @@
+mode=smoke
+revision=8542088
+status=OK
+elapsed_s=0.177008
+N_generated=19997
+events_A=9735
+events_B=9846
+match_pairs=4378

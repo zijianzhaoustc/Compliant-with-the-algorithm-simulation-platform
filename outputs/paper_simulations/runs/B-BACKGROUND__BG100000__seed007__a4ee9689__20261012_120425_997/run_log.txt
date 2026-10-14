@@ -1,0 +1,8 @@
+mode=full
+revision=8542088
+status=OK
+elapsed_s=2.288165
+N_generated=2.00166e+06
+events_A=1.0809e+06
+events_B=1.07967e+06
+match_pairs=446557

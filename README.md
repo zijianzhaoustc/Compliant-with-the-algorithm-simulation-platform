@@ -161,3 +161,30 @@ out = importTimestampFiles("StartCh.txt", "StopCh.txt", 1e-12, p); % 1 ps/单位
 - `tests/TestSimulation.m`：基础物理与确定性回归测试
 
 默认参数下，符合峰应位于约 `+5 ns`，理论标准差约为 `213 ps`。
+
+## 双 TDC 时间戳对比
+
+运行 `launchCoincidenceSimulator`，切换到新增的“双 TDC 时间戳对比分析”页面。
+按 F1/F2（FPGA）与 S1/S2（Swabian）选择四个文件，设置两台设备的 TXT 原始单位，
+点击“导入四路并分析”。TXT 单列数值与 SSI DAQ BIN 格式均沿用原约定。
+
+```matlab
+o = defaultDualTdcOptions();
+out = importDualTdcFiles('F1.txt','F2.txt','S1.bin','S2.bin',[1e-12,1e-12],o);
+% 无外部同步脉冲：通过共同电事件推断时间偏移与相对频偏。
+disp(out.status) % ALIGNED 或 UNALIGNED
+folder = exportDualTdcResults(out);
+
+% 独立演示：只产生一次 SPD 电事件，再分路进入两套 TDC。
+s = defaultDualTdcSimulation();
+out = simulateDualTdc(s,o);
+disp(out.truth)
+% 全部测试、GUI 预览、合成示例、约四百万时间戳 MHz 验证：
+validationFolder = runDualTdcValidation(true);
+```
+
+设备内部符合使用 all-pairs；“直方图 bin 宽 ps”可自行设置，默认 10 ps/bin。
+修改后重新导入分析或运行仿真生效。主峰 bin 左右各 3 bin（共 7 bin，默认 70 ps），
+偶然符合使用峰前第 14–20 bin（共 7 bin）。净符合保留有符号值。
+`UNALIGNED` 时保留各设备自身的基础分析，不生成共同事件子集与跨仪器关联表。
+详细操作、对齐质量门、CSV 字段及解释限制见 [DUAL_TDC.md](DUAL_TDC.md)。
