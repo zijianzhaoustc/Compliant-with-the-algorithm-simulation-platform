@@ -1,0 +1,3 @@
+status=ALIGNED
+Both channels passed held-out anchor, span, uniqueness and chance gates.
+Neither TDC is absolute truth; cross-device residual includes both responses and splitter/cable effects.

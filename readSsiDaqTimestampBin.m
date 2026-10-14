@@ -52,9 +52,9 @@ if totalCount>uint64(flintmax)
         "BIN 时间戳数量超过 MATLAB 可精确索引范围：%s",filename);
 end
 
-% 第二遍分块读取，读取时同时检查块内及跨块的非递减顺序。
+% 第二遍分块读取；非有限值拒绝，乱序在完整读取后跨块全局重排。
 timestamps=zeros(double(totalCount),1);
-fseek(fid,dataStart,'bof'); writePosition=1; previousLast=-Inf;
+fseek(fid,dataStart,'bof'); writePosition=1;
 for blockIndex=1:double(blockCount)
     count=fread(fid,1,'uint32=>double');
     block=fread(fid,count,'double=>double');
@@ -62,20 +62,21 @@ for blockIndex=1:double(blockCount)
         error("CoincidenceSim:TruncatedBinaryTimestamp", ...
             "BIN 文件第 %d 个数据块不完整：%s",blockIndex,filename);
     end
-    if any(~isfinite(block)) || any(diff(block)<0) || (~isempty(block) && block(1)<previousLast)
-        error("CoincidenceSim:UnsortedTimestamps", ...
-            "BIN 时间戳包含非有限值或未按非递减顺序排列：%s",filename);
+    if any(~isfinite(block))
+        error("CoincidenceSim:NonfiniteTimestamps", ...
+            "BIN 第 %d 块时间戳包含 NaN 或 Inf，无法通过重排修复：%s",blockIndex,filename);
     end
     if ~isempty(block)
         target=writePosition:(writePosition+count-1);
         timestamps(target)=block;
         writePosition=writePosition+count;
-        previousLast=block(end);
     end
 end
+[timestamps,orderQuality]=prepareImportedTimestamps(timestamps,filename);
 
 metadata=struct('magic',magic,'channelName',channelName,'unitSeconds',1e-12, ...
-    'blockCount',double(blockCount),'timestampCount',double(totalCount));
+    'blockCount',double(blockCount),'timestampCount',double(totalCount), ...
+    'timestampOrder',orderQuality);
 end
 
 function value = readQtString(fid,filename)

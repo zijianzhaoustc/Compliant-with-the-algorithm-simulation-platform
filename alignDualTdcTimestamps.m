@@ -58,6 +58,8 @@ end
 good=abs(y-(offset+slope*(x-reference)))<=o.anchorTolerance;
 [offset,slope,reference]=leastSquaresMap(x(good),y(good));
 if abs(slope-1)*1e6>o.maxClockPpm, c.reason="Clock frequency exceeds configured bound."; return; end
+c.coarse=struct('status',"SUPPORTED",'offset_s',offset,'referenceF_s',reference, ...
+    'scale',slope,'validationAnchors',c.validationAnchors,'spanFraction',c.anchorSpanFraction);
 [fi,si,residual,ambiguity]=uniqueAssociations(f,s,offset,slope,reference,o.matchTolerance);
 lo=max(f(1),reference+(s(1)-offset)/slope);
 hi=min(f(end),reference+(s(end)-offset)/slope);
@@ -181,9 +183,10 @@ c=struct('status',"UNALIGNED",'reason',"",'offset_s',NaN,'referenceF_s',NaN, ...
     'overlapF_s',[NaN NaN],'anchorCandidates',0,'validationAnchors',0, ...
     'anchorSpanFraction',NaN,'ambiguousCount',NaN,'chanceExpected',NaN, ...
     'excessRatio',NaN,'residualMean_ps',NaN,'residualSigma_ps',NaN, ...
-    'residualMedian_ps',NaN,'blockResidualMedian_ps',nan(4,1));
+    'residualMedian_ps',NaN,'blockResidualMedian_ps',nan(4,1), ...
+    'coarse',struct('status',"UNSUPPORTED"));
 end
 
 function c=clearAssociations(c)
-reason=c.reason; c=emptyChannel(); c.reason=reason;
+reason=c.reason; coarse=c.coarse; c=emptyChannel(); c.reason=reason; c.coarse=coarse;
 end

@@ -1,0 +1,36 @@
+正在运行 TestDualTdc
+.......... ...
+已完成 TestDualTdc
+__________
+
+正在运行 TestDualTdcGui
+...
+已完成 TestDualTdcGui
+__________
+
+正在运行 TestDualTdcRecalculation
+.........
+已完成 TestDualTdcRecalculation
+__________
+
+正在运行 TestDualTdcSync
+.......... .....
+已完成 TestDualTdcSync
+__________
+
+正在运行 TestPaperSimulations
+.....
+已完成 TestPaperSimulations
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampImportOrdering
+.........
+已完成 TestTimestampImportOrdering
+__________
+
+SYNC validation output: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\dual_tdc_sync_validation\tpdd953216_ee96_4b05_8d2c_eb137b72a0c6

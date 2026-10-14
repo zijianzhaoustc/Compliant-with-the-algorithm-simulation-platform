@@ -105,7 +105,7 @@ common 始终保留设备自己的时间戳；不把映射后的另一台时间�
 | 同上 | F_relative_completeness, S_relative_completeness | common/S_overlap 和 common/F_overlap；非绝对探测效率 |
 | 同上 | residual_mean_ps, residual_sigma_ps, residual_median_ps | S−mappedF 的相对残差统计 |
 | 同上 | validation_anchor_count, anchor_span_fraction, chance_match_expected_count, ambiguous_count | 对齐证据与歧义审计 |
-| SPD{1,2}_event_associations.csv | F_index, S_index, F_time_s, S_minus_mappedF_residual_ps | 原数组 1-based 下标、本机相对秒数及残差 |
+| SPD{1,2}_event_associations.csv | F_index, S_index, F_time_s, S_minus_mappedF_residual_ps | 导入后升序数组的 1-based 下标（重排时不等于原文件行号）、本机相对秒数及残差 |
 | SPD{1,2}_association_truth.csv | trueCommonFull, trueCommonOverlap, correct, false, precision, recall | 仅仿真用 eventID 评价；不提供给自动关联算法 |
 
 `settings_and_alignment.mat` 保存分析设置、完整对齐结果和输入文件原点/格式元数据；
@@ -113,6 +113,10 @@ common 始终保留设备自己的时间戳；不把映射后的另一台时间�
 或 sweep CSV，将带单位的横轴列设为 X，计数/峰宽/残差列设为 Y。
 
 ## 大文件与验证
+
+双 TDC 页现支持缓存重算、可设置总 n-bin 符合窗及与单 TDC 一致的五种偶然修正参数。
+原论文旁窗仍是默认；非论文旁窗方法的 `Nacc_side_count` 留 NaN，统一从新增 `Nacc_count`
+读取当前方法的偶然计数。见 [DUAL_TDC_RECALCULATION_UPDATE.md](DUAL_TDC_RECALCULATION_UPDATE.md)。
 
 TXT 分块读取，BIN 使用原有两遍预分配解析器；all-pairs 只保留累计直方图和有界配对缓冲区，
 默认最多 250000 个时间差。跨 chunk 不丢配对，不截取前 N 条冒充整段。
