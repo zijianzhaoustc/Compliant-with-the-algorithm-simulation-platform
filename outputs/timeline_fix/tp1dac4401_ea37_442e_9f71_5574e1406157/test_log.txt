@@ -1,0 +1,47 @@
+正在运行 TestDualTdc
+.......... ...
+已完成 TestDualTdc
+__________
+
+正在运行 TestDualTdcGui
+...
+已完成 TestDualTdcGui
+__________
+
+正在运行 TestDualTdcPlotRefresh
+.....
+已完成 TestDualTdcPlotRefresh
+__________
+
+正在运行 TestDualTdcRecalculation
+.........
+已完成 TestDualTdcRecalculation
+__________
+
+正在运行 TestDualTdcSync
+.......... .....
+已完成 TestDualTdcSync
+__________
+
+正在运行 TestDualTdcTimeline
+........
+已完成 TestDualTdcTimeline
+__________
+
+正在运行 TestPaperSimulations
+.....
+已完成 TestPaperSimulations
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampImportOrdering
+.........
+已完成 TestTimestampImportOrdering
+__________
+
+Tests: 98; passed: 98; failed: 0; incomplete: 0
+Timeline validation output: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\timeline_fix\tp1dac4401_ea37_442e_9f71_5574e1406157

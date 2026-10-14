@@ -1,0 +1,7 @@
+﻿device,channel,original_count,accepted_count,quarantined_count,original_first_s,original_last_s,accepted_first_s,accepted_last_s,accepted_first_sorted_index,accepted_last_sorted_index,qa_flag,reason,declared_acquisition_s,device_origin_s
+F,F1,18329248,18328984,264,2.1692441730759e-06,2169.76405280603,2.1692441730759e-06,29.9999976497381,1,18328984,EXCLUDED_DECLARED_DURATION,Timestamp minus shared device origin exceeds the user-declared acquisition duration.,30,0
+F,F2,106686452,106686452,0,0,29.9999997937597,0,29.9999997937597,1,106686452,OK,,30,0
+F,Fsync,14988159,14988158,1,6.66661347087935e-07,30.0312005820325,6.66661347087935e-07,29.9999924855878,1,14988158,EXCLUDED_DECLARED_DURATION,Timestamp minus shared device origin exceeds the user-declared acquisition duration.,30,0
+S,S1,18352434,18352434,0,1.846968e-06,29.999997096613,1.846968e-06,29.999997096613,1,18352434,OK,,30,0
+S,S2,106894906,106894906,0,0,29.999999893008,0,29.999999893008,1,106894906,OK,,30,0
+S,Ssync,14999890,14999890,0,6.03231e-07,29.999998609366,6.03231e-07,29.999998609366,1,14999890,OK,,30,0

@@ -1,0 +1,275 @@
+diff --git a/DualTdcComparisonPanel.m b/DualTdcComparisonPanel.m
+index c1949a9..ca55165 100644
+--- a/DualTdcComparisonPanel.m
++++ b/DualTdcComparisonPanel.m
+@@ -28,9 +28,9 @@ classdef DualTdcComparisonPanel < handle
+             simulationTab=uitab(left,'Title','共享 SPD 仿真');
+             settingsLayout=uigridlayout(settings,[2,1]); settingsLayout.RowHeight={'1x',220};
+             settingsLayout.Padding=[0 0 0 0];
+-            g=uigridlayout(settingsLayout,[28,3]); g.ColumnWidth={130,'1x',70};
++            g=uigridlayout(settingsLayout,[29,3]); g.ColumnWidth={130,'1x',70};
+             g.RowSpacing=4; g.Padding=[8 8 8 8]; g.Scrollable='on';
+-            g.RowHeight=repmat({28},1,28);
++            g.RowHeight=repmat({28},1,29);
+             names={'F1','F2','S1','S2','Fsync','Ssync'};
+             for k=1:numel(names)
+                 uilabel(g,'Text',names{k}); panel.Controls.(names{k})=uieditfield(g,'text');
+@@ -71,6 +71,10 @@ classdef DualTdcComparisonPanel < handle
+             uilabel(g,'Text','平移步进 μs'); panel.Controls.ShiftStep=uieditfield(g,'numeric','Value',acc.timeShiftStep*1e6,'Limits',[0 Inf],'LowerLimitInclusive','off'); uilabel(g,'Text','循环平移');
+             uilabel(g,'Text','平移次数 Nshift'); panel.Controls.ShiftCount=uieditfield(g,'numeric','Value',acc.timeShiftCount,'Limits',[1 Inf],'RoundFractionalValues','on', ...
+                 'Tooltip','平移法耗时随次数及扫描窗口数增加；不生成全量配对矩阵。'); uilabel(g,'Text','取均值');
++            uilabel(g,'Text','时间轴异常处理');
++            panel.Controls.TimelineMode=uidropdown(g,'Items',{'自动隔离有佐证的离群尾段','严格拒绝离群尾段'}, ...
++                'ItemsData',{'auto','strict'},'Tooltip','不修改原文件或原始缓存；隔离明细随 CSV 导出。证据不足时报错，不按声明时长强行截取。');
++            uilabel(g,'Text','保留原记录');
+             uilabel(g,'Text','内存预算 GB'); panel.Controls.Memory=uieditfield(g,'numeric','Value',2,'Limits',[.01,64]); uilabel(g,'Text','超限即报错');
+             actions=uigridlayout(settingsLayout,[4,1]); actions.RowHeight={30,30,30,'1x'};
+             uibutton(actions,'Text','导入并分析（四路 / 六路）','ButtonPushedFcn',@(~,~)panel.importSelected());
+@@ -127,6 +131,7 @@ classdef DualTdcComparisonPanel < handle
+             o.sync.blockDuration_s=panel.Controls.SyncBlock.Value;
+             o.sync.declaredAcquisition_s=panel.Controls.Acquisition.Value;
+             o.computePerSecond=true;
++            o.timelineMode=string(panel.Controls.TimelineMode.Value);
+         end
+ 
+         function result=recalculateCurrent(panel)
+@@ -182,9 +187,9 @@ classdef DualTdcComparisonPanel < handle
+             drawHistogram(panel.HistogramF,result.F,'FPGA full',result,'F');
+             drawHistogram(panel.HistogramS,result.S,'Swabian full',result,'S');
+             cla(panel.ResidualAxes,'reset'); cla(panel.SweepAxes,'reset'); hold(panel.ResidualAxes,'on');
+-            metrics={'全记录 Ch1 计数率',result.F.metrics.rate1_cps,result.S.metrics.rate1_cps,'cps'; ...
+-                '全记录 Ch2 计数率',result.F.metrics.rate2_cps,result.S.metrics.rate2_cps,'cps'; ...
+-                '全记录 Nraw',result.F.metrics.Nraw,result.S.metrics.Nraw,sprintf('count / %d bins',result.F.metrics.mainBinCount); ...
++            metrics={'参与计算 Ch1 计数率',result.F.metrics.rate1_cps,result.S.metrics.rate1_cps,'cps'; ...
++                '参与计算 Ch2 计数率',result.F.metrics.rate2_cps,result.S.metrics.rate2_cps,'cps'; ...
++                '主窗 Nraw（非文件记录数）',result.F.metrics.Nraw,result.S.metrics.Nraw,sprintf('all-pairs / %d bins',result.F.metrics.mainBinCount); ...
+                 '全记录 Nacc',result.F.metrics.Nacc,result.S.metrics.Nacc,char(result.F.metrics.accidentalMethod); ...
+                 '全记录 Nnet',result.F.metrics.NnetSigned,result.S.metrics.NnetSigned,'signed count'; ...
+                 '实际 bin 宽',result.F.options.binWidth*1e12,result.S.options.binWidth*1e12,'ps/bin'; ...
+@@ -192,6 +197,20 @@ classdef DualTdcComparisonPanel < handle
+                 '全记录峰位置',result.F.metrics.peak_ps,result.S.metrics.peak_ps,'ps'; ...
+                 '全记录 Gaussian sigma',result.F.metrics.sigma_ps,result.S.metrics.sigma_ps,'ps'; ...
+                 '全记录 FWHM',result.F.metrics.FWHM_ps,result.S.metrics.FWHM_ps,'ps'};
++            if isfield(result,'timelineQuality')
++                f=result.F.metrics; s=result.S.metrics;
++                qa={'导入 Ch1 原始记录数',f.originalCount1,s.originalCount1,'条 / 非符合数'; ...
++                    '导入 Ch2 原始记录数',f.originalCount2,s.originalCount2,'条 / 非符合数'; ...
++                    '参与计算 Ch1 记录数',f.count1,s.count1,'条'; ...
++                    '参与计算 Ch2 记录数',f.count2,s.count2,'条'; ...
++                    '隔离 Ch1 记录数',f.quarantinedCount1,s.quarantinedCount1,'条 / 原始缓存保留'; ...
++                    '隔离 Ch2 记录数',f.quarantinedCount2,s.quarantinedCount2,'条 / 原始缓存保留'; ...
++                    '原始时间轴跨度',f.originalSpan_s,s.originalSpan_s,'s'; ...
++                    '计数率所用时长',f.duration_s,s.duration_s,'s'; ...
++                    '时长依据',char(f.durationBasis),char(s.durationBasis),'非声明时长强制截取'; ...
++                    '时间轴 QA',char(f.timelineFlag),char(s.timelineFlag),'见隔离 CSV'};
++                metrics=[qa;metrics];
++            end
+             if ismember(result.status,["ALIGNED","PARTIAL"])
+                 for ch=1:2
+                     c=result.alignment.(sprintf('channel%d',ch));
+@@ -266,6 +285,11 @@ classdef DualTdcComparisonPanel < handle
+                 panel.StatusLabel.Tooltip=[panel.StatusLabel.Tooltip note];
+             end
+             panel.StatusLabel.Text=char(message);
++            if isfield(result,'timelineQuality') && ~isempty(result.timelineQuality.quarantine)
++                note=sprintf(' 已隔离 %d 条离群时间戳，仅对保留记录计算；原文件和原始缓存未修改，详见时间轴 QA / 导出明细。',height(result.timelineQuality.quarantine));
++                panel.StatusLabel.Text=[panel.StatusLabel.Text note];
++                panel.StatusLabel.Tooltip=[panel.StatusLabel.Tooltip note];
++            end
+             if isfield(result,'recalculation')
+                 panel.StatusLabel.Text=['已按当前参数重算并刷新所有图（未重读文件）。' panel.StatusLabel.Text];
+             end
+diff --git a/analyzeDualTdc.m b/analyzeDualTdc.m
+index a82a19f..33c3b00 100644
+--- a/analyzeDualTdc.m
++++ b/analyzeDualTdc.m
+@@ -6,7 +6,10 @@ validateDualTdcOptions(o);
+ names={'F1','F2','S1','S2'};
+ for k=1:4
+     v=data.(names{k}); validateattributes(v,{'numeric'},{'vector','real','finite','nonempty'});
+-    if any(diff(v)<0), error('DualTDC:Unsorted','Nondecreasing timestamps required.'); end
++    for first=1:100000:numel(v)
++        ix=first:min(numel(v),first+100000);
++        if any(diff(v(ix))<0), error('DualTDC:Unsorted','Nondecreasing timestamps required.'); end
++    end
+     data.(names{k})=v(:);
+ end
+ if sum(cellfun(@(n)numel(data.(n)),names))*32>o.maxResidentBytes
+@@ -20,7 +23,9 @@ if useSync && (numel(data.Fsync)+numel(data.Ssync))*16+ ...
+         sum(cellfun(@(n)numel(data.(n)),names))*32>o.maxResidentBytes
+     error('DualTDC:MemoryBudget','Six-channel estimated resident working data exceed the configured budget.');
+ end
+-durF=duration(data,'F'); durS=duration(data,'S');
++rawData=data;
++[data,timelineQuality]=auditDualTdcTimeline(data,o);
++durF=timelineQuality.F.duration_s; durS=timelineQuality.S.duration_s;
+ out=struct('options',o,'data',data,'F',analyzeDualTdcDevice(data.F1,data.F2,o,durF), ...
+     'S',analyzeDualTdcDevice(data.S1,data.S2,o,durS));
+ out.alignment=alignDualTdcTimestamps(data.F1,data.F2,data.S1,data.S2,o.alignment);
+@@ -53,14 +58,25 @@ if useSync
+ elseif isfield(o,'computePerSecond') && o.computePerSecond
+     out.perSecond=buildDualTdcPerSecond(out);
+ end
++% Derived computations above all use the same accepted arrays and duration.
++% Restore immutable raw cache and map association indices back into that cache.
++out.data=rawData; out.timelineQuality=timelineQuality;
++for ch=1:2
++    field=sprintf('channel%d',ch); c=out.alignment.(field);
++    c.indexF=c.indexF+timelineQuality.(sprintf('F%d',ch)).firstIndex-1;
++    c.indexS=c.indexS+timelineQuality.(sprintf('S%d',ch)).firstIndex-1;
++    out.alignment.(field)=c;
+ end
+-
+-function d=duration(data,prefix)
+-field=char(prefix);
+-if isfield(data,'metadata') && isfield(data.metadata,field) && isfield(data.metadata.(field),'duration_s')
+-    d=data.metadata.(field).duration_s;
+-else
+-    a=data.([field '1']); b=data.([field '2']); d=max(a(end),b(end))-min(a(1),b(1));
++for device=["F","S"]
++    m=out.(device).metrics; q=timelineQuality.(device);
++    for ch=1:2
++        c=timelineQuality.(sprintf('%s%d',device,ch));
++        m.(sprintf('originalCount%d',ch))=c.originalCount;
++        m.(sprintf('quarantinedCount%d',ch))=c.quarantinedCount;
++    end
++    m.originalSpan_s=q.originalSpan_s; m.durationBasis=q.durationBasis;
++    m.timelineFlag="OK";
++    if q.quarantinedCount>0, m.timelineFlag="QUARANTINED_EDGE_TAIL"; end
++    out.(device).metrics=m;
+ end
+-if d<=0, error('DualTDC:Duration','Positive acquisition span required.'); end
+ end
+diff --git a/analyzeDualTdcSync.m b/analyzeDualTdcSync.m
+index c7d2a4b..8c0f2e1 100644
+--- a/analyzeDualTdcSync.m
++++ b/analyzeDualTdcSync.m
+@@ -1,7 +1,9 @@
+ function out=analyzeDualTdcSync(data,o,base)
+ %ANALYZEDUALTDCSYNC QA -> cycle disambiguation -> SYNC map -> unique SPD events.
+ if nargin<3
+-    plain=o; plain.sync.enabled=false; out=analyzeDualTdc(data,plain);
++    % Public two-argument calls must pass through the same timeline audit as
++    % GUI imports/recalculation; the three-argument branch is the core helper.
++    o.sync.enabled=true; out=analyzeDualTdc(data,o); return
+ else, out=base; end
+ qF=auditSyncTimestamps(data.Fsync,o.sync); qS=auditSyncTimestamps(data.Ssync,o.sync);
+ model=alignTdcBySync(qF,qS,out.alignment,o);
+diff --git a/auditSyncTimestamps.m b/auditSyncTimestamps.m
+index 291ceca..eaccfbd 100644
+--- a/auditSyncTimestamps.m
++++ b/auditSyncTimestamps.m
+@@ -7,6 +7,10 @@ if n<3, error('DualTDC:SyncTooShort','SYNC requires at least three tags.'); end
+ chunk=o.auditChunk; anchorIndices=unique(round(linspace(1,n,min(n,o.maxAnchors))))';
+ anchorCycles=zeros(size(anchorIndices)); nextAnchor=2; cycle=0;
+ start=floor(t(1)/.1)*.1; countBins=max(1,floor((t(end)-start)/.1)+1);
++% Guard before allocating edges/QA arrays, including calls outside the GUI.
++if ~isfinite(countBins) || countBins>1e6
++    error('DualTDC:TimelineRange','SYNC observed span exceeds bounded audit capacity; inspect timestamp units/outliers before allocating diagnostics.');
++end
+ edges=start+(0:countBins)*.1;
+ rates=zeros(countBins,1); missing=rates; glitches=rates; invalid=rates;
+ periods=[]; bursts=zeros(0,3); intervals=zeros(1,20); localRows=zeros(0,5);
+diff --git a/buildDualTdcPerSecond.m b/buildDualTdcPerSecond.m
+index be1a9ec..6ad285c 100644
+--- a/buildDualTdcPerSecond.m
++++ b/buildDualTdcPerSecond.m
+@@ -5,8 +5,16 @@ o=out.options; block=1; % Physical one-second diagnostics, independent of model
+ rows=cell(0,15);
+ for device={'F','S'}
+     name=device{1}; a=out.data.([name '1']); b=out.data.([name '2']);
++    if isfield(out,'timelineQuality')
++        q=out.timelineQuality.([name '1']); a=a(q.firstIndex:q.lastIndex);
++        q=out.timelineQuality.([name '2']); b=b(q.firstIndex:q.lastIndex);
++    end
+     lo=floor(min(a(1),b(1))/block)*block; hi=max(a(end),b(end));
+-    count=max(1,ceil((hi-lo)/block)); ai=1; bi=1;
++    count=max(1,ceil((hi-lo)/block));
++    if ~isfinite(count) || count>100000
++        error('DualTDC:TimelineRange','Per-second timeline exceeds bounded diagnostic capacity; inspect timestamp units/outliers.');
++    end
++    ai=1; bi=1;
+     for k=1:count
+         start=lo+(k-1)*block; stop=min(lo+k*block,hi); last=k==count;
+         astart=ai; while ai<=numel(a) && (a(ai)<stop || (last && a(ai)<=stop)), ai=ai+1; end
+@@ -18,6 +26,10 @@ for device={'F','S'}
+         syncCount=NaN;
+         if isfield(out.data,[name 'sync'])
+             sy=out.data.([name 'sync']); l=lower(sy,start); u=lower(sy,stop);
++            if isfield(out,'timelineQuality')
++                q=out.timelineQuality.([name 'sync']); sy=sy(q.firstIndex:q.lastIndex);
++                l=lower(sy,start); u=lower(sy,stop);
++            end
+             if last, u=lower(sy,stop+eps(stop)); end
+             syncCount=u-l;
+         end
+diff --git a/defaultDualTdcOptions.m b/defaultDualTdcOptions.m
+index 5af3a94..4e530f4 100644
+--- a/defaultDualTdcOptions.m
++++ b/defaultDualTdcOptions.m
+@@ -28,4 +28,5 @@ o.sync=struct('enabled',false,'nominalFrequency_Hz',500000,'edge',"rising", ...
+     'referenceClock',"UNKNOWN",'thresholds_V',nan(2,3),'splitter',"UNKNOWN", ...
+     'overflowReport',"UNAVAILABLE",'udpReport',"UNAVAILABLE");
+ o.computePerSecond=false;
++o.timelineMode="auto"; % auto peer-supported edge quarantine, or strict rejection
+ end
+diff --git a/exportDualTdcResults.m b/exportDualTdcResults.m
+index 7a1c48a..2ba5c95 100644
+--- a/exportDualTdcResults.m
++++ b/exportDualTdcResults.m
+@@ -8,6 +8,12 @@ recalculationMetadata=struct(); %#ok<NASGU>
+ if isfield(out,'recalculation'), recalculationMetadata=out.recalculation; end
+ if isfield(out.data,'metadata'), inputMetadata=out.data.metadata; end
+ save(fullfile(folder,'settings_and_alignment.mat'),'settings','alignment','inputMetadata','recalculationMetadata');
++if isfield(out,'timelineQuality')
++    timelineQuality=out.timelineQuality; %#ok<NASGU>
++    save(fullfile(folder,'settings_and_alignment.mat'),'timelineQuality','-append');
++    writeUtf8BomTable(out.timelineQuality.channels,fullfile(folder,'timestamp_timeline_quality.csv'));
++    writeUtf8BomTable(out.timelineQuality.quarantine,fullfile(folder,'timestamp_quarantine.csv'));
++end
+ importQuality=timestampImportQuality(out.data);
+ if ~isempty(importQuality)
+     writeUtf8BomTable(importQuality,fullfile(folder,'timestamp_import_quality.csv'));
+@@ -110,6 +116,12 @@ t.main_bin_count=m.mainBinCount; t.main_window_left_ps=m.windowLeft_ps; t.main_w
+ if isfield(r,'accidental'), t.accidental_time_origin_s=r.accidental.timeOrigin_s; end
+ t.Nraw_rate_cps=m.Nraw/m.duration_s; t.Nacc_rate_cps=m.Nacc/m.duration_s;
+ t.Nnet_signed_rate_cps=m.NnetSigned/m.duration_s;
++if isfield(m,'timelineFlag')
++    t.channel1_original_count=m.originalCount1; t.channel2_original_count=m.originalCount2;
++    t.channel1_quarantined_count=m.quarantinedCount1; t.channel2_quarantined_count=m.quarantinedCount2;
++    t.original_span_s=m.originalSpan_s; t.duration_basis=m.durationBasis;
++    t.timeline_qa_flag=m.timelineFlag;
++end
+ writeUtf8BomTable(t,fullfile(folder,[prefix '_metrics.csv']));
+ writeUtf8BomTable(r.sweep,fullfile(folder,[prefix '_window_sweep.csv']));
+ if isfield(r,'accidental') && ~isempty(r.accidental.sampleCounts)
+diff --git a/exportDualTdcSync.m b/exportDualTdcSync.m
+index b620d39..ed064ea 100644
+--- a/exportDualTdcSync.m
++++ b/exportDualTdcSync.m
+@@ -34,6 +34,11 @@ if isfield(m,'preResidualMedian_ps')
+     t.sync_holdout_max_sigma_ps=max(m.drift.validation_sigma_ps);
+     t.sync_holdout_max_abs_mean_ps=max(abs(m.drift.validation_mean_ps));
+     first=min(out.data.F1(1),out.data.F2(1)); last=max(out.data.F1(end),out.data.F2(end));
++    if isfield(out,'timelineQuality')
++        q=out.timelineQuality.channels;
++        spd=q.channel=="F1" | q.channel=="F2";
++        first=min(q.accepted_first_s(spd)); last=max(q.accepted_last_s(spd));
++    end
+     t.SPD_span_covered_fraction=max(0,min(last,m.coverageF_s(2))-max(first,m.coverageF_s(1)))/max(last-first,eps);
+     writeUtf8BomTable(t,fullfile(folder,'sync_alignment.csv'));
+ end
+diff --git a/validateDualTdcOptions.m b/validateDualTdcOptions.m
+index d97d366..aaa11e6 100644
+--- a/validateDualTdcOptions.m
++++ b/validateDualTdcOptions.m
+@@ -1,5 +1,9 @@
+ function validateDualTdcOptions(o)
+ %VALIDATEDUALTDCOPTIONS Reject unsafe or unsupported dual-analysis settings.
++if isfield(o,'timelineMode') && (~isscalar(string(o.timelineMode)) || ...
++        ~ismember(string(o.timelineMode),["auto","strict"]))
++    error('DualTDC:Options','timelineMode must be auto or strict.');
++end
+ validateattributes(o.binWidth,{'numeric'},{'scalar','positive','finite'});
+ validateattributes(o.histRange,{'numeric'},{'numel',2,'finite','real'});
+ if diff(o.histRange)<=0, error('DualTDC:Options','Histogram range must increase.'); end

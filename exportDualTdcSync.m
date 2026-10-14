@@ -34,6 +34,11 @@ if isfield(m,'preResidualMedian_ps')
     t.sync_holdout_max_sigma_ps=max(m.drift.validation_sigma_ps);
     t.sync_holdout_max_abs_mean_ps=max(abs(m.drift.validation_mean_ps));
     first=min(out.data.F1(1),out.data.F2(1)); last=max(out.data.F1(end),out.data.F2(end));
+    if isfield(out,'timelineQuality')
+        q=out.timelineQuality.channels;
+        spd=q.channel=="F1" | q.channel=="F2";
+        first=min(q.accepted_first_s(spd)); last=max(q.accepted_last_s(spd));
+    end
     t.SPD_span_covered_fraction=max(0,min(last,m.coverageF_s(2))-max(first,m.coverageF_s(1)))/max(last-first,eps);
     writeUtf8BomTable(t,fullfile(folder,'sync_alignment.csv'));
 end

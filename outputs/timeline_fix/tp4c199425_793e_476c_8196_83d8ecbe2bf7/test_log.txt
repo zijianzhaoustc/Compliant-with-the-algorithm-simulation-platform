@@ -1,0 +1,73 @@
+正在运行 TestDualTdc
+.......... ...
+已完成 TestDualTdc
+__________
+
+正在运行 TestDualTdcGui
+...
+已完成 TestDualTdcGui
+__________
+
+正在运行 TestDualTdcPlotRefresh
+.....
+已完成 TestDualTdcPlotRefresh
+__________
+
+正在运行 TestDualTdcRecalculation
+.........
+已完成 TestDualTdcRecalculation
+__________
+
+正在运行 TestDualTdcSync
+.......... .....
+已完成 TestDualTdcSync
+__________
+
+正在运行 TestDualTdcTimeline
+.........
+================================================================================
+TestDualTdcTimeline/validDuplicatesZeroAndSparseSmallFilesRemain 中验证失败。
+    --------
+    框架诊断:
+    --------
+    verifyClass 失败。
+    --> 值的类不正确。
+        
+        实际类:
+            double
+        预期类:
+            string
+    
+    实际值:
+         []
+    --------
+    堆栈信息:
+    --------
+    位置: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\tests\TestDualTdcTimeline.m (TestDualTdcTimeline.validDuplicatesZeroAndSparseSmallFilesRemain)，位置: 105
+================================================================================
+.
+已完成 TestDualTdcTimeline
+__________
+
+正在运行 TestPaperSimulations
+.....
+已完成 TestPaperSimulations
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampImportOrdering
+.........
+已完成 TestTimestampImportOrdering
+__________
+
+失败摘要:
+
+     Name                                                              Failed  Incomplete  原因
+    =================================================================================================
+     TestDualTdcTimeline/validDuplicatesZeroAndSparseSmallFilesRemain    X                 验证失败。
+Tests: 100; passed: 99; failed: 1; incomplete: 0
+Timeline validation output: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\timeline_fix\tp4c199425_793e_476c_8196_83d8ecbe2bf7

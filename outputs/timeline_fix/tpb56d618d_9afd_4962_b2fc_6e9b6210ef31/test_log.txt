@@ -1,0 +1,57 @@
+正在运行 TestDualTdc
+.......... ...
+已完成 TestDualTdc
+__________
+
+正在运行 TestDualTdcGui
+...
+已完成 TestDualTdcGui
+__________
+
+正在运行 TestDualTdcPlotRefresh
+.....
+已完成 TestDualTdcPlotRefresh
+__________
+
+正在运行 TestDualTdcRecalculation
+.........
+已完成 TestDualTdcRecalculation
+__________
+
+正在运行 TestDualTdcSync
+.......... .....
+已完成 TestDualTdcSync
+__________
+
+正在运行 TestDualTdcTimeline
+.......... [警告: 检测到 2 处时间戳逆序，已对该通道全部 5 条记录升序重排（保留重复值，不修改原文件）：C:\Users\lenovo\AppData\Local\Temp\tp4ae2440a_ca19_453b_bb27_89b6f25f5510\unsorted.txt] 
+[> 位置：prepareImportedTimestamps (第 19 行)
+位置: readDualTdcTimestampPair>readOne (第 41 行)
+位置: readDualTdcTimestampPair (第 6 行)
+位置: TestDualTdcTimeline/equalityAndGlobalImportOrdering (第 137 行)]
+[警告: 检测到 2 处时间戳逆序，已对该通道全部 5 条记录升序重排（保留重复值，不修改原文件）：C:\Users\lenovo\AppData\Local\Temp\tp4ae2440a_ca19_453b_bb27_89b6f25f5510\unsorted.txt] 
+[> 位置：prepareImportedTimestamps (第 19 行)
+位置: readDualTdcTimestampPair>readOne (第 41 行)
+位置: readDualTdcTimestampPair (第 7 行)
+位置: TestDualTdcTimeline/equalityAndGlobalImportOrdering (第 137 行)]
+..
+已完成 TestDualTdcTimeline
+__________
+
+正在运行 TestPaperSimulations
+.....
+已完成 TestPaperSimulations
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampImportOrdering
+.........
+已完成 TestTimestampImportOrdering
+__________
+
+Tests: 102; passed: 102; failed: 0; incomplete: 0
+Timeline validation output: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\timeline_fix\tpb56d618d_9afd_4962_b2fc_6e9b6210ef31

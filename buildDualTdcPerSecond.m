@@ -5,8 +5,16 @@ o=out.options; block=1; % Physical one-second diagnostics, independent of model 
 rows=cell(0,15);
 for device={'F','S'}
     name=device{1}; a=out.data.([name '1']); b=out.data.([name '2']);
+    if isfield(out,'timelineQuality')
+        q=out.timelineQuality.([name '1']); a=a(q.firstIndex:q.lastIndex);
+        q=out.timelineQuality.([name '2']); b=b(q.firstIndex:q.lastIndex);
+    end
     lo=floor(min(a(1),b(1))/block)*block; hi=max(a(end),b(end));
-    count=max(1,ceil((hi-lo)/block)); ai=1; bi=1;
+    count=max(1,ceil((hi-lo)/block));
+    if ~isfinite(count) || count>100000
+        error('DualTDC:TimelineRange','Per-second timeline exceeds bounded diagnostic capacity; inspect timestamp units/outliers.');
+    end
+    ai=1; bi=1;
     for k=1:count
         start=lo+(k-1)*block; stop=min(lo+k*block,hi); last=k==count;
         astart=ai; while ai<=numel(a) && (a(ai)<stop || (last && a(ai)<=stop)), ai=ai+1; end
@@ -18,6 +26,10 @@ for device={'F','S'}
         syncCount=NaN;
         if isfield(out.data,[name 'sync'])
             sy=out.data.([name 'sync']); l=lower(sy,start); u=lower(sy,stop);
+            if isfield(out,'timelineQuality')
+                q=out.timelineQuality.([name 'sync']); sy=sy(q.firstIndex:q.lastIndex);
+                l=lower(sy,start); u=lower(sy,stop);
+            end
             if last, u=lower(sy,stop+eps(stop)); end
             syncCount=u-l;
         end
