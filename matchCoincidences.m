@@ -15,7 +15,9 @@ function matches = matchCoincidences(A, B, p)
 lo = p.algorithm.histRange(1); hi = p.algorithm.histRange(2);
 switch p.algorithm.matchMethod
     case {"many-to-many","all-pairs"}
-        [ia, ib] = allPairs(A.time, B.time, lo, hi);
+        limit=Inf;
+        if isfield(p.algorithm,'maxMatchPairs'), limit=p.algorithm.maxMatchPairs; end
+        [ia, ib] = allPairs(A.time, B.time, lo, hi,limit);
     case "one-to-one"
         [ia, ib] = oneToOne(A.time, B.time, max(abs([lo hi])));
     case "many-to-one"
@@ -37,7 +39,7 @@ matches.pairIDA = A.pairID(ia); matches.pairIDB = B.pairID(ib);
 matches.isTrue = matches.pairIDA > 0 & matches.pairIDA == matches.pairIDB;
 end
 
-function [ia,ib] = allPairs(a,b,lo,hi)
+function [ia,ib] = allPairs(a,b,lo,hi,limit)
 %ALLPAIRS 用双滑动边界枚举范围内组合，避免构造完整笛卡尔积。
 % 第一遍只统计每个 Start 的匹配数，随后一次性预分配输出。相比为百万个
 % Start 创建 cell，该方式明显降低实测大文件的内存开销。
@@ -50,7 +52,11 @@ for i = 1:numel(a)
     while right+1 <= numel(b) && b(right+1)-a(i) <= hi, right = right+1; end
     counts(i)=max(0,right-left+1);
 end
-total=sum(counts); ia=zeros(total,1); ib=zeros(total,1);
+total=sum(counts);
+if total>limit
+    error('CoincidenceSim:PairLimit','Requested %g pairs exceeds the configured limit %g.',total,limit);
+end
+ia=zeros(total,1); ib=zeros(total,1);
 left=1; right=0; pos=1;
 for i=1:numel(a)
     while left<=numel(b) && b(left)-a(i)<lo, left=left+1; end

@@ -19,6 +19,7 @@ classdef CoincidenceSimulatorApp < handle
         LastResult
         WorkspaceTabs
         DualTdcPanel
+        ParameterSweepPanel
     end
 
     methods
@@ -47,6 +48,7 @@ classdef CoincidenceSimulatorApp < handle
             app.WorkspaceTabs=uitabgroup(pages);
             originalPage=uitab(app.WorkspaceTabs,'Title','SPDC 仿真 / 单 TDC 分析');
             dualPage=uitab(app.WorkspaceTabs,'Title','双 TDC 时间戳对比分析');
+            scanPage=uitab(app.WorkspaceTabs,'Title','多参数扫描 / 研究扫描');
             main=uigridlayout(originalPage,[1 3]);
             main.ColumnWidth={520,'1x',430}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
 
@@ -82,6 +84,7 @@ classdef CoincidenceSimulatorApp < handle
             app.StatusLabel=uilabel(right,'Text','就绪：可运行仿真或导入双通道 TXT', ...
                 'FontColor',[.18 .25 .34]); app.StatusLabel.Layout.Row=8;
             app.DualTdcPanel=DualTdcComparisonPanel(dualPage,@()app.readParameters());
+            app.ParameterSweepPanel=ParameterSweepPanel(scanPage,@()app.readParameters());
         end
 
         function buildSourceTab(app,p)

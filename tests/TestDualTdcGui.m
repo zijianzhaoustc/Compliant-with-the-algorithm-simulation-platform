@@ -44,7 +44,7 @@ classdef TestDualTdcGui < matlab.unittest.TestCase
         function oldAndNewPagesRenderAndClearStaleMatches(t)
             app=CoincidenceSimulatorApp(); cleanup=onCleanup(@()delete(app));
             app.UIFigure.Visible='off';
-            t.verifyEqual(numel(app.WorkspaceTabs.Children),2);
+            t.verifyEqual(numel(app.WorkspaceTabs.Children),3);
             t.verifyClass(app.WorkspaceTabs.Parent,'matlab.ui.container.GridLayout');
             t.verifyNotEmpty(app.Controls.PairRate);
             out=simulateDualTdc(); panel=app.DualTdcPanel; panel.setResult(out);

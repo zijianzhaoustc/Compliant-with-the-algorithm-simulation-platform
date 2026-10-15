@@ -8,7 +8,8 @@ if ~isstruct(supplied), error("CoincidenceSim:InvalidParams","导入参数必须
 names=fieldnames(supplied);
 for k=1:numel(names)
     name=names{k};
-    if isfield(merged,name) && isstruct(merged.(name)) && isstruct(supplied.(name))
+    if isfield(merged,name) && isstruct(merged.(name)) && isscalar(merged.(name)) && ...
+            isstruct(supplied.(name)) && isscalar(supplied.(name))
         merged.(name)=mergeParamsWithDefaults(merged.(name),supplied.(name));
     else
         merged.(name)=supplied.(name);

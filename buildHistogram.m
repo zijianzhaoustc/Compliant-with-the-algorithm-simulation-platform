@@ -25,8 +25,10 @@ counts = histcounts(matches.deltaT,edges);
 centers = (edges(1:end-1)+edges(2:end))/2;
 
 peak=(lo+hi)/2; sigma=NaN; fitCounts=nan(size(counts));
+peakValid=false; fitStatus="NO_PEAK";
 if ~isempty(counts) && max(counts)>0
     [maxCount,k]=max(counts);
+    peakValid=true; fitStatus="MAXIMUM";
     background=median(counts);
     signal=max(counts-background,0);
     % 半高区域用于给峰宽和 Gaussian 优化提供稳定初值。
@@ -45,11 +47,13 @@ if ~isempty(counts) && max(counts)>0
         theta0=[log(max(maxCount-background,1)),centers(k),log(sigma0),background];
         objective=@(th)sum((exp(th(1)).*exp(-0.5*((x-th(2))/exp(th(3))).^2)+th(4)-y).^2)/scale^2;
         options=optimset('Display','off','MaxIter',1000,'MaxFunEvals',3000);
-        theta=fminsearch(objective,theta0,options);
+        [theta,~,exitflag]=fminsearch(objective,theta0,options);
+        fitStatus="FIT_FAILED";
         candidateSigma=exp(theta(3));
         if isfinite(theta(2)) && isfinite(candidateSigma) && candidateSigma>=bw/10 && candidateSigma<(hi-lo)
             peak=theta(2); sigma=candidateSigma;
             fitCounts=exp(theta(1)).*exp(-0.5*((centers-peak)/sigma).^2)+theta(4);
+            if exitflag>0, fitStatus="FIT_OK"; end
         end
     end
 
@@ -64,5 +68,5 @@ end
 
 h=struct("edges",edges,"centers",centers,"counts",counts,"peak",peak, ...
     "sigma",sigma,"fwhm",2*sqrt(2*log(2))*sigma,"fitCounts",fitCounts, ...
-    "peakMethod",p.algorithm.peakMethod);
+    "peakMethod",p.algorithm.peakMethod,"peakValid",peakValid,"fitStatus",fitStatus);
 end

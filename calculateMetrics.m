@@ -28,6 +28,7 @@ end
 % 旧 GUI 继续显示截零后的净符合率；论文统计另存不截零的有符号量。
 rNetSigned=raw.rate-acc.rate;
 rNet=max(0,rNetSigned);
+if isnan(rNetSigned), rNet=NaN; end
 m.RA=numel(A.time)/T; m.RB=numel(B.time)/T;
 m.Rraw=raw.rate; m.Racc=acc.rate; m.Rnet=rNet; m.Rtrue=rTrue;
 % 计数与计数率同时保留：Nraw 是当前窗口内实际选中的整数事件数，

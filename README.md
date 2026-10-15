@@ -25,6 +25,25 @@ results = runtests("tests");
 table(results)
 ```
 
+## 多参数研究扫描（新增）
+
+顶部“多参数扫描 / 研究扫描”页支持单因素、双因素、自定义网格，A/B共同或分别
+变化，以及理论法、旁窗法、时间戳平移法和全部平移参数的扫描。研究模式固定
+多对多，主窗为峰值bin±n，保护间隔G=W，每个物理条件/seed只生成一批时间戳。
+完整参数、GUI全部指标、真值、异常和种子聚合均可导出，支持配置保存和停止续跑。
+
+```matlab
+addpath(pwd);
+c = parameterSweepExamples("smoke");
+[plan, preview] = buildScanGrid(c); % 4次物理生成、32行分析
+batch = runParameterSweep(c);
+runParameterSweepSmokeTests;
+```
+
+详细操作、CLI、字段定义、文件清单与限制见 [PARAMETER_SWEEP.md](PARAMETER_SWEEP.md)。
+完整JSON示例见 `examples/parameter_sweep_smoke.json` 与
+`examples/parameter_sweep_research.json`。原单次窗口扫描、A–D与双TDC保留。
+
 ## 模型链路
 
 `激光/BBO -> SPDC 光子对 -> 光路损耗/延迟 -> 探测器 PDE、暗计数、背景光、抖动、死时间、后脉冲 -> TDC 抖动、偏置、DNL/INL 与量化 -> 匹配 -> 直方图 -> 偶然符合修正 -> 输出`

@@ -69,6 +69,9 @@ p.algorithm.accidentalMethod = "theory";
 p.algorithm.sidebandGuard = 3e-9;
 % 旁窗法默认在左右各放置 3 个与主符合窗等宽的背景窗。
 p.algorithm.sideWindowPairs = 3;
+% Legacy configurations keep center-based guards; research scans opt into G=W.
+p.algorithm.sideWindowGuardMode = "fixed-center";
+p.algorithm.strictWindows = false;
 % 时间戳平移法默认使用 1、2、3、4、5 μs 五个循环平移并取平均。
 p.algorithm.timeShiftStart = 1e-6;
 p.algorithm.timeShiftStep = 1e-6;

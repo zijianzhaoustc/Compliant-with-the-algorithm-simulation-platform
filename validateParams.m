@@ -53,7 +53,15 @@ end
 if ~any(p.algorithm.windowMode == ["fixed","sigma","bins","fwhm"])
     error("CoincidenceSim:InvalidMethod", "Unknown window mode.");
 end
-mustBePositive(p.algorithm.windowMultiplier);
+if p.algorithm.windowMode=="bins"
+    mustBeNonnegative(p.algorithm.windowMultiplier);
+else
+    mustBePositive(p.algorithm.windowMultiplier);
+end
+if isfield(p.algorithm,'sideWindowGuardMode') && ...
+        ~ismember(string(p.algorithm.sideWindowGuardMode),["fixed-center","window-width"])
+    error('CoincidenceSim:InvalidGuardMode','Unknown side window guard mode.');
+end
 % bin 的个数必须是整数；sigma 和 FWHM 的倍数仍允许使用小数。
 if p.algorithm.windowMode=="bins", mustBeInteger(p.algorithm.windowMultiplier); end
 if ~any(p.algorithm.accidentalMethod == ["none","theory","sideband","side-window","time-shift"])

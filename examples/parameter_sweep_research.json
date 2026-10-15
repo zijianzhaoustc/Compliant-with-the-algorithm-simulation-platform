@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 1,
+  "mode": "custom-grid",
+  "baseParams": {
+    "source": {
+      "mode": "direct",
+      "pairRate": 100000,
+      "pumpPower": 0.001,
+      "pumpWavelength": 4.05E-7,
+      "spdcProbability": 1E-11,
+      "laserToCrystalTransmission": 1
+    },
+    "measurementTime": 0.1,
+    "seed": 1,
+    "optics": {
+      "A": {
+        "transmission": 0.8,
+        "delay": 0
+      },
+      "B": {
+        "transmission": 0.8,
+        "delay": 0
+      }
+    },
+    "detector": {
+      "A": {
+        "efficiency": 0.55,
+        "recordEfficiency": 1,
+        "darkRate": 500,
+        "backgroundRate": 0,
+        "jitter": 1.5E-10,
+        "deadTime": 5E-8,
+        "afterpulseProbability": 0.05,
+        "afterpulseLifetime": 5E-8
+      },
+      "B": {
+        "efficiency": 0.55,
+        "recordEfficiency": 1,
+        "darkRate": 500,
+        "backgroundRate": 0,
+        "jitter": 1.5E-10,
+        "deadTime": 5E-8,
+        "afterpulseProbability": 0.05,
+        "afterpulseLifetime": 5E-8
+      },
+      "enableDark": true,
+      "enableDeadTime": false,
+      "enableAfterpulse": false
+    },
+    "tdc": {
+      "A": {
+        "jitter": 1E-11,
+        "deadTime": 5E-8,
+        "bias": 0
+      },
+      "B": {
+        "jitter": 1E-11,
+        "deadTime": 5E-8,
+        "bias": 0
+      },
+      "resolution": 1E-11,
+      "enableJitter": true,
+      "enableDeadTime": false,
+      "dnl": 0,
+      "inl": 0
+    },
+    "algorithm": {
+      "histRange": [
+        -2E-8,
+        2E-8
+      ],
+      "binWidth": 1E-10,
+      "window": 3E-9,
+      "matchMethod": "many-to-many",
+      "peakMethod": "maximum",
+      "windowMode": "bins",
+      "windowMultiplier": 3,
+      "accidentalMethod": "side-window",
+      "sidebandGuard": 3E-9,
+      "sideWindowPairs": 3,
+      "sideWindowGuardMode": "window-width",
+      "strictWindows": true,
+      "timeShiftStart": 1E-6,
+      "timeShiftStep": 1E-6,
+      "timeShiftCount": 5,
+      "timestampWindowMode": false,
+      "timestampWindowSize": 5,
+      "maxMatchPairs": 2.0E+6
+    }
+  },
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "factors": [
+    {
+      "parameter": "source.pairRate",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        10000,
+        100000
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.histHalfRange",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        20,
+        50
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.binWidth",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        10,
+        50,
+        100
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.windowMultiplier",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        0,
+        1,
+        3
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.sideWindowPairs",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        1,
+        2
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.accidentalMethod",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        "theory",
+        "side-window",
+        "time-shift"
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.timeShiftStart",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": [
+        1,
+        5
+      ],
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.timeShiftStep",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": 1,
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    },
+    {
+      "parameter": "algorithm.timeShiftCount",
+      "channel": "both",
+      "enabled": true,
+      "inputMode": "list",
+      "values": 3,
+      "start": 0,
+      "stop": 0,
+      "step": 1,
+      "count": 10
+    }
+  ],
+  "outputRoot": "outputs/parameter_sweep",
+  "resumeDirectory": "",
+  "limits": {
+    "maxRows": 10000,
+    "maxSourceEvents": 2.0E+6,
+    "maxChannelEvents": 4.0E+6,
+    "maxMatchPairs": 2.0E+6,
+    "maxHistogramBins": 1.0E+6,
+    "maxShifts": 1000,
+    "maxSidePairs": 10000
+  },
+  "outputs": {
+    "saveTimestamps": false,
+    "exportPerSideWindow": true,
+    "aggregateSeeds": true
+  },
+  "units": [
+    {
+      "parameter": "source.pairRate",
+      "label": "光子对率",
+      "unit": "pair/s",
+      "scale": 1
+    },
+    {
+      "parameter": "measurementTime",
+      "label": "测量时长",
+      "unit": "s",
+      "scale": 1
+    },
+    {
+      "parameter": "source.pumpPower",
+      "label": "泵浦功率",
+      "unit": "mW",
+      "scale": 0.001
+    },
+    {
+      "parameter": "detector.darkRate",
+      "label": "暗计数",
+      "unit": "cps",
+      "scale": 1
+    },
+    {
+      "parameter": "detector.backgroundRate",
+      "label": "背景计数",
+      "unit": "cps",
+      "scale": 1
+    },
+    {
+      "parameter": "detector.jitter",
+      "label": "探测器抖动",
+      "unit": "ps",
+      "scale": 1E-12
+    },
+    {
+      "parameter": "detector.deadTime",
+      "label": "探测器死时间",
+      "unit": "ns",
+      "scale": 1E-9
+    },
+    {
+      "parameter": "detector.afterpulseProbability",
+      "label": "后脉冲概率",
+      "unit": "probability",
+      "scale": 1
+    },
+    {
+      "parameter": "detector.afterpulseLifetime",
+      "label": "后脉冲时间常数",
+      "unit": "ns",
+      "scale": 1E-9
+    },
+    {
+      "parameter": "tdc.jitter",
+      "label": "TDC 抖动",
+      "unit": "ps",
+      "scale": 1E-12
+    },
+    {
+      "parameter": "tdc.deadTime",
+      "label": "TDC 死时间",
+      "unit": "ns",
+      "scale": 1E-9
+    },
+    {
+      "parameter": "algorithm.histHalfRange",
+      "label": "时间谱半范围",
+      "unit": "ns",
+      "scale": 1E-9
+    },
+    {
+      "parameter": "algorithm.binWidth",
+      "label": "bin 宽",
+      "unit": "ps",
+      "scale": 1E-12
+    },
+    {
+      "parameter": "algorithm.windowMultiplier",
+      "label": "主窗左右 bin 数 n",
+      "unit": "bin",
+      "scale": 1
+    },
+    {
+      "parameter": "algorithm.sideWindowPairs",
+      "label": "旁窗左右对数 K",
+      "unit": "pairs",
+      "scale": 1
+    },
+    {
+      "parameter": "algorithm.accidentalMethod",
+      "label": "偶然符合修正方法",
+      "unit": "method",
+      "scale": 1
+    },
+    {
+      "parameter": "algorithm.timeShiftStart",
+      "label": "时间戳平移起点",
+      "unit": "us",
+      "scale": 1E-6
+    },
+    {
+      "parameter": "algorithm.timeShiftStep",
+      "label": "时间戳平移步长",
+      "unit": "us",
+      "scale": 1E-6
+    },
+    {
+      "parameter": "algorithm.timeShiftCount",
+      "label": "时间戳平移次数",
+      "unit": "count",
+      "scale": 1
+    },
+    {
+      "parameter": "algorithm.peakMethod",
+      "label": "寻峰方法",
+      "unit": "method",
+      "scale": 1
+    }
+  ]
+}

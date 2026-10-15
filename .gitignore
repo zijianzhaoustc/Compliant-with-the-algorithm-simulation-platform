@@ -35,6 +35,10 @@ codegen/
 # buildtool cache folder
 .buildtool/
 
+# Research scans create unique local run/checkpoint directories.
+/outputs/parameter_sweep/
+/outputs/parameter_sweep_validation/
+
 # SimBiology backup files
 *.sbproj.backup
 *.sbproj.bak

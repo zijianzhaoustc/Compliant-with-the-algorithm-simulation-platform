@@ -10,6 +10,19 @@ function acc = estimateAccidentals(A, B, matches, histResult, p)
 
 W=resolveCoincidenceWindow(histResult,p); T=p.measurementTime;
 sampleOffsets=zeros(0,1); sampleCounts=zeros(0,1);
+status="OK"; boundaries=zeros(0,2); validPairs=0; tailCount=NaN; gap=NaN;
+guardMode="fixed-center";
+if isfield(p.algorithm,'sideWindowGuardMode'), guardMode=string(p.algorithm.sideWindowGuardMode); end
+if isfield(p.algorithm,'strictWindows') && p.algorithm.strictWindows
+    main=calculateRawCoincidence(matches,histResult,p);
+    if main.status~="OK"
+        acc=struct('rate',NaN,'countEquivalent',NaN,'method',p.algorithm.accidentalMethod, ...
+            'details',"No valid main window",'sampleOffsets',sampleOffsets,'sampleCounts',sampleCounts, ...
+            'status',main.status,'boundaries',boundaries,'validPairs',0,'guardGap',NaN, ...
+            'guardMode',guardMode,'sideTrueCount',NaN);
+        return
+    end
+end
 switch p.algorithm.accidentalMethod
     case "none"
         % 无修正时 Rnet=Rraw，用于与各背景估计方法直接对照。
@@ -34,6 +47,42 @@ switch p.algorithm.accidentalMethod
         details="sideband density";
 
     case "side-window"
+        if guardMode=="window-width"
+            raw=calculateRawCoincidence(matches,histResult,p);
+            W=raw.window; gap=W; K=p.algorithm.sideWindowPairs;
+            boundaries=nan(2*K,2); windowCounts=nan(2*K,1);
+            tailCount=0;
+            lo=max(p.algorithm.histRange(1),histResult.edges(1));
+            hi=min(p.algorithm.histRange(2),histResult.edges(end));
+            if raw.status~="OK"
+                status=raw.status;
+            else
+                for k=1:K
+                    rows=[2*k-1,2*k];
+                    boundaries(rows,:)=[raw.lowerEdge-W-k*W,raw.lowerEdge-W-(k-1)*W; ...
+                        raw.upperEdge+W+(k-1)*W,raw.upperEdge+W+k*W];
+                    valid=false(2,1);
+                    for j=1:2
+                        r=rows(j); e=boundaries(r,:);
+                        tolerance=64*eps(max(abs([lo hi e])));
+                        valid(j)=e(1)>=lo-tolerance && e(2)<=hi+tolerance;
+                        if valid(j)
+                            selected=matches.deltaT>=e(1) & matches.deltaT<e(2);
+                            if abs(e(2)-histResult.edges(end))<=tolerance
+                                selected=selected | matches.deltaT==histResult.edges(end);
+                            end
+                            windowCounts(r)=nnz(selected);
+                            tailCount=tailCount+nnz(selected & matches.isTrue);
+                        end
+                    end
+                    validPairs=validPairs+all(valid);
+                end
+                if validPairs~=K, status="INVALID_SIDE_WINDOWS"; end
+            end
+            if status=="OK", rate=mean(windowCounts)/T; else, rate=NaN; end
+            sampleOffsets=mean(boundaries,2)-histResult.peak; sampleCounts=windowCounts;
+            details="strict equal-width windows, edge gap G=W";
+        else
         lo=p.algorithm.histRange(1); hi=p.algorithm.histRange(2);
         guard=max(p.algorithm.sidebandGuard,W/2); K=p.algorithm.sideWindowPairs;
         windowCounts=zeros(0,1); windowCenters=zeros(0,1);
@@ -53,6 +102,7 @@ switch p.algorithm.accidentalMethod
         if isempty(windowCounts), rate=NaN; else, rate=mean(windowCounts)/T; end
         sampleOffsets=windowCenters-histResult.peak; sampleCounts=windowCounts;
         details=sprintf("side-window mean over %d valid windows",numel(windowCounts));
+        end
 
     case "time-shift"
         % 使用 start+(k-1)*step 循环平移 B 路，对每次窗内符合计数取平均。
@@ -84,4 +134,10 @@ acc.details=details;
 % 记录旁窗中心或平移量以及各次计数，便于检查估计稳定性。
 acc.sampleOffsets=sampleOffsets;
 acc.sampleCounts=sampleCounts;
+acc.status=status;
+acc.boundaries=boundaries;
+acc.validPairs=validPairs;
+acc.guardGap=gap;
+acc.guardMode=guardMode;
+acc.sideTrueCount=tailCount;
 end
