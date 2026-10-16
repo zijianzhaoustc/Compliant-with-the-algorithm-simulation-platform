@@ -16,7 +16,7 @@ classdef ParameterSweepPanel < handle
         function panel=ParameterSweepPanel(parent,provider)
             panel.Parent=parent; panel.ParameterProvider=provider;
             panel.Config=scanDefaultConfig(provider());
-            g=uigridlayout(parent,[7,1]); g.RowHeight={32,32,32,'2x',42,26,'1x'};
+            g=uigridlayout(parent,[8,1]); g.RowHeight={32,32,32,32,'2x',42,26,'1x'};
             g.Padding=[10 8 10 8]; g.RowSpacing=5;
             top=uigridlayout(g,[1,8]); top.Padding=[0 0 0 0];
             top.ColumnWidth={65,145,65,'1x',85,100,90,90};
@@ -28,6 +28,17 @@ classdef ParameterSweepPanel < handle
             panel.Controls.BaseSource=uidropdown(top,'Items',{'当前主界面','配置文件'},'Value','当前主界面');
             panel.Controls.Save=uibutton(top,'Text','保存配置','ButtonPushedFcn',@(~,~)panel.saveConfig());
             panel.Controls.Load=uibutton(top,'Text','载入配置','ButtonPushedFcn',@(~,~)panel.loadConfig());
+            constants=uigridlayout(g,[1,5]); constants.Padding=[0 0 0 0];
+            constants.ColumnWidth={100,140,140,140,'1x'};
+            uilabel(constants,'Text','测量时长 (s)');
+            panel.Controls.MeasurementTime=uieditfield(constants,'numeric', ...
+                'Value',panel.Config.baseParams.measurementTime,'Limits',[0 Inf],'LowerLimitInclusive','off', ...
+                'Tooltip','整批扫描使用这个固定测量时长，不参与步进扫描。');
+            uilabel(constants,'Text','工作内存上限 (MB)');
+            panel.Controls.WorkingMemoryMB=uieditfield(constants,'numeric', ...
+                'Value',panel.Config.limits.maxWorkingMemoryMB,'Limits',[0 Inf],'LowerLimitInclusive','off', ...
+                'Tooltip','单批数据工作内存预算，1 MB=2^20字节；超预算会阻止启动，匹配数组分配前再次检查。');
+            uilabel(constants,'Text','所有通道扫描因素统一 both：A/B 同步变化');
             paths=uigridlayout(g,[1,4]); paths.Padding=[0 0 0 0]; paths.ColumnWidth={90,'1x',130,130};
             uilabel(paths,'Text','输出根目录');
             panel.Controls.Output=uieditfield(paths,'text','Value',char(panel.Config.outputRoot));
@@ -44,8 +55,8 @@ classdef ParameterSweepPanel < handle
             uibutton(toolbar,'Text','从主界面重置基准','ButtonPushedFcn',@(~,~)panel.resetBase());
             panel.Controls.Factors=uitable(g,'RowName',[],'ColumnName', ...
                 {'扫描','参数 / 标签','通道','输入方式','固定值 / 列表（方法点选）','起点','终点','步长','log数量','单位','实际数列 / 数量'}, ...
-                'ColumnEditable',[true false true true true true true true true false false], ...
-                'ColumnFormat',{'logical','char',{'both','A','B'},{'fixed','list','range','log'},'char','numeric','numeric','numeric','numeric','char','char'}, ...
+                'ColumnEditable',[true false false true true true true true true false false], ...
+                'ColumnFormat',{'logical','char','char',{'fixed','list','range','log'},'char','numeric','numeric','numeric','numeric','char','char'}, ...
                 'ColumnWidth',{45,300,65,75,230,75,75,75,70,70,260}, ...
                 'CellSelectionCallback',@(~,event)panel.selectFactorCell(event), ...
                 'CellEditCallback',@(~,event)panel.editFactorCell(event), ...
@@ -84,6 +95,8 @@ classdef ParameterSweepPanel < handle
             if strcmp(panel.Controls.BaseSource.Value,'当前主界面')
                 c.baseParams=panel.ParameterProvider();
             end
+            c.baseParams.measurementTime=panel.Controls.MeasurementTime.Value;
+            c.limits.maxWorkingMemoryMB=panel.Controls.WorkingMemoryMB.Value;
             c.mode=string(panel.Controls.Mode.Value); seedInput=scanFactor("seed",panel.Controls.Seeds.Value);
             c.seeds=expandScanValues(seedInput); c.outputRoot=string(panel.Controls.Output.Value);
             c.resumeDirectory=""; c.outputs.saveTimestamps=panel.Controls.SaveTimes.Value;
@@ -92,7 +105,7 @@ classdef ParameterSweepPanel < handle
             for i=1:size(data,1)
                 if ~data{i,1}, continue; end
                 key=extractBefore(string(data{i,2})," | ");
-                f=scanFactor(key,string(data{i,5}),string(data{i,3}));
+                f=scanFactor(key,string(data{i,5}),"both");
                 f.inputMode=string(data{i,4}); f.start=data{i,6}; f.stop=data{i,7};
                 f.step=data{i,8}; f.count=data{i,9}; factors(end+1,1)=f; %#ok<AGROW>
             end
@@ -147,25 +160,25 @@ classdef ParameterSweepPanel < handle
         end
 
         function populate(panel,c)
+            c=validateScanConfig(c);
             panel.Config=c; panel.Controls.Mode.Value=char(c.mode);
             panel.Controls.Seeds.Value=char(strjoin(string(c.seeds),','));
             panel.Controls.Output.Value=char(c.outputRoot);
             panel.Controls.SaveTimes.Value=c.outputs.saveTimestamps;
             panel.Controls.SideDetails.Value=c.outputs.exportPerSideWindow;
+            panel.Controls.MeasurementTime.Value=c.baseParams.measurementTime;
+            panel.Controls.WorkingMemoryMB.Value=c.limits.maxWorkingMemoryMB;
             catalog=scanParameterCatalog(); data=cell(0,11);
             for i=1:height(catalog)
-                key=catalog.parameter(i); channels="both";
-                if startsWith(key,"detector.") || startsWith(key,"tdc."), channels=["both","A","B"]; end
-                for channel=channels
-                    value=scanGetParameter(c.baseParams,key,channel);
-                    data(end+1,:)={false,char(key+" | "+catalog.label(i)),char(channel),'list', ...
-                        char(string(value)),0,1,1,10,char(catalog.unit(i)),''}; %#ok<AGROW>
-                    for f=c.factors(:)'
-                        if string(f.parameter)==key && string(f.channel)==channel
-                            row=size(data,1); data{row,1}=f.enabled; data{row,4}=char(f.inputMode);
-                            data{row,5}=char(strjoin(string(f.values),','));
-                            data{row,6}=f.start; data{row,7}=f.stop; data{row,8}=f.step; data{row,9}=f.count;
-                        end
+                key=catalog.parameter(i);
+                value=scanGetParameter(c.baseParams,key,"both");
+                data(end+1,:)={false,char(key+" | "+catalog.label(i)),'both','list', ...
+                    char(string(value)),0,1,1,10,char(catalog.unit(i)),''}; %#ok<AGROW>
+                for f=c.factors(:)'
+                    if string(f.parameter)==key
+                        row=size(data,1); data{row,1}=f.enabled; data{row,4}=char(f.inputMode);
+                        data{row,5}=char(strjoin(string(f.values),','));
+                        data{row,6}=f.start; data{row,7}=f.stop; data{row,8}=f.step; data{row,9}=f.count;
                     end
                 end
             end
@@ -176,8 +189,8 @@ classdef ParameterSweepPanel < handle
             try
                 c=panel.readConfig(); [~,v,c]=buildScanGrid(c); panel.LastPreview=v;
                 panel.Controls.PreviewText.Text=sprintf( ...
-                    '物理生成 %d 次；分析 %d 行；单批期望源事件 %.3g，通道上界 %.3g；粗略工作内存 %.1f MB。预计旁窗不足 %d 行（按理论峰位，实际逐行检查）。', ...
-                    v.physicalGenerationCount,v.analysisCount,v.maxExpectedSourceEvents,v.maxExpectedChannelEvents,v.estimatedWorkingMemoryMB,v.potentialInvalidSideWindowCount);
+                    '物理生成 %d 次；分析 %d 行；单批期望源事件 %.3g，通道上界 %.3g；预计工作内存 %.1f / 上限 %.1f MB。预计旁窗不足 %d 行（按理论峰位，实际逐行检查）。', ...
+                    v.physicalGenerationCount,v.analysisCount,v.maxExpectedSourceEvents,v.maxExpectedChannelEvents,v.estimatedWorkingMemoryMB,v.workingMemoryLimitMB,v.potentialInvalidSideWindowCount);
                 data=panel.Controls.Factors.Data; enabled=find(cell2mat(data(:,1)));
                 for j=1:numel(enabled)
                     f=c.factors(j); data{enabled(j),11}=char(strjoin(string(f.values),',')+" / "+numel(f.values));
@@ -255,7 +268,7 @@ classdef ParameterSweepPanel < handle
 
         function setRunning(panel,running)
             panel.Running=running;
-            for name=["Start","Preview","Load","Save","Resume"]
+            for name=["Start","Preview","Load","Save","Resume","MeasurementTime","WorkingMemoryMB"]
                 if running, panel.Controls.(name).Enable='off'; else, panel.Controls.(name).Enable='on'; end
             end
             if running, panel.Controls.Stop.Enable='on'; else, panel.Controls.Stop.Enable='off'; end

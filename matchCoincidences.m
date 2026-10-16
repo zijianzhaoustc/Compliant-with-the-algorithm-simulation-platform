@@ -16,8 +16,19 @@ lo = p.algorithm.histRange(1); hi = p.algorithm.histRange(2);
 switch p.algorithm.matchMethod
     case {"many-to-many","all-pairs"}
         limit=Inf;
+        memoryPairLimit=Inf;
         if isfield(p.algorithm,'maxMatchPairs'), limit=p.algorithm.maxMatchPairs; end
-        [ia, ib] = allPairs(A.time, B.time, lo, hi,limit);
+        if isfield(p.algorithm,'scanWorkingMemoryMB')
+            sourceCount=0;
+            if isfield(p,'analysis') && isfield(p.analysis,'sourceCount'), sourceCount=p.analysis.sourceCount; end
+            [baseMB,pairBytes]=estimateScanWorkingMemoryMB(p,sourceCount,[numel(A.time),numel(B.time)],0);
+            budget=p.algorithm.scanWorkingMemoryMB;
+            if baseMB>budget
+                error('CoincidenceSim:WorkingMemoryLimit','Timestamp/histogram workspace %.3f MB exceeds %.3f MB.',baseMB,budget);
+            end
+            memoryPairLimit=floor((budget-baseMB)*2^20/pairBytes);
+        end
+        [ia, ib] = allPairs(A.time, B.time, lo, hi,limit,memoryPairLimit);
     case "one-to-one"
         [ia, ib] = oneToOne(A.time, B.time, max(abs([lo hi])));
     case "many-to-one"
@@ -39,7 +50,7 @@ matches.pairIDA = A.pairID(ia); matches.pairIDB = B.pairID(ib);
 matches.isTrue = matches.pairIDA > 0 & matches.pairIDA == matches.pairIDB;
 end
 
-function [ia,ib] = allPairs(a,b,lo,hi,limit)
+function [ia,ib] = allPairs(a,b,lo,hi,limit,memoryPairLimit)
 %ALLPAIRS 用双滑动边界枚举范围内组合，避免构造完整笛卡尔积。
 % 第一遍只统计每个 Start 的匹配数，随后一次性预分配输出。相比为百万个
 % Start 创建 cell，该方式明显降低实测大文件的内存开销。
@@ -53,6 +64,10 @@ for i = 1:numel(a)
     counts(i)=max(0,right-left+1);
 end
 total=sum(counts);
+if total>memoryPairLimit
+    error('CoincidenceSim:WorkingMemoryLimit', ...
+        'Actual %g pairs exceeds the working-memory allowance of %g pairs; match arrays were not allocated.',total,memoryPairLimit);
+end
 if total>limit
     error('CoincidenceSim:PairLimit','Requested %g pairs exceeds the configured limit %g.',total,limit);
 end

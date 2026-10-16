@@ -19,7 +19,8 @@ end
 potentialInvalid=0;
 template=struct('params',struct(),'parameter_hash',"",'physical_config_id',"", ...
     'analysis_config_id',"",'stream_key',"",'seed_group_key',"",'warning_codes',"", ...
-    'seed',0,'expected_source_events',0,'expected_channel_events',0,'estimated_pairs',0);
+    'seed',0,'expected_source_events',0,'expected_channel_events',0,'estimated_pairs',0, ...
+    'estimated_working_memory_MB',0);
 plan=repmat(template,total*numel(c.seeds),1); pos=0;
 for i=1:total
     p=c.baseParams;
@@ -54,14 +55,17 @@ for i=1:total
         channels(k)=rate*p.measurementTime;
     end
     estimatedPairs=prod(channels)*min(1,diff(p.algorithm.histRange)/p.measurementTime)+expected;
+    memoryMB=estimateScanWorkingMemoryMB(p,expected,channels,estimatedPairs);
     if expected>c.limits.maxSourceEvents || max(channels)>c.limits.maxChannelEvents || estimatedPairs>c.limits.maxMatchPairs
         error('CoincidenceSim:ScanLimit','Physical event/pair estimate exceeds configured limits. Reduce rate, duration or range.');
     end
+    if memoryMB>c.limits.maxWorkingMemoryMB
+        error('CoincidenceSim:WorkingMemoryLimit', ...
+            'Estimated working memory %.3f MB exceeds configured %.3f MB. Reduce the scan or increase the memory setting.', ...
+            memoryMB,c.limits.maxWorkingMemoryMB);
+    end
     warnings=effectWarnings(p,factors,selections(i,:));
     if p.algorithm.binWidth<p.tdc.resolution, warnings(end+1)="BELOW_TDC_RESOLUTION"; end
-    if p.source.mode=="direct" && any(arrayfun(@(f)f.parameter=="source.pumpPower",factors))
-        warnings(end+1)="EFFECT_DISABLED:source.pumpPower";
-    end
     if p.algorithm.accidentalMethod=="time-shift"
         offsets=p.algorithm.timeShiftStart+(0:p.algorithm.timeShiftCount-1)*p.algorithm.timeShiftStep;
         if any(mod(offsets,p.measurementTime)<max(abs(p.algorithm.histRange)))
@@ -78,6 +82,7 @@ for i=1:total
         plan(pos).expected_source_events=expected;
         plan(pos).expected_channel_events=max(channels);
         plan(pos).estimated_pairs=estimatedPairs;
+        plan(pos).estimated_working_memory_MB=memoryMB;
     end
 end
 [~,ia]=unique([plan.parameter_hash],'stable'); plan=plan(ia);
@@ -86,8 +91,8 @@ keys=unique([plan.stream_key]); maxEvents=max([plan.expected_channel_events]);
 preview=struct('physicalGenerationCount',numel(keys),'analysisCount',numel(plan), ...
     'analysisVariantCount',numel(unique([plan.analysis_config_id])), ...
     'maxExpectedSourceEvents',max([plan.expected_source_events]), ...
-    'maxExpectedChannelEvents',maxEvents,'estimatedWorkingMemoryMB', ...
-    (maxEvents*2*128+max([plan.estimated_pairs])*80+c.limits.maxHistogramBins*32)/2^20, ...
+    'maxExpectedChannelEvents',maxEvents,'estimatedWorkingMemoryMB',max([plan.estimated_working_memory_MB]), ...
+    'workingMemoryLimitMB',c.limits.maxWorkingMemoryMB, ...
     'potentialInvalidSideWindowCount',potentialInvalid, ...
     'sideWindowCheck',"Exact peak-dependent validity is recorded per row; preview cannot know the random peak.");
 end

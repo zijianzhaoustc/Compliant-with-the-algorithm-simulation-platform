@@ -9,11 +9,12 @@
 
 运行 `launchCoincidenceSimulator`，进入顶部 **多参数扫描 / 研究扫描** 页。
 
-1. 选择单因素 OAT、双因素或自定义多因素；填写随机种子列表和输出根目录。
+1. 选择单因素 OAT、双因素或自定义多因素；填写随机种子列表、固定测量时长(s)、
+   工作内存上限(MB)和输出根目录。测量时长不参与扫描，默认内存预算2048MB。
 2. 默认使用当前主界面全部参数作为基准。载入 JSON 后使用文件中的基准参数；
    “从主界面重置基准”可重新同步。未勾选因素保持基准值。
-3. 勾选因素。`both` 将 A/B 同时设为同一值；分别扫描时启用该参数的 A 行和 B 行，
-   分别填写列表。不要同时启用重叠的 both 与 A/B 行。
+3. 勾选因素。每个因素只有一行，通道固定为`both`，A/B同时设为同一值。
+   泵浦功率不再作为研究扫描因素。未扫描的光学/PDE等基准参数仍完整记录。
 4. 输入方式：`fixed` 固定值、`list` 逗号列表、`range` 起点/终点/步长、`log` 正数对数间隔。
    参数表单位是输入单位：抖动/bin 用 ps，死时间/后脉冲寿命/半范围用 ns，平移用 μs。
    后脉冲概率用 0–1。点击“偶然符合修正方法”或“寻峰方法”行的值单元格，
@@ -65,9 +66,10 @@ c.factors = [scanFactor("algorithm.accidentalMethod", ...
     scanFactor("algorithm.timeShiftCount", [3 5])];
 batch = runParameterSweep(c);
 
-% A/B分别扫描
-c.factors = [scanFactor("detector.darkRate",[0 500],"A"); ...
-             scanFactor("detector.darkRate",[0 1000],"B")];
+% A/B同步扫描；测量时长是整批常数
+c.baseParams.measurementTime = 0.05;
+c.limits.maxWorkingMemoryMB = 4096;
+c.factors = scanFactor("detector.darkRate",[0 500 1000]);
 
 % 起点/终点/步长；数值以参数表的显示单位输入
 f = scanFactor("algorithm.binWidth", []);
@@ -109,8 +111,9 @@ K 为每侧窗数，两侧共 2K 个等宽窗的计数等权平均。任何完�
 Gaussian 拟合保留原有回退供旧功能使用，研究扫描显式标记失败。
 `BELOW_TDC_RESOLUTION` 只作分析警示，不代表仪器分辨率提高。
 禁用效应的扫描标记 `EFFECT_DISABLED:<参数>:<通道>`，进入问题表并从有效重复聚合排除。
-pump 模式拒绝将派生 pairRate 当作独立输入，可改扫 pumpPower；direct 模式扫描
-pumpPower 会标记禁用效应。旁窗同源事件记录 `sideband_tail_true_count`，大于零时
+pump 模式拒绝将派生 pairRate 当作独立输入，扫描光子对率前需将基准切回direct。
+原单次仿真的泵浦模型保留，研究扫描不再提供泵浦功率因素。旁窗同源事件记录
+`sideband_tail_true_count`，大于零时
 附加 `SIDEBAND_TAIL_RISK`。平移接近采集周期整数倍可能保留真实相关，附加
 `SHIFT_OVERLAP_RISK`；平移法仍沿用原有循环平移模型。
 
@@ -133,7 +136,7 @@ pumpPower 会标记禁用效应。旁窗同源事件记录 `sideband_tail_true_c
 | --- | --- |
 | scan_config.json | 完整固定基准、因素实际列表、单位来源、种子、资源上限、输出选项 |
 | metadata.json | 批次ID、git版本、未提交源代码指纹、MATLAB版本、配置hash、工作区差异、资源预览 |
-| configurations.csv | parameter_hash、physical_config_id、analysis_config_id、stream_key、seed_group_key、seed、事件/配对预估、warning_codes、完整 parameters_json |
+| configurations.csv | parameter_hash、physical_config_id、analysis_config_id、stream_key、seed_group_key、seed、事件/配对/工作内存预估、warning_codes、完整 parameters_json |
 | scan_results.csv | 每个完成组合的全部参数、全部指标、窗口几何、质量诊断、真值、新增误差、身份/耗时/原始错误报告 |
 | seed_summary.csv | 相同物理+算法条件（排除seed）聚合，replicate_count、success_count、invalid_count、均值/标准差、相对及绝对误差bias/RMSE |
 | invalid_or_errors.csv | 非OK和EFFECT_DISABLED行，完整保留原行及NaN |
@@ -202,12 +205,22 @@ mergeParamsWithDefaults兼容空结构数组；GUI回归页数由2更新为3。
 
 ## 资源与已知限制
 
-默认最多10,000行、每物理条件期望源事件2e6、通道事件4e6、匹配对2e6、
+默认工作内存预算2048MB（1MB=2^20字节），可在GUI或`limits.maxWorkingMemoryMB`
+中输入正数，可带小数。预览显示预计工作内存/配置上限，超过预算会阻止启动；
+实际匹配对数在分配索引之前再次检查内存预算，超限行保留ERROR和原始错误栈。
+估算涵盖源、A/B事件、排序/复制、直方图及匹配工作区；时间平移计入额外匹配
+数组空间。该配置限制数据工作区预算，MATLAB自身及操作系统开销不计入其中。
+
+其他独立安全上限：最多10,000行、每物理条件期望源事件2e6、通道事件4e6、匹配对2e6、
 直方图bin数1e6、平移次数1000、单侧旁窗数10000。规划先检查期望量，实际
 all-pairs在第一次计数后、分配索引之前再检查；超限记录ERROR，其他组合继续。
-工作内存是粗略估计，MATLAB字符串/对象开销、峰值临时内存和泊松涨落会变化。
+工作内存是保守估计，MATLAB字符串/对象开销、峰值临时内存和泊松涨落会变化。
 不支持无限规模流式真值枚举；需要更大数据时先缩小采集时长/搜索范围，或谨慎
 提高上限。运行中一次只保留一个物理流；结果/计划表仍保留在内存。
+
+旧配置若包含A/B独立因素、测量时长扫描或泵浦功率扫描，会明确报错；需改为
+both、将时长写入`baseParams.measurementTime`并删除泵浦因素。只有合法因素的旧配置
+会自动补齐默认内存预算。
 
 停止无法打断正在执行的单次物理生成、拟合、匹配或某组平移，会在安全边界响应。
 中断后若未保存原始流，续跑会用同物理参数和seed重新生成一次，以复现相同数据，

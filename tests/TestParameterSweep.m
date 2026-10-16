@@ -69,16 +69,15 @@ classdef TestParameterSweep < matlab.unittest.TestCase
             t.verifyEqual(expandScanValues(f),["theory","side-window","time-shift"]);
         end
 
-        function channelLockAndIndependentGrid(t)
+        function channelLockRejectsIndependentGrid(t)
             c=smallConfig(); c.factors=scanFactor("detector.darkRate",[0 500 1000]);
             plan=buildScanGrid(c); t.verifyNumElements(plan,3);
             for p=plan'
                 t.verifyEqual(p.params.detector.A.darkRate,p.params.detector.B.darkRate);
             end
             c.factors=[scanFactor("detector.darkRate",[0 500],"A");scanFactor("detector.darkRate",[0 700],"B")];
-            plan=buildScanGrid(c); t.verifyNumElements(plan,4);
-            t.verifyEqual(sort(arrayfun(@(r)r.params.detector.B.darkRate,plan)),[0;0;700;700]);
-            c.factors=[scanFactor("detector.darkRate",[0 1]);scanFactor("detector.darkRate",2,"A")];
+            t.verifyError(@()buildScanGrid(c),'CoincidenceSim:ScanChannel');
+            c.factors=[scanFactor("detector.darkRate",[0 1]);scanFactor("detector.darkRate",2)];
             t.verifyError(@()buildScanGrid(c),'CoincidenceSim:ScanOverlap');
         end
 
@@ -275,7 +274,7 @@ classdef TestParameterSweep < matlab.unittest.TestCase
         function guiHasIndependentWorkspaceAndEditableFactors(t)
             app=CoincidenceSimulatorApp(); cleanup=onCleanup(@()delete(app)); app.UIFigure.Visible='off';
             t.verifyEqual(numel(app.WorkspaceTabs.Children),3);
-            panel=app.ParameterSweepPanel; t.verifyGreaterThan(size(panel.Controls.Factors.Data,1),30);
+            panel=app.ParameterSweepPanel; t.verifyEqual(size(panel.Controls.Factors.Data,1),height(scanParameterCatalog()));
             t.verifyEqual(string(app.Controls.Match.Value),"many-to-many");
             c=panel.readConfig(); t.verifyEqual(c.baseParams.algorithm.sideWindowGuardMode,"window-width");
             t.verifyEqual(c.baseParams.algorithm.matchMethod,"many-to-many");

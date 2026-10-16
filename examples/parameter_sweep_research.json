@@ -85,7 +85,8 @@
       "timeShiftCount": 5,
       "timestampWindowMode": false,
       "timestampWindowSize": 5,
-      "maxMatchPairs": 2.0E+6
+      "maxMatchPairs": 2.0E+6,
+      "scanWorkingMemoryMB": 2048
     }
   },
   "seeds": [
@@ -229,7 +230,8 @@
     "maxMatchPairs": 2.0E+6,
     "maxHistogramBins": 1.0E+6,
     "maxShifts": 1000,
-    "maxSidePairs": 10000
+    "maxSidePairs": 10000,
+    "maxWorkingMemoryMB": 2048
   },
   "outputs": {
     "saveTimestamps": false,
@@ -242,18 +244,6 @@
       "label": "光子对率",
       "unit": "pair/s",
       "scale": 1
-    },
-    {
-      "parameter": "measurementTime",
-      "label": "测量时长",
-      "unit": "s",
-      "scale": 1
-    },
-    {
-      "parameter": "source.pumpPower",
-      "label": "泵浦功率",
-      "unit": "mW",
-      "scale": 0.001
     },
     {
       "parameter": "detector.darkRate",

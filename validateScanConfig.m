@@ -13,18 +13,26 @@ c.baseParams.algorithm.windowMode="bins";
 c.baseParams.algorithm.strictWindows=true;
 c.baseParams.algorithm.sideWindowGuardMode="window-width";
 c.baseParams.algorithm.maxMatchPairs=c.limits.maxMatchPairs;
+c.baseParams.algorithm.scanWorkingMemoryMB=c.limits.maxWorkingMemoryMB;
 names=fieldnames(c.limits);
-for j=1:numel(names), validateattributes(c.limits.(names{j}),{'numeric'},{'scalar','finite','positive','integer'}); end
+for j=1:numel(names)
+    attributes={'scalar','real','finite','positive','integer'};
+    if strcmp(names{j},'maxWorkingMemoryMB'), attributes(end)=[]; end
+    validateattributes(c.limits.(names{j}),{'numeric'},attributes);
+end
 catalog=scanParameterCatalog(); factors=repmat(scanFactor("",[]),0,1); targets=strings(0,1);
 for i=1:numel(c.factors)
     f=mergeParamsWithDefaults(scanFactor("",[]),c.factors(i));
     if ~f.enabled, continue; end
     f.parameter=string(f.parameter); f.channel=string(f.channel); f.inputMode=string(f.inputMode);
-    if ~ismember(f.parameter,catalog.parameter) || ~ismember(f.channel,["both","A","B"])
-        error('CoincidenceSim:ScanFactor','Unknown factor or channel.');
+    if ~ismember(f.parameter,catalog.parameter)
+        error('CoincidenceSim:ScanFactor','Unsupported scan factor. Measurement time is a constant; pump power is not a research scan factor.');
+    end
+    if f.channel~="both"
+        error('CoincidenceSim:ScanChannel','Research scans only support both: A/B vary together.');
     end
     if f.parameter=="source.pairRate" && string(c.baseParams.source.mode)=="pump"
-        error('CoincidenceSim:PumpScan','pairRate is derived in pump mode; scan pumpPower or switch to direct.');
+        error('CoincidenceSim:PumpScan','pairRate is derived in pump mode; switch the baseline source to direct.');
     end
     if ~isempty(scanMethodChoices(f.parameter)) && ~ismember(f.inputMode,["fixed","list"])
         error('CoincidenceSim:ScanCategoricalInput','Method factors support fixed or list, not numeric range/log.');
@@ -43,6 +51,7 @@ for i=1:numel(c.factors)
     factors(end+1,1)=f; %#ok<AGROW>
 end
 c.factors=factors;
+c.units=table2struct(catalog);
 if c.mode=="two-factor" && numel(factors)~=2
     error('CoincidenceSim:ScanMode','two-factor requires exactly two enabled factors.');
 end

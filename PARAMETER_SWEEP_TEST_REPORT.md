@@ -86,3 +86,23 @@ MATLAB R2025b实际执行28项相关测试，28 PASS、0 FAIL、0 INCOMPLETE：
 验证文件：`outputs/parameter_sweep_validation/method_picker_tests.csv`；
 窗口预览：`outputs/parameter_sweep_validation/method_picker.png`。
 独立入口`runParameterSweepSmokeTests`也已纳入新增5项选择器测试。
+
+## 2026-10-16 扫描简化与内存预算
+
+研究扫描因素统一both，每个因素仅一行，通道列不可编辑；移除测量时长和泵浦
+功率扫描因素。测量时长改为上方可输入的固定常数，内存预算改为可输入的正数
+MB，默认2048，支持小数。配置JSON保留常数和预算，合法旧配置自动补齐预算。
+独立A/B及已移除的扫描因素会明确拒绝，避免载入后悄悄改变实验计划。
+
+资源预览使用实际请求的bin数量和事件/配对预估，显示预计用量及预算；超预算
+阻止规划。实际all-pairs数量在分配配对数组前再次检查预算。预算涵盖数据工作区，
+不包括MATLAB及操作系统基础开销，也不会预先向系统保留该数量的内存。
+
+MATLAB R2025b实际运行64项相关测试，64 PASS、0 FAIL、0 INCOMPLETE：
+简化设置与内存5项、原研究扫描20项、方法选择5项、原单次仿真31项、双TDC GUI
+3项。新测试覆盖both唯一行、移除因素、固定时长独立于主界面、预算JSON读回、
+小数MB、规划超限拦截及实际配对超限分配前拦截。独立smoke入口纳入全部30项
+研究扫描测试。原32行示例通过，GUI预览已导出并目视检查。
+
+验证表：`outputs/parameter_sweep_validation/simplified_settings_tests.csv`；
+界面图：`outputs/parameter_sweep_validation/simplified_settings.png`。
