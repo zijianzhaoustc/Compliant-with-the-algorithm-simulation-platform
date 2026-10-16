@@ -38,9 +38,9 @@ for i=1:total
     analysisID=scanHash(p.algorithm);
     peakGuess=(p.optics.B.delay+p.tdc.B.bias)-(p.optics.A.delay+p.tdc.A.bias);
     W=(2*p.algorithm.windowMultiplier+1)*p.algorithm.binWidth;
+    if ismember(string(p.algorithm.windowMode),["fixed","continuous"]), W=p.algorithm.window; end
     halfSupport=(p.algorithm.sideWindowPairs+1.5)*W;
-    if p.algorithm.accidentalMethod=="side-window" && ...
-            (peakGuess-halfSupport<p.algorithm.histRange(1) || peakGuess+halfSupport>p.algorithm.histRange(2))
+    if peakGuess-halfSupport<p.algorithm.histRange(1) || peakGuess+halfSupport>p.algorithm.histRange(2)
         potentialInvalid=potentialInvalid+numel(c.seeds);
     end
     expected=p.source.pairRate*p.measurementTime;
@@ -49,6 +49,10 @@ for i=1:total
         if k==1, ch='A'; else, ch='B'; end
         d=p.detector.(ch);
         rate=p.source.pairRate+d.backgroundRate+double(p.detector.enableDark)*d.darkRate;
+        if isfield(p,'scenarios')
+            rate=rate+p.scenarios.correlatedBackgroundRate;
+            rate=rate+d.backgroundRate*p.scenarios.backgroundAmplitude;
+        end
         if p.detector.enableAfterpulse
             rate=rate/max(1-d.afterpulseProbability,eps);
         end
@@ -95,6 +99,22 @@ preview=struct('physicalGenerationCount',numel(keys),'analysisCount',numel(plan)
     'workingMemoryLimitMB',c.limits.maxWorkingMemoryMB, ...
     'potentialInvalidSideWindowCount',potentialInvalid, ...
     'sideWindowCheck',"Exact peak-dependent validity is recorded per row; preview cannot know the random peak.");
+% CSV copies, fixed schema JSON and checkpoints; optional raw streams dominate.
+rowBytes=50000+4*strlength(string(jsonencode(c.baseParams)));
+diskMB=numel(plan)*rowBytes*10/2^20;
+if c.outputs.saveTimestamps
+    diskMB=diskMB+numel(keys)*(max([plan.expected_source_events])+2*maxEvents)*64/2^20;
+end
+probe=char(c.outputRoot);
+while ~isfolder(probe)
+    parent=fileparts(probe); if isempty(parent) || strcmp(parent,probe), probe=pwd; break; end
+    probe=parent;
+end
+probeFile=java.io.File(probe); available=double(probeFile.getUsableSpace())/2^20;
+preview.estimatedDiskMB=diskMB; preview.availableDiskMB=available;
+if available>0 && diskMB>available
+    error('CoincidenceSim:DiskBudget','Estimated output %.1f MB exceeds free disk %.1f MB.',diskMB,available);
+end
 end
 
 function warnings=effectWarnings(p,factors,selected)

@@ -9,6 +9,7 @@ for field=["source","A","B"]
         d.update(typecast(double(events.time(idx)),'uint8'));
         d.update(typecast(double(events.pairID(idx)),'uint8'));
         d.update(unicode2native(jsonencode(events.type(idx)),'UTF-8'));
+        if isfield(events,'backgroundCorrelationID'), d.update(typecast(double(events.backgroundCorrelationID(idx)),'uint8')); end
     end
 end
 hash=string(lower(reshape(dec2hex(typecast(d.digest(),'uint8'),2).',1,[])));

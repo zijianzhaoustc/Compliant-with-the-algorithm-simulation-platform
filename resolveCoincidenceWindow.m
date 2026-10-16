@@ -7,11 +7,11 @@ function width = resolveCoincidenceWindow(histResult, p)
 
 n=p.algorithm.windowMultiplier;
 switch p.algorithm.windowMode
-    case "fixed"
+    case {"fixed","continuous"}
         width=p.algorithm.window;
     case "sigma"
         width=2*n*histResult.sigma;
-    case "bins"
+    case {"bins","discrete"}
         width=(2*n+1)*p.algorithm.binWidth;
     case "fwhm"
         width=2*n*histResult.fwhm;

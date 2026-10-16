@@ -4,6 +4,9 @@ function out = analyzeTimestampData(A, B, p, source, dataMode)
 %   pairID=0，因此 ground-truth 指标返回 NaN，但速率、峰值、偶然修正和
 %   heralding 效率仍可计算。
 
+if isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis
+    out=analyzeResearchTimestamps(A,B,p,source,dataMode); return
+end
 p=validateParams(p);
 matches=matchCoincidences(A,B,p);
 histResult=buildHistogram(matches,p);

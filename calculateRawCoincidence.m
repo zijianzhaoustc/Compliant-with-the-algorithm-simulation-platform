@@ -5,6 +5,21 @@ function raw = calculateRawCoincidence(matches, histResult, p)
 %   等长，可用于回查每一对事件及其 ground truth。
 
 strict=isfield(p.algorithm,'strictWindows') && p.algorithm.strictWindows;
+if (strict && ismember(string(p.algorithm.windowMode),["bins","fixed"])) || ...
+        ismember(string(p.algorithm.windowMode),["discrete","continuous"])
+    g=buildCoincidenceWindowGeometry(histResult,p);
+    status="OK"; count=NaN; mask=false(size(matches.deltaT));
+    if g.mainValid
+        mask=coincidenceIntervalMask(matches.deltaT,g.mainLower,g.mainUpper,g.includeUpperEdge); count=nnz(mask);
+    else, status=g.legacyReason;
+    end
+    bins=NaN; if g.mode=="DISCRETE_BINS", bins=2*p.algorithm.windowMultiplier+1; end
+    width=g.WActual; if ~g.mainValid, width=g.WRequested; end
+    raw=struct('mask',mask,'count',count,'rate',count/p.measurementTime,'window',width, ...
+        'lowerEdge',g.mainLower,'upperEdge',g.mainUpper,'includeUpperEdge',g.includeUpperEdge, ...
+        'status',status,'mainBinCount',bins,'geometry',g);
+    return
+end
 status="OK";
 if p.algorithm.windowMode=="bins"
     % “左右 n bin”是离散直方图选择：峰值所在 bin 必须计入，再向左右

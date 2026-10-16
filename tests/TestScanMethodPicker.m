@@ -38,10 +38,10 @@ classdef TestScanMethodPicker < matlab.unittest.TestCase
                 editor.Apply.ButtonPushedFcn([],[]);
             end
             c=panel.readConfig(); [plan,preview]=buildScanGrid(c);
-            t.verifyEqual(preview.analysisCount,6); t.verifyEqual(preview.physicalGenerationCount,1);
-            t.verifyEqual(numel(unique([plan.analysis_config_id])),6);
+            t.verifyEqual(preview.analysisCount,15); t.verifyEqual(preview.physicalGenerationCount,1);
+            t.verifyEqual(numel(unique([plan.analysis_config_id])),15);
             decoded=validateScanConfig(jsondecode(jsonencode(c)));
-            t.verifyEqual(numel(buildScanGrid(decoded)),6);
+            t.verifyEqual(numel(buildScanGrid(decoded)),15);
             clear cleanup
         end
 

@@ -3,7 +3,7 @@ classdef TestSweepSimplifiedSettings < matlab.unittest.TestCase
         function onlyBothAndConstantTimeInGui(t)
             app=CoincidenceSimulatorApp(); cleanup=onCleanup(@()delete(app)); app.UIFigure.Visible='off';
             panel=app.ParameterSweepPanel; data=panel.Controls.Factors.Data;
-            t.verifyEqual(size(data,1),18);
+            t.verifyEqual(size(data,1),height(scanParameterCatalog()));
             t.verifyTrue(all(string(data(:,3))=="both"));
             t.verifyFalse(panel.Controls.Factors.ColumnEditable(3));
             keys=extractBefore(string(data(:,2))," | ");

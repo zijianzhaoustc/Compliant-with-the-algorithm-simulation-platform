@@ -291,6 +291,7 @@ end
 
 function c=smallConfig()
 c=scanDefaultConfig(); c.baseParams.source.pairRate=1e4; c.baseParams.measurementTime=.02;
+c.baseParams.algorithm.researchAnalysis=false; % Historical API/metric regression fixtures.
 c.baseParams.optics.A.delay=0; c.baseParams.optics.B.delay=0;
 c.baseParams.algorithm.binWidth=10e-12; c.baseParams.algorithm.windowMultiplier=3;
 end

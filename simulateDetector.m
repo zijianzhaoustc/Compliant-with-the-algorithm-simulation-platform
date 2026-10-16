@@ -9,6 +9,13 @@ cfg = p.detector.(channel);
 % 光子探测和后端成功记录合并成一次独立 Bernoulli 试验。
 keep = rand(size(photons.time)) < cfg.efficiency*cfg.recordEfficiency;
 time = photons.time(keep) + cfg.jitter*randn(nnz(keep),1);
+if isfield(p,'scenarios') && p.scenarios.jitterModel~="gaussian"
+    s=p.scenarios; tail=rand(size(time))<s.tailFraction;
+    switch string(s.jitterModel)
+        case "double-gaussian", time(tail)=time(tail)+cfg.jitter*sqrt(s.tailScale^2-1)*randn(nnz(tail),1);
+        case "exponential-tail", time(tail)=time(tail)-cfg.jitter*s.tailScale*log(max(rand(nnz(tail),1),realmin));
+    end
+end
 pairID = photons.pairID(keep);
 type = repmat("signal", nnz(keep), 1);
 
@@ -20,17 +27,29 @@ if p.detector.enableDark && cfg.darkRate > 0
 end
 if cfg.backgroundRate > 0
     % 背景光产生的探测事件与 SPDC pair 无关，但与暗计数分开标记。
-    background = localPoissonTimes(cfg.backgroundRate, p.measurementTime);
+    if isfield(p,'scenarios') && p.scenarios.backgroundMode~="constant"
+        background=poissonScenarioTimes(cfg.backgroundRate,p.measurementTime,p.scenarios);
+    else
+        background = localPoissonTimes(cfg.backgroundRate, p.measurementTime);
+    end
     time = [time; background]; pairID = [pairID; zeros(numel(background),1)];
     type = [type; repmat("background",numel(background),1)];
 end
+hasCorrelation=isfield(p,'internalCorrelatedBackground');
+if hasCorrelation
+    extra=p.internalCorrelatedBackground.(channel); backgroundCorrelationID=[zeros(numel(time),1);(1:numel(extra))'];
+    time=[time;extra]; pairID=[pairID;zeros(numel(extra),1)]; type=[type;repmat("correlated-background",numel(extra),1)];
+end
 % 合并各种事件后按时间排序，同时保持 pairID/type 对齐。
 [time, order] = sort(time); pairID = pairID(order); type = type(order);
+if hasCorrelation, backgroundCorrelationID=backgroundCorrelationID(order); end
 % 先裁剪抖动造成的越界原始候选；后脉冲生成时另外检查采集终点。
 inside = time >= 0 & time <= p.measurementTime;
 time = time(inside); pairID = pairID(inside); type = type(inside);
+if hasCorrelation, backgroundCorrelationID=backgroundCorrelationID(inside); end
 stats.inputCount=numel(time);
 events = struct("time",time,"pairID",pairID,"type",type);
+if hasCorrelation, events.backgroundCorrelationID=backgroundCorrelationID; end
 if p.detector.enableAfterpulse && cfg.afterpulseProbability > 0
     deadTime=0;
     if p.detector.enableDeadTime, deadTime=cfg.deadTime; end
@@ -41,6 +60,7 @@ elseif p.detector.enableDeadTime && cfg.deadTime > 0
     keep = nonParalyzableKeep(time, cfg.deadTime);
     time = time(keep); pairID = pairID(keep); type = type(keep);
     events = struct("time",time,"pairID",pairID,"type",type);
+    if hasCorrelation, events.backgroundCorrelationID=backgroundCorrelationID(keep); end
 end
 stats.acceptedCount=numel(events.time);
 stats.inputRate=stats.inputCount/p.measurementTime;

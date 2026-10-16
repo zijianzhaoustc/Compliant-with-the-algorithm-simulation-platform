@@ -21,7 +21,9 @@ end
 % 从而改变实际 bin 宽。非整除情况下最后一个边界可能略高于 hi，但每个
 % bin 的宽度都严格保持为用户设置值。
 edges=lo+(0:nBins)*bw;
-counts = histcounts(matches.deltaT,edges);
+if isfield(matches,'histogramCounts'), counts=matches.histogramCounts;
+else, counts=histcounts(matches.deltaT,edges);
+end
 centers = (edges(1:end-1)+edges(2:end))/2;
 
 peak=(lo+hi)/2; sigma=NaN; fitCounts=nan(size(counts));
@@ -69,4 +71,11 @@ end
 h=struct("edges",edges,"centers",centers,"counts",counts,"peak",peak, ...
     "sigma",sigma,"fwhm",2*sqrt(2*log(2))*sigma,"fitCounts",fitCounts, ...
     "peakMethod",p.algorithm.peakMethod,"peakValid",peakValid,"fitStatus",fitStatus);
+if isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis && any(counts>0) && p.algorithm.peakMethod=="maximum"
+    [~,index]=max(counts); h.peak=centers(index);
+end
+if p.algorithm.peakMethod=="fixed"
+    h.peak=p.algorithm.fixedPeakCenter; h.peakValid=isfinite(h.peak); h.fitStatus="FIXED_CENTER";
+end
+h.searchBounds=p.algorithm.histRange;
 end

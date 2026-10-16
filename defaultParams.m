@@ -60,6 +60,8 @@ p.algorithm.window = 3e-9;
 p.algorithm.matchMethod = "many-to-many";
 % 寻峰支持最大 bin 和局部 Gaussian 拟合。
 p.algorithm.peakMethod = "maximum";
+p.algorithm.fixedPeakCenter = 5e-9;
+p.algorithm.segmentDuration = .1;
 % fixed、sigma、bins、fwhm；后三者的 multiplier 默认取 3。
 p.algorithm.windowMode = "fixed";
 p.algorithm.windowMultiplier = 3;

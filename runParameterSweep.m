@@ -57,7 +57,7 @@ for key=streamKeys
     try
         data=generateSimulationData(plan(pending(1)).params);
         state.generationCount=state.generationCount+1;
-        if max(numel(data.A.time),numel(data.B.time))>c.limits.maxChannelEvents
+        if numel(data.source.time)>c.limits.maxSourceEvents || max(numel(data.A.time),numel(data.B.time))>c.limits.maxChannelEvents
             error('CoincidenceSim:EventLimit','Actual channel event count exceeds scan limit.');
         end
         streamHash=scanStreamHash(data);
@@ -82,6 +82,7 @@ for key=streamKeys
             r=buildAllMetricRecord(p); r.status="ERROR";
             r.error_identifier=string(problem.identifier);
             r.error_report=string(getReport(problem,'extended','hyperlinks','off'));
+            r.invalid_reason=r.error_identifier; r.quality_flags="EXECUTION_ERROR";
         end
         fields=["physical_config_id","analysis_config_id","stream_key","seed_group_key","parameter_hash"];
         for field=fields, r.(field)=plan(i).(field); end
@@ -92,7 +93,15 @@ for key=streamKeys
             r.source_count=numel(data.source.time); r.events_A=numel(data.A.time); r.events_B=numel(data.B.time);
         end
         r.started_at=started; r.completed_at=stamp(); r.elapsed_s=toc(timer);
+        r.run_id=state.batchID+"_"+string(i); r.revision=revision; r.params_json_hash=r.parameter_hash;
+        r.wall_time_s=r.elapsed_s; r.peak_memory_est_mb=plan(i).estimated_working_memory_MB;
         state.rows{i}=r;
+        logFile=fopen(fullfile(runDir,'task_log.txt'),'a','n','UTF-8');
+        if logFile>=0
+            fprintf(logFile,'%s row=%d/%d seed=%g status=%s quality=%s elapsed_s=%.6g %s\n', ...
+                r.completed_at,i,numel(plan),r.seed,r.status,r.quality_status,r.elapsed_s,r.invalid_reason);
+            fclose(logFile);
+        end
         saveRowCheckpoint(runDir,i,r);
         saveCheckpoint(runDir,state);
         options.ProgressFcn(nnz(~cellfun(@isempty,state.rows)),numel(plan),r);

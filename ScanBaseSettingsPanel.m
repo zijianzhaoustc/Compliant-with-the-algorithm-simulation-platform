@@ -5,10 +5,15 @@ classdef ScanBaseSettingsPanel < handle
         Fields=struct()
         Controls=struct()
         Catalog
+        FieldsB=struct()
+        AllowIndependentChannels=false
+        ValueGrid
+        ChannelNote
     end
     methods
         function panel=ScanBaseSettingsPanel(parent,p)
             if nargin<2, p=defaultParams(); end
+            p=researchParams(p);
             panel.Catalog=scanParameterCatalog();
             extra=table(["optics.transmission";"optics.relativeDelay";"detector.efficiency"; ...
                 "detector.recordEfficiency";"tdc.resolution";"tdc.bias";"tdc.dnl";"tdc.inl"], ...
@@ -23,10 +28,10 @@ classdef ScanBaseSettingsPanel < handle
             names=["EnableDark","EnableDead","EnableAfter","EnableTdcJitter","EnableTdcDead"];
             labels=["启用暗计数","启用探测器死时间","启用后脉冲","启用TDC抖动","启用TDC死时间"];
             for j=1:numel(names), panel.Controls.(names(j))=uicheckbox(effects,'Text',char(labels(j))); end
-            uilabel(outer,'Text','本页为扫描独立基准；未勾选的扫描因素使用这里的固定值。通道参数共用both，光源为直接光子对率模式。', ...
+            panel.ChannelNote=uilabel(outer,'Text','本页为扫描独立基准；未勾选的扫描因素使用这里的固定值。通道参数共用both，光源为直接光子对率模式。', ...
                 'WordWrap','on');
-            grid=uigridlayout(outer,[height(panel.Catalog),3]); grid.Scrollable='on';
-            grid.ColumnWidth={250,240,'1x'}; grid.RowHeight=repmat({28},1,height(panel.Catalog));
+            grid=uigridlayout(outer,[height(panel.Catalog),4]); grid.Scrollable='on'; panel.ValueGrid=grid;
+            grid.ColumnWidth={250,240,0,'1x'}; grid.RowHeight=repmat({28},1,height(panel.Catalog));
             for j=1:height(panel.Catalog)
                 key=panel.Catalog.parameter(j); name=matlab.lang.makeValidName(char(key));
                 uilabel(grid,'Text',char(panel.Catalog.label(j)));
@@ -37,13 +42,20 @@ classdef ScanBaseSettingsPanel < handle
                     panel.Fields.(name)=uidropdown(grid,'Items',cellstr(choiceLabels), ...
                         'ItemsData',cellstr(choices));
                 end
+                parts=split(key,'.');
+                if numel(parts)==2 && ismember(parts(1),["detector","tdc","optics"]) && ...
+                        isfield(p.(parts(1)).B,parts(2))
+                    panel.FieldsB.(name)=uieditfield(grid,'numeric','Visible','off','Tooltip','高级模式：B 通道独立固定值；左侧为 A。');
+                else
+                    placeholder=uilabel(grid,'Text',''); placeholder.Visible='off';
+                end
                 uilabel(grid,'Text',char(panel.Catalog.unit(j)));
             end
             panel.populate(p);
         end
 
         function populate(panel,p)
-            p=mergeParamsWithDefaults(defaultParams(),p);
+            p=researchParams(mergeParamsWithDefaults(defaultParams(),p));
             if string(p.source.mode)~="direct"
                 error('CoincidenceSim:ScanBaseSource','Independent research settings require source.mode=direct.');
             end
@@ -53,11 +65,11 @@ classdef ScanBaseSettingsPanel < handle
                 "tdc.jitter","tdc.deadTime","tdc.bias"];
             for key=shared
                 parts=split(key,'.');
-                if ~isequaln(p.(parts(1)).A.(parts(2)),p.(parts(1)).B.(parts(2)))
+                if ~panel.AllowIndependentChannels && ~isequaln(p.(parts(1)).A.(parts(2)),p.(parts(1)).B.(parts(2)))
                     error('CoincidenceSim:ScanBaseChannels','Independent both settings require equal A/B values for %s.',key);
                 end
             end
-            if abs(sum(p.algorithm.histRange))>64*eps(max(abs(p.algorithm.histRange)))
+            if ~panel.AllowIndependentChannels && abs(sum(p.algorithm.histRange))>64*eps(max(abs(p.algorithm.histRange)))
                 error('CoincidenceSim:ScanBaseRange','Research histogram range must be symmetric [-H,H].');
             end
             panel.Params=p;
@@ -66,6 +78,9 @@ classdef ScanBaseSettingsPanel < handle
                 value=getBaseValue(p,key,panel.Catalog.scale(j));
                 if isstring(value), value=char(value); end
                 panel.Fields.(name).Value=value;
+                if isfield(panel.FieldsB,name)
+                    parts=split(key,'.'); panel.FieldsB.(name).Value=p.(parts(1)).B.(parts(2))/panel.Catalog.scale(j);
+                end
             end
             panel.Controls.EnableDark.Value=p.detector.enableDark;
             panel.Controls.EnableDead.Value=p.detector.enableDeadTime;
@@ -78,7 +93,18 @@ classdef ScanBaseSettingsPanel < handle
             p=panel.Params;
             for j=1:height(panel.Catalog)
                 key=panel.Catalog.parameter(j); name=matlab.lang.makeValidName(char(key));
-                p=setBaseValue(p,key,panel.Fields.(name).Value,panel.Catalog.scale(j));
+                original=getBaseValue(panel.Params,key,panel.Catalog.scale(j));
+                edited=panel.Fields.(name).Value;
+                % Avoid an SI -> display -> SI round trip for untouched fields.
+                if ~isequaln(string(edited),string(original)) || (isnumeric(original) && edited~=original)
+                    p=setBaseValue(p,key,edited,panel.Catalog.scale(j));
+                end
+                if panel.AllowIndependentChannels && isfield(panel.FieldsB,name)
+                    parts=split(key,'.'); originalB=panel.Params.(parts(1)).B.(parts(2));
+                    valueB=panel.FieldsB.(name).Value;
+                    if valueB==originalB/panel.Catalog.scale(j), p.(parts(1)).B.(parts(2))=originalB;
+                    else, p.(parts(1)).B.(parts(2))=valueB*panel.Catalog.scale(j); end
+                end
             end
             p.detector.enableDark=panel.Controls.EnableDark.Value;
             p.detector.enableDeadTime=panel.Controls.EnableDead.Value;
@@ -90,11 +116,21 @@ classdef ScanBaseSettingsPanel < handle
 
         function setEnabled(panel,enabled)
             state='off'; if enabled, state='on'; end
-            groups={panel.Fields,panel.Controls};
+            groups={panel.Fields,panel.FieldsB,panel.Controls};
             for j=1:numel(groups)
                 names=fieldnames(groups{j});
                 for k=1:numel(names), groups{j}.(names{k}).Enable=state; end
             end
+        end
+        function setAdvanced(panel,enabled)
+            panel.AllowIndependentChannels=logical(enabled); state='off';
+            panel.ValueGrid.ColumnWidth={250,240,0,'1x'};
+            panel.ChannelNote.Text='本页为扫描独立基准；未勾选因素使用这里的固定值。通道参数共用 both。';
+            if enabled
+                state='on'; panel.ValueGrid.ColumnWidth={250,200,200,'1x'};
+                panel.ChannelNote.Text='高级固定值：左侧输入 A，右侧输入 B；单值参数只有左栏。扫描、主仿真两边完全独立。';
+            end
+            for key=string(fieldnames(panel.FieldsB))', panel.FieldsB.(key).Visible=state; end
         end
     end
 end

@@ -26,6 +26,7 @@ for name=["RA","RB","Rraw","Racc","Rnet","Rtrue"]
 end
 r.Rnet_signed_cps=r.metric_RnetSigned;
 r.Nraw_count=r.metric_Nraw; r.Nacc_count_equiv=r.metric_Nacc;
+r.Nraw=r.metric_Nraw;
 r.Nnet_count=r.metric_Nnet; r.Nnet_signed_count=r.metric_NnetSigned;
 for name=["TP","FP","FN","Precision","Recall","F1","EtaW","EpsilonAcc", ...
         "EpsilonNet","EpsilonNetSigned","Geff","CAR","SNR","Bias"]
@@ -53,7 +54,7 @@ for ch=["A","B"]
     r.("tdcJitter_"+ch+"_ps")=t.jitter*1e12; r.("tdcDeadTime_"+ch+"_ns")=t.deadTime*1e9;
     r.("tdcBias_"+ch+"_ps")=t.bias*1e12;
 end
-r.tdcResolution_ps=p.tdc.resolution;
+r.tdcResolution_ps=p.tdc.resolution*1e12;
 r.peak_position_ns=r.metric_PeakPosition*1e9; r.true_sigma_ps=r.metric_TrueSigma*1e12;
 r.fitted_sigma_ps=r.metric_PeakSigma*1e12; r.FWHM_ps=r.metric_FWHM*1e12;
 r.peak_error_ps=r.metric_PeakPositionError*1e12;
@@ -85,10 +86,35 @@ if ~isempty(out)
         r.side_windows_json=string(jsonencode(struct('edges_ps',out.acc.boundaries*1e12,'counts',out.acc.sampleCounts)));
     end
 end
+science=researchResultTemplate();
+for field=string(fieldnames(science))'
+    if ~isfield(r,field), r.(field)=science.(field); end
+end
+r.mode=string(p.algorithm.windowMode); r.peak_bin_index=NaN; r.bin_phase_ns=NaN;
+r.hist_last_edge_ns=NaN; r.hist_last_bin_partial=false;
+r.hist_edge_policy="fixed bin width; extended last bin; reject any analysis window exceeding requested search bounds";
+r.W_requested_ns=p.algorithm.window*1e9; r.W_actual_ns=NaN;
+if ismember(r.mode,["bins","discrete"]), r.W_requested_ns=(2*p.algorithm.windowMultiplier+1)*p.algorithm.binWidth*1e9; end
+r.main_lower_ns=NaN; r.main_upper_ns=NaN; r.guard_gap_ns=NaN; r.side_windows_valid=NaN;
+r.hist_range_left_ns=p.algorithm.histRange(1)*1e9; r.hist_range_right_ns=p.algorithm.histRange(2)*1e9;
+r.estimator=string(p.algorithm.accidentalMethod); r.N_generated=NaN;
+if ~isempty(out) && isfield(out,'research')
+    for field=string(fieldnames(science))', r.(field)=out.research.(field); end
+    g=out.geometry; r.mode=g.mode; r.peak_bin_index=g.peakBinIndex; r.bin_phase_ns=g.binPhase*1e9;
+    r.hist_last_edge_ns=out.hist.edges(end)*1e9;
+    r.hist_last_bin_partial=out.hist.edges(end)>p.algorithm.histRange(2)+64*eps(abs(p.algorithm.histRange(2)));
+    r.W_requested_ns=g.WRequested*1e9; r.W_actual_ns=g.WActual*1e9;
+    r.main_lower_ns=g.mainLower*1e9; r.main_upper_ns=g.mainUpper*1e9;
+    r.guard_gap_ns=g.guardGapActual*1e9; r.side_windows_valid=g.sideWindowCountValid;
+    r.main_bin_count=numel(g.mainBinIndices); r.matched_pair_count=out.stream.pairCount;
+    r.guard_gap_ps=g.guardGapActual*1e12;
+    r.Npair_est_total=r.Npair_est; r.N_generated=numel(out.source.time);
+end
 r.status="PENDING"; r.warning_codes=""; r.error_identifier=""; r.error_report="";
 r.physical_config_id=""; r.analysis_config_id=""; r.seed_group_key=""; r.stream_key="";
 r.batch_id=""; r.code_revision=""; r.code_source_hash=""; r.parameter_hash=""; r.stream_hash="";
 r.source_count=NaN; r.events_A=NaN; r.events_B=NaN; r.started_at=""; r.completed_at=""; r.elapsed_s=NaN;
+r.run_id=""; r.revision=""; r.params_json_hash=""; r.wall_time_s=NaN; r.peak_memory_est_mb=NaN;
 end
 
 function r=flatten(r,s,prefix)

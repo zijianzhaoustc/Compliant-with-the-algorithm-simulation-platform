@@ -136,24 +136,24 @@ classdef CoincidenceSimulatorApp < handle
 
         function buildAlgorithmTab(app,p)
             app.AlgorithmTab=uitab(app.ParameterTabs,'Title','算法设置','Scrollable','off');
-            g=uigridlayout(app.AlgorithmTab,[20 2]); g.ColumnWidth={'1x',210};
-            g.RowHeight=repmat({21},1,20); g.RowSpacing=1; g.Padding=[7 6 7 6];
+            g=uigridlayout(app.AlgorithmTab,[24 2]); g.ColumnWidth={'1x',210}; g.Scrollable='on';
+            g.RowHeight=repmat({21},1,24); g.RowSpacing=1; g.Padding=[7 6 7 6];
             app.Controls.Range=app.addNum(g,1,'时间谱半范围 Tt (ns)',max(abs(p.algorithm.histRange))*1e9);
             app.Controls.Bin=app.addNum(g,2,'直方图 bin 宽 (ps)',p.algorithm.binWidth*1e12);
-            app.Controls.Peak=app.addDrop(g,3,'寻峰方式',{'最大值寻峰','高斯拟合寻峰'}, ...
-                {'maximum','gaussian'},p.algorithm.peakMethod);
+            app.Controls.Peak=app.addDrop(g,3,'寻峰方式',{'最大值寻峰','高斯拟合寻峰','固定峰中心'}, ...
+                {'maximum','gaussian','fixed'},p.algorithm.peakMethod);
             app.Controls.Match=app.addDrop(g,4,'时间匹配规则', ...
                 {'单对单（后继首个）','多对单（Stop可复用）','单对多','多对多', ...
                 '最近邻匹配（不复用）','最近邻匹配（复用）','时间顺序贪婪一对一'}, ...
                 {'one-to-one','many-to-one','one-to-many','many-to-many', ...
                 'nearest-no-reuse','nearest-reuse','greedy-chronological'},p.algorithm.matchMethod);
-            app.Controls.WindowMode=app.addDrop(g,5,'符合窗口方式',{'固定全宽','峰值左右 nσ','峰值左右 n bin','峰值左右 n FWHM'}, ...
+            app.Controls.WindowMode=app.addDrop(g,5,'符合窗口方式',{'C：连续固定全宽','峰值左右 nσ','D：峰值 bin±n','峰值左右 n FWHM'}, ...
                 {'fixed','sigma','bins','fwhm'},p.algorithm.windowMode);
             app.Controls.Window=app.addNum(g,6,'固定窗口全宽 (ns)',p.algorithm.window*1e9);
             app.Controls.WindowN=app.addNum(g,7,'自动窗口系数 n',p.algorithm.windowMultiplier);
             app.Controls.Acc=app.addDrop(g,8,'偶然符合修正', ...
-                {'无修正','理论估计','旁带法','旁窗法','时间戳平移法'}, ...
-                {'none','theory','sideband','side-window','time-shift'},p.algorithm.accidentalMethod);
+                {'无修正','理论估计','分段理论','旁带法','旁窗法','时间戳平移法'}, ...
+                {'none','theory','segment-theory','sideband','side-window','time-shift'},p.algorithm.accidentalMethod);
             app.Controls.SideGuard=app.addNum(g,9,'峰保护距离 (ns)',p.algorithm.sidebandGuard*1e9);
             app.Controls.SideWindowPairs=app.addNum(g,10,'旁窗左右对数 K',p.algorithm.sideWindowPairs);
             app.Controls.ShiftStart=app.addNum(g,11,'平移起点 (μs)',p.algorithm.timeShiftStart*1e6);
@@ -169,6 +169,10 @@ classdef CoincidenceSimulatorApp < handle
             app.Controls.ImportUnit=app.addDrop(g,19,'TXT原始时间单位',{'ps','ns','s','LSB'}, ...
                 {1e-12,1e-9,1,NaN},1e-12);
             app.Controls.ImportLSB=app.addNum(g,20,'TXT的 LSB (ps)',p.tdc.resolution*1e12);
+            app.Controls.FixedCenter=app.addNum(g,21,'固定峰中心 (ns)',5);
+            app.Controls.SegmentDuration=app.addNum(g,22,'分段理论段长 (s)',.1);
+            app.Controls.Research=app.addDrop(g,23,'严格科研统计 / G=W',{'关闭（历史兼容）','启用（完整配对估计）'},{false,true},false);
+            app.Controls.ResearchMemory=app.addNum(g,24,'科研工作内存上限 (MB)',2048);
         end
 
         function buildTimestampPanel(app,parent)
@@ -236,6 +240,14 @@ classdef CoincidenceSimulatorApp < handle
             p.algorithm.timeShiftCount=round(c.ShiftCount.Value);
             p.algorithm.timestampWindowMode=logical(c.TimestampWindowMode.Value);
             p.algorithm.timestampWindowSize=c.TimestampWindowSize.Value;
+            p.algorithm.fixedPeakCenter=c.FixedCenter.Value*1e-9;
+            p.algorithm.segmentDuration=c.SegmentDuration.Value;
+            if c.Research.Value
+                p=researchParams(p); p.algorithm.researchAnalysis=true;
+                p.algorithm.strictWindows=true; p.algorithm.sideWindowGuardMode="window-width";
+                p.algorithm.matchMethod="many-to-many"; p.algorithm.storageMode="indices";
+                p.algorithm.scanWorkingMemoryMB=c.ResearchMemory.Value;
+            end
         end
 
         function populateControls(app,p)
@@ -272,6 +284,10 @@ classdef CoincidenceSimulatorApp < handle
             c.ShiftCount.Value=p.algorithm.timeShiftCount;
             c.TimestampWindowMode.Value=p.algorithm.timestampWindowMode;
             c.TimestampWindowSize.Value=p.algorithm.timestampWindowSize;
+            q=researchParams(p); c.FixedCenter.Value=q.algorithm.fixedPeakCenter*1e9;
+            c.SegmentDuration.Value=q.algorithm.segmentDuration;
+            c.Research.Value=isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis;
+            if isfield(p.algorithm,'scanWorkingMemoryMB'), c.ResearchMemory.Value=p.algorithm.scanWorkingMemoryMB; end
         end
 
         function runNewSimulation(app)
@@ -387,15 +403,25 @@ classdef CoincidenceSimulatorApp < handle
             o=app.LastResult; h=o.hist; ax=app.HistogramAxes; cla(ax);
             bar(ax,h.centers*1e9,h.counts,1,'FaceColor',[.28 .57 .82],'EdgeColor','none'); hold(ax,'on');
             if any(isfinite(h.fitCounts)), plot(ax,h.centers*1e9,h.fitCounts,'Color',[.93 .55 .12],'LineWidth',1.5); end
-            xline(ax,h.peak*1e9,'--r','峰值','LineWidth',1.3);
+            if isfinite(h.peak), xline(ax,h.peak*1e9,'--r','峰值','LineWidth',1.3); end
             if isfield(o.raw,'lowerEdge') && isfield(o.raw,'upperEdge')
                 windowLeft=o.raw.lowerEdge; windowRight=o.raw.upperEdge;
             else
                 % 兼容旧版 MAT 结果。
                 windowLeft=h.peak-o.raw.window/2; windowRight=h.peak+o.raw.window/2;
             end
-            xline(ax,windowLeft*1e9,'--k','窗口');
-            xline(ax,windowRight*1e9,'--k'); hold(ax,'off');
+            if isfinite(windowLeft), xline(ax,windowLeft*1e9,'--k','窗口'); end
+            if isfinite(windowRight), xline(ax,windowRight*1e9,'--k'); end
+            hold(ax,'off');
+            if isfield(o,'geometry')
+                hold(ax,'on'); height=max([h.counts,1]);
+                for s=o.geometry.sideWindows
+                    if ~s.valid, continue; end
+                    patch(ax,[s.lower s.upper s.upper s.lower]*1e9,[0 0 height height], ...
+                        [.4 .75 .45],'FaceAlpha',.1,'EdgeColor','none','HandleVisibility','off');
+                end
+                hold(ax,'off');
+            end
             title(ax,sprintf('符合直方图：峰值 %.4f ns，σ %.3f ps，窗口全宽 %.3f ns', ...
                 h.peak*1e9,h.sigma*1e12,o.raw.window*1e9));
         end

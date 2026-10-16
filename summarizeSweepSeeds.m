@@ -24,6 +24,37 @@ for i=1:numel(keys)
         r.(pairs(j,2)+"_bias_mean")=mean(values);
         r.(pairs(j,2)+"_RMSE")=sqrt(mean(values.^2));
     end
+    scientific=valid;
+    if ismember('quality_status',selected.Properties.VariableNames)
+        scientific=valid & selected.quality_status~="INVALID";
+    end
+    r.seed_count=height(selected); r.scientific_valid_count=nnz(scientific);
+    for name=["Npair_est","Nacc_est","F0_est","Fs_est","fit_sigma","u_Npair","u_Nacc"]
+        if ~ismember(name,string(selected.Properties.VariableNames)), continue; end
+        x=selected.(name)(scientific); x=x(isfinite(x));
+        r.(name+"_mean")=mean(x); r.(name+"_std")=std(x); if isempty(x), r.(name+"_std")=NaN; end
+    end
+    for target=["pair","acc"]
+        name="signed_error_"+target;
+        if ~ismember(name,string(selected.Properties.VariableNames)), continue; end
+        x=selected.(name)(scientific); x=x(isfinite(x));
+        r.(target+"_Bias")=mean(x); r.(target+"_MAE")=mean(abs(x)); r.(target+"_RMSE")=sqrt(mean(x.^2));
+        truthName="Nrec_true"; if target=="acc", truthName="Nacc_window_true"; end
+        truth=selected.(truthName)(scientific); truth=truth(isfinite(truth)); denominator=mean(truth);
+        r.(target+"_relative_bias")=NaN; r.(target+"_relative_RMSE")=NaN;
+        if denominator>0
+            r.(target+"_relative_bias")=mean(x)/denominator;
+            r.(target+"_relative_RMSE")=sqrt(mean(x.^2))/denominator;
+        end
+    end
+    for kind=["expected","realized_compatibility"]
+        name="coverage95_"+kind;
+        if ~ismember(name,string(selected.Properties.VariableNames)), continue; end
+        x=selected.(name)(scientific); x=x(isfinite(x)); count=numel(x); probability=mean(x);
+        r.(name)=probability; r.(name+"_replicates")=count;
+        r.(name+"_MCSE")=sqrt(probability*(1-probability)/max(count,1));
+        r.(name+"_sufficient_repetitions")=count>=200;
+    end
     rows{i}=r;
 end
 summary=struct2table(vertcat(rows{:}));

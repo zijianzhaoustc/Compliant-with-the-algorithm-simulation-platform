@@ -12,8 +12,8 @@ fig=uifigure('Name','选择扫描方法','WindowStyle','modal', ...
 g=uigridlayout(fig,[numel(values)+6,2]); g.ColumnWidth={130,'1x'};
 g.RowHeight=[{28,30,32,24},repmat({28},1,numel(values)),{36,'1x'}];
 g.Padding=[14 12 14 12];
-heading='偶然符合修正方法';
-if string(parameter)=="algorithm.peakMethod", heading='寻峰方法'; end
+catalog=scanParameterCatalog(true); match=find(catalog.parameter==string(parameter),1);
+heading=char(catalog.label(match));
 label=uilabel(g,'Text',heading,'FontWeight','bold'); label.Layout.Column=[1 2];
 uilabel(g,'Text','选择方式');
 mode=uidropdown(g,'Items',{'固定一个方法（fixed）','逐个比较所选方法（list）'}, ...

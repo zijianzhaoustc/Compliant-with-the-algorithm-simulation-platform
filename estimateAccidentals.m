@@ -8,6 +8,12 @@ function acc = estimateAccidentals(A, B, matches, histResult, p)
 %     time-shift - 时间戳平移法：对多个循环平移的符合计数取平均。
 %   W 始终指完整符合窗宽度，返回 rate 的单位为 counts/s。
 
+if isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis
+    g=buildCoincidenceWindowGeometry(histResult,p);
+    [~,~,side]=countResearchWindows(A.time,B.time,g);
+    acc=estimateResearchAccidentals(A.time,B.time,histResult,g,researchParams(p),side);
+    return
+end
 W=resolveCoincidenceWindow(histResult,p); T=p.measurementTime;
 sampleOffsets=zeros(0,1); sampleCounts=zeros(0,1);
 status="OK"; boundaries=zeros(0,2); validPairs=0; tailCount=NaN; gap=NaN;
@@ -34,6 +40,12 @@ switch p.algorithm.accidentalMethod
         rate=(numel(A.time)/T)*(numel(B.time)/T)*W;
         details="R_A R_B W";
 
+    case "segment-theory"
+        edges=0:p.algorithm.segmentDuration:T; if edges(end)<T, edges(end+1)=T; end
+        countsA=histcounts(A.time,edges); countsB=histcounts(B.time,edges);
+        rate=W*sum(countsA.*countsB./diff(edges))/T;
+        details="Segmented R_A R_B W using actual segment durations";
+
     case "sideband"
         lo=p.algorithm.histRange(1); hi=p.algorithm.histRange(2);
         % 保护区至少覆盖主符合窗的半宽，避免真实峰尾混入背景。
@@ -48,6 +60,7 @@ switch p.algorithm.accidentalMethod
 
     case "side-window"
         if guardMode=="window-width"
+            geometry=buildCoincidenceWindowGeometry(histResult,p);
             raw=calculateRawCoincidence(matches,histResult,p);
             W=raw.window; gap=W; K=p.algorithm.sideWindowPairs;
             boundaries=nan(2*K,2); windowCounts=nan(2*K,1);
@@ -59,8 +72,7 @@ switch p.algorithm.accidentalMethod
             else
                 for k=1:K
                     rows=[2*k-1,2*k];
-                    boundaries(rows,:)=[raw.lowerEdge-W-k*W,raw.lowerEdge-W-(k-1)*W; ...
-                        raw.upperEdge+W+(k-1)*W,raw.upperEdge+W+k*W];
+                    boundaries(rows,:)=[[geometry.sideWindows(rows).lower]',[geometry.sideWindows(rows).upper]'];
                     valid=false(2,1);
                     for j=1:2
                         r=rows(j); e=boundaries(r,:);

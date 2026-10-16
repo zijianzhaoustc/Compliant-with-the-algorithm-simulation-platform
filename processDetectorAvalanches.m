@@ -7,8 +7,10 @@ function events = processDetectorAvalanches(primary,deadTime,probability,lifetim
 %   使用最小堆保存待处理后脉冲，与原始事件游标合并，避免反复排序大数组。
 
 nPrimary=numel(primary.time);
+hasCorrelation=isfield(primary,'backgroundCorrelationID');
 capacity=max(16,nPrimary);
 time=zeros(capacity,1); pairID=zeros(capacity,1); type=strings(capacity,1);
+backgroundCorrelationID=zeros(capacity,1);
 heap=zeros(max(16,nPrimary),1); heapSize=0;
 nextPrimary=1; accepted=0; lastAccepted=-inf;
 while nextPrimary<=nPrimary || heapSize>0
@@ -21,9 +23,12 @@ while nextPrimary<=nPrimary || heapSize>0
         candidate=primary.time(nextPrimary);
         candidateID=primary.pairID(nextPrimary);
         candidateType=primary.type(nextPrimary);
+        candidateBackgroundID=0;
+        if hasCorrelation, candidateBackgroundID=primary.backgroundCorrelationID(nextPrimary); end
         nextPrimary=nextPrimary+1;
     else
         candidate=heap(1); candidateID=0; candidateType="afterpulse";
+        candidateBackgroundID=0;
         % 弹出堆顶，用末节点补位并向下恢复最小堆。
         tail=heap(heapSize); heapSize=heapSize-1;
         if heapSize>0
@@ -45,6 +50,7 @@ while nextPrimary<=nPrimary || heapSize>0
         time(capacity,1)=0; pairID(capacity,1)=0; type(capacity,1)="";
     end
     time(accepted)=candidate; pairID(accepted)=candidateID; type(accepted)=candidateType;
+    if hasCorrelation, backgroundCorrelationID(accepted)=candidateBackgroundID; end
 
     % 只有已接受的雪崩才抽样；后脉冲若位于死时间内，会在出堆时被拒绝。
     if rand<probability
@@ -66,4 +72,5 @@ while nextPrimary<=nPrimary || heapSize>0
 end
 events=struct("time",time(1:accepted),"pairID",pairID(1:accepted), ...
     "type",type(1:accepted));
+if hasCorrelation, events.backgroundCorrelationID=backgroundCorrelationID(1:accepted); end
 end

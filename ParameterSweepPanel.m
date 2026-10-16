@@ -39,20 +39,22 @@ classdef ParameterSweepPanel < handle
             panel.Controls.WorkingMemoryMB=uieditfield(constants,'numeric', ...
                 'Value',panel.Config.limits.maxWorkingMemoryMB,'Limits',[0 Inf],'LowerLimitInclusive','off', ...
                 'Tooltip','单批数据工作内存预算，1 MB=2^20字节；超预算会阻止启动，匹配数组分配前再次检查。');
-            uilabel(constants,'Text','所有通道扫描因素统一 both：A/B 同步变化');
+            panel.Controls.Advanced=uicheckbox(constants,'Text','高级：A/B 独立、时长和背景场景扫描', ...
+                'Value',false,'ValueChangedFcn',@(~,~)panel.toggleAdvanced());
             paths=uigridlayout(g,[1,4]); paths.Padding=[0 0 0 0]; paths.ColumnWidth={90,'1x',130,130};
             uilabel(paths,'Text','输出根目录');
             panel.Controls.Output=uieditfield(paths,'text','Value',char(panel.Config.outputRoot));
             panel.Controls.SaveTimes=uicheckbox(paths,'Text','保存时间戳 MAT','Value',false);
             panel.Controls.SideDetails=uicheckbox(paths,'Text','导出旁窗明细','Value',true);
-            toolbar=uigridlayout(g,[1,7]); toolbar.Padding=[0 0 0 0]; toolbar.ColumnWidth={100,100,100,120,120,'1x',140};
+            toolbar=uigridlayout(g,[1,8]); toolbar.Padding=[0 0 0 0]; toolbar.ColumnWidth={90,90,80,100,110,100,'1x',125};
             panel.Controls.Preview=uibutton(toolbar,'Text','预览任务','ButtonPushedFcn',@(~,~)panel.preview());
             panel.Controls.Start=uibutton(toolbar,'Text','开始扫描','ButtonPushedFcn',@(~,~)panel.run(false));
             panel.Controls.Stop=uibutton(toolbar,'Text','停止','Enable','off', ...
                 'ButtonPushedFcn',@(~,~)panel.requestStop());
             panel.Controls.Resume=uibutton(toolbar,'Text','选择批次续跑','ButtonPushedFcn',@(~,~)panel.run(true));
             panel.Controls.Open=uibutton(toolbar,'Text','打开结果目录','ButtonPushedFcn',@(~,~)panel.openOutput());
-            uilabel(toolbar,'Text','多对多；主窗 2n+1 bin；W=(2n+1)×binWidth；保护间隔 G=W');
+            panel.Controls.Smoke=uibutton(toolbar,'Text','小规模 smoke','ButtonPushedFcn',@(~,~)panel.runSmoke());
+            uilabel(toolbar,'Text','多对多；D: 完整 bin±n / C: 连续全宽 W；保护间隔 G=W');
             panel.Controls.Reset=uibutton(toolbar,'Text','恢复扫描默认','ButtonPushedFcn',@(~,~)panel.resetDefaults());
             panel.SettingsTabs=uitabgroup(g);
             factorsPage=uitab(panel.SettingsTabs,'Title','扫描参数');
@@ -61,7 +63,7 @@ classdef ParameterSweepPanel < handle
             panel.Controls.Factors=uitable(factorGrid,'RowName',[],'ColumnName', ...
                 {'扫描','参数 / 标签','通道','输入方式','扫描值 / 列表（方法点选）','起点','终点','步长','log数量','单位','实际数列 / 数量'}, ...
                 'ColumnEditable',[true false false true true true true true true false false], ...
-                'ColumnFormat',{'logical','char','char',{'fixed','list','range','log'},'char','numeric','numeric','numeric','numeric','char','char'}, ...
+                'ColumnFormat',{'logical','char',{'both','A','B'},{'fixed','list','range','log'},'char','numeric','numeric','numeric','numeric','char','char'}, ...
                 'ColumnWidth',{45,300,65,75,230,75,75,75,70,70,260}, ...
                 'CellSelectionCallback',@(~,event)panel.selectFactorCell(event), ...
                 'CellEditCallback',@(~,event)panel.editFactorCell(event), ...
@@ -81,23 +83,29 @@ classdef ParameterSweepPanel < handle
             vars={'Rpair_per_s','T_s','seed','bin_width_ps','n_bins_each_side','K_requested', ...
                 'hist_half_range_ns','dark_A_cps','dark_B_cps','bg_A_cps','bg_B_cps', ...
                 'detectorJitter_A_ps','detectorJitter_B_ps','tdcJitter_A_ps','tdcJitter_B_ps', ...
-                'param_algorithm_timeShiftStart','param_algorithm_timeShiftStep','param_algorithm_timeShiftCount'};
+                'param_algorithm_timeShiftStart','param_algorithm_timeShiftStep','param_algorithm_timeShiftCount','W_actual_ns','F0_est','Nrec_true'};
             uilabel(controls,'Text','X'); panel.Controls.X=uidropdown(controls,'Items',vars,'Value','bin_width_ps');
             uilabel(controls,'Text','Y'); panel.Controls.Y=uidropdown(controls,'Items',vars,'Value','n_bins_each_side');
             uilabel(controls,'Text','指标'); panel.Controls.Metric=uidropdown(controls,'Items', ...
-                {'Rnet_signed_cps','Rraw_cps','Racc_cps','metric_EtaW','epsilon_acc_vs_true','epsilon_pair_window','metric_F1'});
+                {'Npair_est','Nacc_est','epsilon_pair_total','epsilon_acc_window','u_Npair','fit_residual_score', ...
+                'Rnet_signed_cps','Rraw_cps','Racc_cps','metric_EtaW','epsilon_acc_vs_true','epsilon_pair_window','metric_F1'}, ...
+                'Value','Rnet_signed_cps');
             panel.Controls.PlotKind=uidropdown(controls,'Items',{'曲线','热力图'});
             uibutton(controls,'Text','绘制','ButtonPushedFcn',@(~,~)panel.plotResults());
-            filterRow=uigridlayout(pg,[1,2]); filterRow.Padding=[0 0 0 0]; filterRow.ColumnWidth={200,'1x'};
+            filterRow=uigridlayout(pg,[1,4]); filterRow.Padding=[0 0 0 0]; filterRow.ColumnWidth={200,'1x',140,150};
             uilabel(filterRow,'Text','固定其他参数（JSON 精确筛选）');
             panel.Controls.Filter=uieditfield(filterRow,'text','Value','{}', ...
                 'Placeholder','例如 {"seed":1,"K_requested":2,"accidental_method":"theory"}');
+            panel.Controls.Aggregate=uicheckbox(filterRow,'Text','跨种子 Bias/RMSE', ...
+                'ValueChangedFcn',@(~,~)panel.updatePlotColumns());
+            panel.Controls.Quality=uidropdown(filterRow,'Items',{'全部质量状态','RELIABLE','CAUTION','INVALID'});
             panel.Controls.Axes=uiaxes(pg); grid(panel.Controls.Axes,'on');
             panel.populate(panel.Config);
         end
 
         function c=readConfig(panel)
             c=panel.Config;
+            c.advancedFactors=panel.Controls.Advanced.Value;
             c.baseParams=panel.BaseSettings.readParameters();
             c.baseParams.measurementTime=panel.Controls.MeasurementTime.Value;
             c.limits.maxWorkingMemoryMB=panel.Controls.WorkingMemoryMB.Value;
@@ -109,11 +117,19 @@ classdef ParameterSweepPanel < handle
             for i=1:size(data,1)
                 if ~data{i,1}, continue; end
                 key=extractBefore(string(data{i,2})," | ");
-                f=scanFactor(key,string(data{i,5}),"both");
+                f=scanFactor(key,string(data{i,5}),string(data{i,3}));
                 f.inputMode=string(data{i,4}); f.start=data{i,6}; f.stop=data{i,7};
                 f.step=data{i,8}; f.count=data{i,9}; factors(end+1,1)=f; %#ok<AGROW>
             end
             c.factors=factors; c=validateScanConfig(c);
+        end
+
+        function toggleAdvanced(panel)
+            try
+                c=panel.readConfig(); panel.populate(c);
+            catch e
+                panel.Controls.Advanced.Value=panel.Config.advancedFactors; panel.showError(e);
+            end
         end
 
         function selectFactorCell(panel,event)
@@ -165,26 +181,39 @@ classdef ParameterSweepPanel < handle
 
         function populate(panel,c)
             c=validateScanConfig(c);
-            panel.BaseSettings.populate(c.baseParams);
+            panel.BaseSettings.setAdvanced(c.advancedFactors); panel.BaseSettings.populate(c.baseParams);
             panel.Config=c; panel.Controls.Mode.Value=char(c.mode);
+            if c.advancedFactors
+                panel.Controls.PreviewText.Text='高级：A/B 可独立设置；时长仍使用顶部常数，除非勾选时长扫描。未勾选因素使用独立基准。';
+            else
+                panel.Controls.PreviewText.Text='默认 both 同步、固定测量时长；未勾选因素使用独立基准。全部扫描设置与单次页独立。';
+            end
             panel.Controls.Seeds.Value=char(strjoin(string(c.seeds),','));
             panel.Controls.Output.Value=char(c.outputRoot);
             panel.Controls.SaveTimes.Value=c.outputs.saveTimestamps;
             panel.Controls.SideDetails.Value=c.outputs.exportPerSideWindow;
             panel.Controls.MeasurementTime.Value=c.baseParams.measurementTime;
             panel.Controls.WorkingMemoryMB.Value=c.limits.maxWorkingMemoryMB;
-            catalog=scanParameterCatalog(); data=cell(0,11);
+            panel.Controls.Advanced.Value=c.advancedFactors;
+            editable=panel.Controls.Factors.ColumnEditable; editable(3)=c.advancedFactors;
+            panel.Controls.Factors.ColumnEditable=editable;
+            catalog=scanParameterCatalog(c.advancedFactors); data=cell(0,11);
             for i=1:height(catalog)
                 key=catalog.parameter(i);
-                value=scanGetParameter(c.baseParams,key,"both");
-                data(end+1,:)={false,char(key+" | "+catalog.label(i)),'both','list', ...
+                channels="both";
+                parts=split(key,'.');
+                if c.advancedFactors && ismember(parts(1),["detector","tdc"]), channels=["both","A","B"]; end
+                for channel=channels
+                value=scanGetParameter(c.baseParams,key,channel);
+                data(end+1,:)={false,char(key+" | "+catalog.label(i)),char(channel),'list', ...
                     char(string(value)),0,1,1,10,char(catalog.unit(i)),''}; %#ok<AGROW>
                 for f=c.factors(:)'
-                    if string(f.parameter)==key
+                    if string(f.parameter)==key && string(f.channel)==channel
                         row=size(data,1); data{row,1}=f.enabled; data{row,4}=char(f.inputMode);
                         data{row,5}=char(strjoin(string(f.values),','));
                         data{row,6}=f.start; data{row,7}=f.stop; data{row,8}=f.step; data{row,9}=f.count;
                     end
+                end
                 end
             end
             panel.Controls.Factors.Data=data;
@@ -194,8 +223,8 @@ classdef ParameterSweepPanel < handle
             try
                 c=panel.readConfig(); [~,v,c]=buildScanGrid(c); panel.LastPreview=v;
                 panel.Controls.PreviewText.Text=sprintf( ...
-                    '物理生成 %d 次；分析 %d 行；单批期望源事件 %.3g，通道上界 %.3g；预计工作内存 %.1f / 上限 %.1f MB。预计旁窗不足 %d 行（按理论峰位，实际逐行检查）。', ...
-                    v.physicalGenerationCount,v.analysisCount,v.maxExpectedSourceEvents,v.maxExpectedChannelEvents,v.estimatedWorkingMemoryMB,v.workingMemoryLimitMB,v.potentialInvalidSideWindowCount);
+                    '物理生成 %d 次；分析 %d 行；期望源事件 %.3g，通道估计上限 %.3g；工作内存 %.1f / %.1f MB；磁盘估计 %.1f MB。旁窗预计无效 %d 行（按理论峰位，实际逐行检查）。', ...
+                    v.physicalGenerationCount,v.analysisCount,v.maxExpectedSourceEvents,v.maxExpectedChannelEvents,v.estimatedWorkingMemoryMB,v.workingMemoryLimitMB,v.estimatedDiskMB,v.potentialInvalidSideWindowCount);
                 data=panel.Controls.Factors.Data; enabled=find(cell2mat(data(:,1)));
                 for j=1:numel(enabled)
                     f=c.factors(j); data{enabled(j),11}=char(strjoin(string(f.values),',')+" / "+numel(f.values));
@@ -248,11 +277,25 @@ classdef ParameterSweepPanel < handle
                     'ProgressFcn',@(done,total,row)panel.progress(done,total,row)));
                 panel.Result=batch;
                 fields={'seed','Rpair_per_s','bin_width_ps','n_bins_each_side','K_requested','accidental_method', ...
-                    'Rraw_cps','Racc_cps','Rnet_signed_cps','status','warning_codes','error_report'};
+                    'Rraw_cps','Racc_cps','Rnet_signed_cps','Npair_est','Nrec_true','epsilon_pair_total', ...
+                    'u_Npair','quality_status','quality_flags','status','warning_codes','error_report'};
                 panel.Controls.Results.Data=batch.results(1:min(500,height(batch.results)),fields);
                 panel.Controls.Status.Text=sprintf('完成 %d/%d 行，已停止=%d；%s',height(batch.results),v.analysisCount,batch.stopped,batch.outputDirectory);
                 clear cleanup
             catch e, panel.setRunning(false); panel.showError(e); end
+        end
+
+        function runSmoke(panel)
+            try
+                original=panel.readConfig(); c=original;
+                c.seeds=c.seeds(1:min(2,numel(c.seeds))); used=0;
+                for k=1:numel(c.factors)
+                    keep=1;
+                    if numel(c.factors(k).values)>1 && used<2, keep=min(2,numel(c.factors(k).values)); used=used+1; end
+                    c.factors(k).values=c.factors(k).values(1:keep); c.factors(k).inputMode="list";
+                end
+                panel.populate(c); panel.run(false); panel.populate(original);
+            catch e, panel.showError(e); end
         end
 
         function requestStop(panel)
@@ -273,7 +316,7 @@ classdef ParameterSweepPanel < handle
 
         function setRunning(panel,running)
             panel.Running=running;
-            for name=["Start","Preview","Load","Save","Resume","Reset","MeasurementTime","WorkingMemoryMB"]
+            for name=["Start","Preview","Load","Save","Resume","Reset","Smoke","MeasurementTime","WorkingMemoryMB","Advanced"]
                 if running, panel.Controls.(name).Enable='off'; else, panel.Controls.(name).Enable='on'; end
             end
             if running, panel.Controls.Stop.Enable='on'; else, panel.Controls.Stop.Enable='off'; end
@@ -290,7 +333,9 @@ classdef ParameterSweepPanel < handle
         function plotResults(panel)
             try
                 if isempty(panel.Result), return; end
-                t=panel.Result.results; filter=jsondecode(panel.Controls.Filter.Value);
+                t=panel.Result.results;
+                if panel.Controls.Aggregate.Value, t=panel.Result.seedSummary; end
+                filter=jsondecode(panel.Controls.Filter.Value);
                 fields=fieldnames(filter);
                 for i=1:numel(fields)
                     f=fields{i}; value=filter.(f);
@@ -298,7 +343,11 @@ classdef ParameterSweepPanel < handle
                     if isnumeric(t.(f)), selected=t.(f)==value; else, selected=string(t.(f))==string(value); end
                     t=t(selected,:);
                 end
-                t=t(t.status=="OK",:); x=panel.Controls.X.Value; y=panel.Controls.Y.Value; z=panel.Controls.Metric.Value;
+                if ismember('status',t.Properties.VariableNames), t=t(t.status=="OK",:); end
+                if ismember('quality_status',t.Properties.VariableNames) && ~strcmp(panel.Controls.Quality.Value,'全部质量状态')
+                    t=t(t.quality_status==string(panel.Controls.Quality.Value),:);
+                end
+                x=panel.Controls.X.Value; y=panel.Controls.Y.Value; z=panel.Controls.Metric.Value;
                 ax=panel.Controls.Axes; cla(ax);
                 if isempty(t), title(ax,'筛选后无有效结果'); return; end
                 if height(t)>5000, error('CoincidenceSim:PlotLimit','Preview exceeds 5000 points; narrow the filters.'); end
@@ -321,6 +370,15 @@ classdef ParameterSweepPanel < handle
                 end
                 xlabel(ax,x,'Interpreter','none'); title(ax,z,'Interpreter','none'); grid(ax,'on');
             catch e, panel.showError(e); end
+        end
+
+        function updatePlotColumns(panel)
+            if isempty(panel.Result), return; end
+            t=panel.Result.results;
+            if panel.Controls.Aggregate.Value, t=panel.Result.seedSummary; end
+            numeric=varfun(@isnumeric,t,'OutputFormat','uniform'); names=t.Properties.VariableNames(numeric);
+            if isempty(names), return; end
+            for name=["X","Y","Metric"], panel.Controls.(name).Items=names; end
         end
 
         function showError(panel,e)

@@ -22,16 +22,19 @@ events.time = code*q + dnlError + inlError;
 % 抖动可能改变相邻事件顺序，因此量化后必须重新排序并同步元数据。
 [events.time, order] = sort(events.time);
 events.pairID = events.pairID(order); events.type = events.type(order);
+if isfield(events,'backgroundCorrelationID'), events.backgroundCorrelationID=events.backgroundCorrelationID(order); end
 % 删除抖动后落到采集区间之外的时间戳。
 inside = events.time >= 0 & events.time <= p.measurementTime;
 events.time = events.time(inside); events.pairID = events.pairID(inside);
 events.type = events.type(inside);
+if isfield(events,'backgroundCorrelationID'), events.backgroundCorrelationID=events.backgroundCorrelationID(inside); end
 if p.tdc.enableDeadTime && p.tdc.(channel).deadTime>0
     % 非延长型模型只由最近一次被 TDC 接受的事件启动阻塞区间；
     % 阻塞期间到达但被丢弃的事件不会延长死时间。
     keep=nonParalyzableKeep(events.time,p.tdc.(channel).deadTime);
     events.time=events.time(keep); events.pairID=events.pairID(keep);
     events.type=events.type(keep);
+    if isfield(events,'backgroundCorrelationID'), events.backgroundCorrelationID=events.backgroundCorrelationID(keep); end
 end
 stats.acceptedCount=numel(events.time);
 stats.inputRate=stats.inputCount/p.measurementTime;

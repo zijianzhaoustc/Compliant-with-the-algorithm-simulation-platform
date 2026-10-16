@@ -38,6 +38,7 @@ codegen/
 # Research scans create unique local run/checkpoint directories.
 /outputs/parameter_sweep/
 /outputs/parameter_sweep_validation/
+/outputs/dual_window_validation/
 
 # SimBiology backup files
 *.sbproj.backup

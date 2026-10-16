@@ -1,6 +1,7 @@
 function c = scanDefaultConfig(p)
 %SCANDEFAULTCONFIG Research configuration; factor values use catalog units.
 if nargin<1, p=defaultParams(); end
+p=researchParams(p);
 c=struct('schemaVersion',1,'mode',"custom-grid",'baseParams',p,'seeds',p.seed, ...
     'factors',repmat(scanFactor("source.pairRate",p.source.pairRate),0,1), ...
     'outputRoot',fullfile(pwd,'outputs','parameter_sweep'),'resumeDirectory',"", ...
@@ -12,5 +13,6 @@ c.baseParams.algorithm.matchMethod="many-to-many";
 c.baseParams.algorithm.windowMode="bins";
 c.baseParams.algorithm.sideWindowGuardMode="window-width";
 c.baseParams.algorithm.strictWindows=true;
+c.advancedFactors=false;
 c.units=table2struct(scanParameterCatalog());
 end

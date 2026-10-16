@@ -2,7 +2,11 @@ function out = analyzeSweepVariant(data,p)
 %ANALYZESWEEPVARIANT Rebuild matches/histogram from the same physical stream.
 % No RNG, generation or stale match cache occurs in this analysis layer.
 p.analysis=data.params.analysis;
-out=analyzeTimestampData(data.A,data.B,p,data.source,"simulation");
+if isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis
+    out=analyzeResearchTimestamps(data.A,data.B,p,data.source,"simulation");
+else
+    out=analyzeTimestampData(data.A,data.B,p,data.source,"simulation");
+end
 out.stageStats=data.stageStats;
 out.sweepStatus=out.raw.status;
 if isempty(data.A.time) || isempty(data.B.time), out.sweepStatus="NO_EVENTS";

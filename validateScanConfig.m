@@ -9,9 +9,7 @@ end
 c.seeds=unique(double(c.seeds(:)'),'stable');
 validateattributes(c.seeds,{'numeric'},{'nonempty','finite','integer','>=',0,'<=',2^32-1});
 c.baseParams.algorithm.matchMethod="many-to-many";
-c.baseParams.algorithm.windowMode="bins";
 c.baseParams.algorithm.strictWindows=true;
-c.baseParams.algorithm.sideWindowGuardMode="window-width";
 c.baseParams.algorithm.maxMatchPairs=c.limits.maxMatchPairs;
 c.baseParams.algorithm.scanWorkingMemoryMB=c.limits.maxWorkingMemoryMB;
 names=fieldnames(c.limits);
@@ -20,7 +18,7 @@ for j=1:numel(names)
     if strcmp(names{j},'maxWorkingMemoryMB'), attributes(end)=[]; end
     validateattributes(c.limits.(names{j}),{'numeric'},attributes);
 end
-catalog=scanParameterCatalog(); factors=repmat(scanFactor("",[]),0,1); targets=strings(0,1);
+catalog=scanParameterCatalog(c.advancedFactors); factors=repmat(scanFactor("",[]),0,1); targets=strings(0,1);
 for i=1:numel(c.factors)
     f=mergeParamsWithDefaults(scanFactor("",[]),c.factors(i));
     if ~f.enabled, continue; end
@@ -28,7 +26,7 @@ for i=1:numel(c.factors)
     if ~ismember(f.parameter,catalog.parameter)
         error('CoincidenceSim:ScanFactor','Unsupported scan factor. Measurement time is a constant; pump power is not a research scan factor.');
     end
-    if f.channel~="both"
+    if (~c.advancedFactors && f.channel~="both") || ~ismember(f.channel,["A","B","both"])
         error('CoincidenceSim:ScanChannel','Research scans only support both: A/B vary together.');
     end
     if f.parameter=="source.pairRate" && string(c.baseParams.source.mode)=="pump"
@@ -39,6 +37,9 @@ for i=1:numel(c.factors)
     end
     f.values=expandScanValues(f); f.inputMode="list";
     isChannel=startsWith(f.parameter,"detector.") || startsWith(f.parameter,"tdc.");
+    if ~isChannel && f.channel~="both"
+        error('CoincidenceSim:ScanChannel','A/B selectors apply only to detector or TDC factors.');
+    end
     target=f.parameter;
     if isChannel
         if f.channel=="both", target=f.parameter+[".A",".B"]; else, target=f.parameter+"."+f.channel; end
@@ -61,8 +62,8 @@ end
 function check(p,limits)
 p=validateParams(p);
 validateattributes(p.algorithm.histRange,{'numeric'},{'finite','numel',2});
-if ~ismember(string(p.algorithm.accidentalMethod),["theory","side-window","time-shift"])
-    error('CoincidenceSim:ScanEstimator','Research scans support theory, side-window and time-shift.');
+if ~ismember(string(p.algorithm.accidentalMethod),["theory","segment-theory","side-window","sideband","time-shift"])
+    error('CoincidenceSim:ScanEstimator','Unknown research estimator.');
 end
 if p.algorithm.timeShiftCount>limits.maxShifts || p.algorithm.sideWindowPairs>limits.maxSidePairs
     error('CoincidenceSim:ScanLimit','Too many time shifts or side windows.');

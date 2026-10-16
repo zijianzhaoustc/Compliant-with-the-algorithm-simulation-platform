@@ -47,13 +47,14 @@ if ~any(p.algorithm.matchMethod == ["one-to-one","many-to-one","one-to-many", ..
         "greedy-chronological"])
     error("CoincidenceSim:InvalidMethod", "Unknown matching method.");
 end
-if ~any(p.algorithm.peakMethod == ["maximum","gaussian"])
+if ~any(p.algorithm.peakMethod == ["maximum","gaussian","fixed"])
     error("CoincidenceSim:InvalidMethod", "Unknown peak method.");
 end
-if ~any(p.algorithm.windowMode == ["fixed","sigma","bins","fwhm"])
+if ~any(p.algorithm.windowMode == ["fixed","sigma","bins","fwhm","discrete","continuous"])
     error("CoincidenceSim:InvalidMethod", "Unknown window mode.");
 end
-if p.algorithm.windowMode=="bins"
+if ismember(string(p.algorithm.windowMode),["bins","discrete"]) || ...
+        (isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis && ismember(string(p.algorithm.windowMode),["fixed","continuous"]))
     mustBeNonnegative(p.algorithm.windowMultiplier);
 else
     mustBePositive(p.algorithm.windowMultiplier);
@@ -63,8 +64,8 @@ if isfield(p.algorithm,'sideWindowGuardMode') && ...
     error('CoincidenceSim:InvalidGuardMode','Unknown side window guard mode.');
 end
 % bin 的个数必须是整数；sigma 和 FWHM 的倍数仍允许使用小数。
-if p.algorithm.windowMode=="bins", mustBeInteger(p.algorithm.windowMultiplier); end
-if ~any(p.algorithm.accidentalMethod == ["none","theory","sideband","side-window","time-shift"])
+if ismember(string(p.algorithm.windowMode),["bins","discrete"]), mustBeInteger(p.algorithm.windowMultiplier); end
+if ~any(p.algorithm.accidentalMethod == ["none","theory","segment-theory","sideband","side-window","time-shift"])
     error("CoincidenceSim:InvalidMethod", "Unknown accidental method.");
 end
 mustBeNonnegative(p.algorithm.sidebandGuard);
@@ -80,6 +81,40 @@ if ~isscalar(p.algorithm.timestampWindowMode) || ...
 end
 p.algorithm.timestampWindowMode=logical(p.algorithm.timestampWindowMode);
 mustBePositive(p.algorithm.timestampWindowSize);
+if p.algorithm.peakMethod=="fixed"
+    validateattributes(p.algorithm.fixedPeakCenter,{'numeric'},{'scalar','finite'});
+end
+if isfield(p.algorithm,'segmentDuration'), validateattributes(p.algorithm.segmentDuration,{'numeric'},{'scalar','finite','positive'}); end
+if isfield(p.algorithm,'researchAnalysis') && p.algorithm.researchAnalysis
+    if ~ismember(string(p.algorithm.windowMode),["bins","fixed","discrete","continuous"])
+        error('CoincidenceSim:ResearchWindowMode','Research mode requires D (bins) or C (fixed).');
+    end
+    for name=["bootstrapBlockDuration","minCapture","minRecoveryDenominator","residualThreshold","sideTailThreshold"]
+        validateattributes(p.algorithm.(name),{'numeric'},{'scalar','real','finite','positive'});
+    end
+    for name=["bootstrapReplicates","pairChunkSize"]
+        validateattributes(p.algorithm.(name),{'numeric'},{'scalar','real','finite','positive','integer'});
+    end
+    validateattributes(p.algorithm.bootstrapSeed,{'numeric'},{'scalar','finite','integer','>=',0,'<=',2^32-1});
+    if ~ismember(string(p.algorithm.uncertaintyMethod),["delta","bootstrap"]) || ...
+            ~ismember(string(p.algorithm.timeShiftMode),["overlap","circular"]) || ...
+            ~ismember(string(p.algorithm.pairRecovery),["basic","joint-side"]) || string(p.algorithm.peakModel)~="gaussian"
+        error('CoincidenceSim:ResearchOption','Unsupported research estimator/uncertainty/peak model.');
+    end
+end
+if isfield(p,'scenarios')
+    s=p.scenarios;
+    if ~ismember(string(s.backgroundMode),["constant","step","linear","sinusoidal"]) || ...
+            ~ismember(string(s.jitterModel),["gaussian","double-gaussian","exponential-tail"])
+        error('CoincidenceSim:ScenarioMode','Unsupported rate/response scenario.');
+    end
+    unitInterval(s.backgroundAmplitude,'background amplitude'); unitInterval(s.tailFraction,'tail fraction');
+    validateattributes(s.backgroundPeriod,{'numeric'},{'scalar','finite','positive'});
+    validateattributes(s.correlatedBackgroundRate,{'numeric'},{'scalar','finite','nonnegative'});
+    validateattributes(s.correlatedBackgroundSigma,{'numeric'},{'scalar','finite','nonnegative'});
+    validateattributes(s.correlatedBackgroundDelay,{'numeric'},{'scalar','finite'});
+    validateattributes(s.tailScale,{'numeric'},{'scalar','finite','>=',1});
+end
 end
 
 function unitInterval(x, name)
