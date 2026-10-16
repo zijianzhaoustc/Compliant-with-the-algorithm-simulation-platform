@@ -128,6 +128,10 @@ c.factors = [scanFactor("measurementTime",[.05 .1]); ...
 % 200 个不同物理随机种子，验证理想平稳工况期望区间
 report = validateResearchCoverage();
 
+% 32行足够峰统计量的科研样例（4批物理时间戳）
+addpath(fullfile(pwd,"examples"));
+batch = runDualWindowScientificSmoke();
+
 % 独立训练与验证，p 必须是欲标定的精确科研配置
 % [profile,heldout,training] = calibrateResearchReliability(p,1001:1100,2001:2200,"qa_output");
 % p = applyResearchCalibration(p,profile);
@@ -157,6 +161,9 @@ H 扩大时从原始时间戳重新流式累积，不复用旧窄谱配对列表
 window_capture_vs_window、method_validity_grid、seed_level_raw 五张表。
 完整固定值、A/B 参数、源哈希、代码 revision、geometry/fit JSON、单位均保存。
 没有真值或未定义的比值使用 NaN；空仿真已知零真值仍为 0。
+
+完整修改文件列表见 [DUAL_WINDOW_CHANGED_FILES.txt](DUAL_WINDOW_CHANGED_FILES.txt)，
+实际测试结果及样例数据见 [DUAL_WINDOW_TEST_REPORT.md](DUAL_WINDOW_TEST_REPORT.md)。
 
 统计依据：协方差传播遵循 [BIPM JCGM 100](https://www.bipm.org/en/web/guest/publications/guides)；
 计数直方图使用 Poisson 似然及 bin 积分模型，参见
