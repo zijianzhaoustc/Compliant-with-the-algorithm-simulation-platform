@@ -2,6 +2,14 @@ function [status,flags,reason,d]=assessCoincidenceReliability(a,b,h,g,p,r,side)
 %ASSESSCOINCIDENCERELIABILITY Observable data/configuration only; never truth.
 flags=strings(1,0); reason=""; status="CAUTION";
 d=struct('stationarityP',NaN,'sideAsymmetryZ',NaN);
+if isfield(p,'analysis')
+    metadata=p.analysis;
+    if (isfield(metadata,'dataQualityInvalid') && metadata.dataQualityInvalid) || ...
+            (isfield(metadata,'acquisitionGaps') && ~isempty(metadata.acquisitionGaps)) || ...
+            (isfield(metadata,'timestampUnitTrusted') && ~metadata.timestampUnitTrusted)
+        status="INVALID"; reason="DATA_QUALITY_INVALID"; flags=reason; return
+    end
+end
 if any(~isfinite([a(:);b(:)])) || any(diff(a)<0) || any(diff(b)<0) || ...
         any(a<0 | a>p.measurementTime) || any(b<0 | b>p.measurementTime)
     status="INVALID"; reason="DATA_QUALITY_INVALID"; flags=reason; return

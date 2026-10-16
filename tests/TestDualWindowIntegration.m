@@ -82,5 +82,14 @@ classdef TestDualWindowIntegration < matlab.unittest.TestCase
             t.verifyEqual(scanHash(o.metrics),string(reference.metric_hash));
             t.verifyEqual(scanHash(o.hist.counts),string(reference.histogram_hash));
         end
+        function explicitModeAliasesAndCoupledRange(t)
+            p=researchParams(defaultParams()); p.algorithm.windowMode="CONTINUOUS_TIME";
+            p.algorithm.sideWindowGuardMode="FROM_MAIN_EDGE_G_EQUALS_W";
+            p=validateParams(p); t.verifyEqual(p.algorithm.windowMode,"fixed");
+            t.verifyEqual(p.algorithm.sideWindowGuardMode,"window-width");
+            c=scanDefaultConfig(); c.advancedFactors=true;
+            c.factors=[scanFactor("algorithm.histLeft",30);scanFactor("algorithm.histRight",40)];
+            plan=buildScanGrid(c); t.verifyEqual(plan.params.algorithm.histRange,[30 40]*1e-9);
+        end
     end
 end

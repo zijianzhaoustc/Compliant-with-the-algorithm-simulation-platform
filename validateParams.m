@@ -40,6 +40,12 @@ if p.algorithm.histRange(1) >= p.algorithm.histRange(2)
     error("CoincidenceSim:InvalidRange", "Histogram minimum must be below maximum.");
 end
 % 字符串白名单避免 switch 分支未赋值。
+if string(p.algorithm.windowMode)=="DISCRETE_BINS", p.algorithm.windowMode="bins"; end
+if string(p.algorithm.windowMode)=="CONTINUOUS_TIME", p.algorithm.windowMode="fixed"; end
+if isfield(p.algorithm,'sideWindowGuardMode')
+    if string(p.algorithm.sideWindowGuardMode)=="FROM_MAIN_EDGE_G_EQUALS_W", p.algorithm.sideWindowGuardMode="window-width"; end
+    if string(p.algorithm.sideWindowGuardMode)=="LEGACY_FIXED_CENTER", p.algorithm.sideWindowGuardMode="fixed-center"; end
+end
 mustBeNonnegative(p.tdc.dnl);
 mustBeNonnegative(p.tdc.inl);
 if ~any(p.algorithm.matchMethod == ["one-to-one","many-to-one","one-to-many", ...

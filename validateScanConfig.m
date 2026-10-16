@@ -47,6 +47,9 @@ for i=1:numel(c.factors)
     if any(ismember(target,targets)), error('CoincidenceSim:ScanOverlap','A parameter is assigned by overlapping factors.'); end
     targets=[targets;target(:)]; %#ok<AGROW>
     for v=f.values
+        if ismember(f.parameter,["algorithm.histLeft","algorithm.histRight"])
+            validateattributes(v,{'numeric'},{'scalar','finite'}); continue % Validate coupled bounds after combining factors.
+        end
         p=scanSetParameter(c.baseParams,f.parameter,v,f.channel); check(p,c.limits);
     end
     factors(end+1,1)=f; %#ok<AGROW>
