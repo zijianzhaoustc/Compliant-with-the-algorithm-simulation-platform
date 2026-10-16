@@ -10,6 +10,7 @@ classdef ParameterSweepPanel < handle
         Running=false
         LastPreview=[]
         ProgressTimer
+        MethodEditor=[]
     end
     methods
         function panel=ParameterSweepPanel(parent,provider)
@@ -42,12 +43,15 @@ classdef ParameterSweepPanel < handle
             uilabel(toolbar,'Text','多对多；主窗 2n+1 bin；W=(2n+1)×binWidth；保护间隔 G=W');
             uibutton(toolbar,'Text','从主界面重置基准','ButtonPushedFcn',@(~,~)panel.resetBase());
             panel.Controls.Factors=uitable(g,'RowName',[],'ColumnName', ...
-                {'扫描','参数 / 标签','通道','输入方式','固定值 / 列表','起点','终点','步长','log数量','单位','实际数列 / 数量'}, ...
+                {'扫描','参数 / 标签','通道','输入方式','固定值 / 列表（方法点选）','起点','终点','步长','log数量','单位','实际数列 / 数量'}, ...
                 'ColumnEditable',[true false true true true true true true true false false], ...
                 'ColumnFormat',{'logical','char',{'both','A','B'},{'fixed','list','range','log'},'char','numeric','numeric','numeric','numeric','char','char'}, ...
-                'ColumnWidth',{45,300,65,75,210,75,75,75,70,70,260});
+                'ColumnWidth',{45,300,65,75,230,75,75,75,70,70,260}, ...
+                'CellSelectionCallback',@(~,event)panel.selectFactorCell(event), ...
+                'CellEditCallback',@(~,event)panel.editFactorCell(event), ...
+                'Tooltip','点击方法行的固定值/列表单元格：固定方法下拉选择，列表方法勾选比较。');
             panel.Controls.PreviewText=uilabel(g,'Text', ...
-                '勾选因素后预览；通道 both 同步 A/B，分别扫描请分别启用 A、B 行。修正方法列表：theory,side-window,time-shift', ...
+                '勾选因素后预览；both 同步 A/B。点击修正方法或寻峰方法的值单元格，即可下拉选择单个方法或勾选多个方法。', ...
                 'WordWrap','on');
             panel.Controls.Status=uilabel(g,'Text','就绪；未勾选参数保持基准设置。','Interpreter','none');
             tabs=uitabgroup(g); resultPage=uitab(tabs,'Title','结果 / 错误预览（前500行）');
@@ -93,6 +97,53 @@ classdef ParameterSweepPanel < handle
                 f.step=data{i,8}; f.count=data{i,9}; factors(end+1,1)=f; %#ok<AGROW>
             end
             c.factors=factors; c=validateScanConfig(c);
+        end
+
+        function selectFactorCell(panel,event)
+            if panel.Running || isempty(event.Indices), return; end
+            indices=event.Indices(1,:);
+            if indices(2)==5, panel.openMethodEditor(indices(1)); end
+        end
+
+        function editFactorCell(panel,event)
+            if panel.Running || isempty(event.Indices), return; end
+            row=event.Indices(1); column=event.Indices(2);
+            data=panel.Controls.Factors.Data;
+            key=extractBefore(string(data{row,2})," | ");
+            if isempty(scanMethodChoices(key)) || column~=4, return; end
+            if ~ismember(string(data{row,4}),["fixed","list"])
+                data{row,4}=char(string(event.PreviousData));
+                panel.Controls.Factors.Data=data;
+                panel.Controls.Status.Text='方法是分类选项，只能使用 fixed 或 list；请在选择窗口中设置。';
+            end
+            panel.openMethodEditor(row);
+        end
+
+        function openMethodEditor(panel,row)
+            if panel.Running, return; end
+            data=panel.Controls.Factors.Data;
+            key=extractBefore(string(data{row,2})," | ");
+            if isempty(scanMethodChoices(key)), return; end
+            if ~isempty(panel.MethodEditor) && isvalid(panel.MethodEditor.Figure)
+                delete(panel.MethodEditor.Figure);
+            end
+            panel.MethodEditor=showScanMethodDialog(ancestor(panel.Parent,'figure'),key, ...
+                string(data{row,5}),string(data{row,4}), ...
+                @(chosen,mode)panel.applyMethodSelection(row,chosen,mode));
+        end
+
+        function applyMethodSelection(panel,row,chosen,mode)
+            data=panel.Controls.Factors.Data;
+            data{row,1}=true; data{row,4}=char(mode); data{row,5}=char(strjoin(chosen,','));
+            data{row,11}=char(strjoin(chosen,',')+" / "+numel(chosen));
+            panel.Controls.Factors.Data=data;
+            panel.Controls.Status.Text='方法已选择并启用；点击预览任务查看组合数量。';
+        end
+
+        function delete(panel)
+            if ~isempty(panel.MethodEditor) && isvalid(panel.MethodEditor.Figure)
+                delete(panel.MethodEditor.Figure);
+            end
         end
 
         function populate(panel,c)

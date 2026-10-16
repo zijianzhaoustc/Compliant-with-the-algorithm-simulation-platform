@@ -71,3 +71,18 @@ report = validateParameterSweepDelivery();
 Gaussian弱峰拟合、独立泊松理论近似、循环平移、单指数后脉冲均保留模型限制。
 停止在安全步骤边界生效；跨版本/源码变化不允许混合续跑。
 这些限制及所有输出列定义见 PARAMETER_SWEEP.md。
+
+## 2026-10-16 方法选择界面修复
+
+修正方法、寻峰方法的值单元格现在会打开选择窗口：fixed提供中文下拉菜单，
+list提供复选框，应用后自动启用该因素。方法因素明确禁止range/log；数值因素
+仍使用原来的四种输入方式。取消或空选不修改配置，关闭主窗口会关闭方法窗口。
+
+MATLAB R2025b实际执行28项相关测试，28 PASS、0 FAIL、0 INCOMPLETE：
+新增方法选择测试5项、原扫描测试20项、原双TDC GUI测试3项。三种修正方法与
+两种寻峰方法组合可生成6个算法变体；JSON读回保持一致。此次没有重跑其余
+仿真内核测试，原全量122项结果记录在前文。
+
+验证文件：`outputs/parameter_sweep_validation/method_picker_tests.csv`；
+窗口预览：`outputs/parameter_sweep_validation/method_picker.png`。
+独立入口`runParameterSweepSmokeTests`也已纳入新增5项选择器测试。

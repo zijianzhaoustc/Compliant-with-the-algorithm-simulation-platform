@@ -26,6 +26,9 @@ for i=1:numel(c.factors)
     if f.parameter=="source.pairRate" && string(c.baseParams.source.mode)=="pump"
         error('CoincidenceSim:PumpScan','pairRate is derived in pump mode; scan pumpPower or switch to direct.');
     end
+    if ~isempty(scanMethodChoices(f.parameter)) && ~ismember(f.inputMode,["fixed","list"])
+        error('CoincidenceSim:ScanCategoricalInput','Method factors support fixed or list, not numeric range/log.');
+    end
     f.values=expandScanValues(f); f.inputMode="list";
     isChannel=startsWith(f.parameter,"detector.") || startsWith(f.parameter,"tdc.");
     target=f.parameter;
