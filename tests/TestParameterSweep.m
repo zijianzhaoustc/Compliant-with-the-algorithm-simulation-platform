@@ -278,7 +278,7 @@ classdef TestParameterSweep < matlab.unittest.TestCase
             t.verifyEqual(string(app.Controls.Match.Value),"many-to-many");
             c=panel.readConfig(); t.verifyEqual(c.baseParams.algorithm.sideWindowGuardMode,"window-width");
             t.verifyEqual(c.baseParams.algorithm.matchMethod,"many-to-many");
-            c=parameterSweepExamples(); panel.populate(c); panel.Controls.BaseSource.Value='配置文件';
+            c=parameterSweepExamples(); panel.populate(c);
             panel.preview(); t.verifyEqual(panel.LastPreview.analysisCount,32);
             panel.Result=struct('results',table([10;20;10;20],[1;1;3;3],(1:4)',repmat("OK",4,1), ...
                 'VariableNames',{'bin_width_ps','n_bins_each_side','Rnet_signed_cps','status'}));

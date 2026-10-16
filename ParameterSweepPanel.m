@@ -2,7 +2,8 @@ classdef ParameterSweepPanel < handle
     %PARAMETERSWEEPPANEL Independent research workspace; execution stays in CLI functions.
     properties
         Parent
-        ParameterProvider
+        BaseSettings
+        SettingsTabs
         Controls=struct()
         Config
         Result=[]
@@ -13,9 +14,9 @@ classdef ParameterSweepPanel < handle
         MethodEditor=[]
     end
     methods
-        function panel=ParameterSweepPanel(parent,provider)
-            panel.Parent=parent; panel.ParameterProvider=provider;
-            panel.Config=scanDefaultConfig(provider());
+        function panel=ParameterSweepPanel(parent)
+            panel.Parent=parent;
+            panel.Config=scanDefaultConfig();
             g=uigridlayout(parent,[8,1]); g.RowHeight={32,32,32,32,'2x',42,26,'1x'};
             g.Padding=[10 8 10 8]; g.RowSpacing=5;
             top=uigridlayout(g,[1,8]); top.Padding=[0 0 0 0];
@@ -24,8 +25,8 @@ classdef ParameterSweepPanel < handle
             panel.Controls.Mode=uidropdown(top,'Items',{'单因素 OAT','双因素网格','自定义多因素'}, ...
                 'ItemsData',{'oat','two-factor','custom-grid'},'Value','custom-grid');
             uilabel(top,'Text','种子列表'); panel.Controls.Seeds=uieditfield(top,'text','Value','1');
-            uilabel(top,'Text','基准参数来源');
-            panel.Controls.BaseSource=uidropdown(top,'Items',{'当前主界面','配置文件'},'Value','当前主界面');
+            uilabel(top,'Text','参数配置');
+            uilabel(top,'Text','扫描独立','FontWeight','bold');
             panel.Controls.Save=uibutton(top,'Text','保存配置','ButtonPushedFcn',@(~,~)panel.saveConfig());
             panel.Controls.Load=uibutton(top,'Text','载入配置','ButtonPushedFcn',@(~,~)panel.loadConfig());
             constants=uigridlayout(g,[1,5]); constants.Padding=[0 0 0 0];
@@ -52,19 +53,24 @@ classdef ParameterSweepPanel < handle
             panel.Controls.Resume=uibutton(toolbar,'Text','选择批次续跑','ButtonPushedFcn',@(~,~)panel.run(true));
             panel.Controls.Open=uibutton(toolbar,'Text','打开结果目录','ButtonPushedFcn',@(~,~)panel.openOutput());
             uilabel(toolbar,'Text','多对多；主窗 2n+1 bin；W=(2n+1)×binWidth；保护间隔 G=W');
-            uibutton(toolbar,'Text','从主界面重置基准','ButtonPushedFcn',@(~,~)panel.resetBase());
-            panel.Controls.Factors=uitable(g,'RowName',[],'ColumnName', ...
-                {'扫描','参数 / 标签','通道','输入方式','固定值 / 列表（方法点选）','起点','终点','步长','log数量','单位','实际数列 / 数量'}, ...
+            panel.Controls.Reset=uibutton(toolbar,'Text','恢复扫描默认','ButtonPushedFcn',@(~,~)panel.resetDefaults());
+            panel.SettingsTabs=uitabgroup(g);
+            factorsPage=uitab(panel.SettingsTabs,'Title','扫描参数');
+            basePage=uitab(panel.SettingsTabs,'Title','独立基准 / 效应开关');
+            factorGrid=uigridlayout(factorsPage,[1 1]); factorGrid.Padding=[0 0 0 0];
+            panel.Controls.Factors=uitable(factorGrid,'RowName',[],'ColumnName', ...
+                {'扫描','参数 / 标签','通道','输入方式','扫描值 / 列表（方法点选）','起点','终点','步长','log数量','单位','实际数列 / 数量'}, ...
                 'ColumnEditable',[true false false true true true true true true false false], ...
                 'ColumnFormat',{'logical','char','char',{'fixed','list','range','log'},'char','numeric','numeric','numeric','numeric','char','char'}, ...
                 'ColumnWidth',{45,300,65,75,230,75,75,75,70,70,260}, ...
                 'CellSelectionCallback',@(~,event)panel.selectFactorCell(event), ...
                 'CellEditCallback',@(~,event)panel.editFactorCell(event), ...
                 'Tooltip','点击方法行的固定值/列表单元格：固定方法下拉选择，列表方法勾选比较。');
+            panel.BaseSettings=ScanBaseSettingsPanel(basePage,panel.Config.baseParams);
             panel.Controls.PreviewText=uilabel(g,'Text', ...
-                '勾选因素后预览；both 同步 A/B。点击修正方法或寻峰方法的值单元格，即可下拉选择单个方法或勾选多个方法。', ...
+                '未勾选因素使用“独立基准 / 效应开关”中的固定值；扫描参数统一both。所有设置均与单次仿真页独立。', ...
                 'WordWrap','on');
-            panel.Controls.Status=uilabel(g,'Text','就绪；未勾选参数保持基准设置。','Interpreter','none');
+            panel.Controls.Status=uilabel(g,'Text','就绪：请在扫描页内配置独立基准和效应开关。','Interpreter','none');
             tabs=uitabgroup(g); resultPage=uitab(tabs,'Title','结果 / 错误预览（前500行）');
             resultGrid=uigridlayout(resultPage,[1 1]); resultGrid.Padding=[0 0 0 0];
             panel.Controls.Results=uitable(resultGrid,'RowName',[]);
@@ -92,9 +98,7 @@ classdef ParameterSweepPanel < handle
 
         function c=readConfig(panel)
             c=panel.Config;
-            if strcmp(panel.Controls.BaseSource.Value,'当前主界面')
-                c.baseParams=panel.ParameterProvider();
-            end
+            c.baseParams=panel.BaseSettings.readParameters();
             c.baseParams.measurementTime=panel.Controls.MeasurementTime.Value;
             c.limits.maxWorkingMemoryMB=panel.Controls.WorkingMemoryMB.Value;
             c.mode=string(panel.Controls.Mode.Value); seedInput=scanFactor("seed",panel.Controls.Seeds.Value);
@@ -161,6 +165,7 @@ classdef ParameterSweepPanel < handle
 
         function populate(panel,c)
             c=validateScanConfig(c);
+            panel.BaseSettings.populate(c.baseParams);
             panel.Config=c; panel.Controls.Mode.Value=char(c.mode);
             panel.Controls.Seeds.Value=char(strjoin(string(c.seeds),','));
             panel.Controls.Output.Value=char(c.outputRoot);
@@ -212,14 +217,14 @@ classdef ParameterSweepPanel < handle
             [file,path]=uigetfile('*.json','载入扫描配置'); if isequal(file,0), return; end
             try
                 c=validateScanConfig(jsondecode(fileread(fullfile(path,file))));
-                panel.populate(c); panel.Controls.BaseSource.Value='配置文件'; panel.preview();
+                panel.populate(c); panel.preview();
             catch e, panel.showError(e); end
         end
 
-        function resetBase(panel)
+        function resetDefaults(panel)
             if panel.Running, return; end
-            c=panel.Config; c.baseParams=panel.ParameterProvider(); panel.populate(c);
-            panel.Controls.BaseSource.Value='当前主界面';
+            panel.populate(scanDefaultConfig()); panel.LastPreview=[];
+            panel.Controls.Status.Text='扫描配置已恢复为独立默认值。';
         end
 
         function run(panel,resume)
@@ -229,7 +234,7 @@ classdef ParameterSweepPanel < handle
                     folder=uigetdir(char(panel.Controls.Output.Value),'选择含 checkpoint.mat 的批次目录');
                     if isequal(folder,0), return; end
                     c=validateScanConfig(jsondecode(fileread(fullfile(folder,'scan_config.json'))));
-                    panel.populate(c); panel.Controls.BaseSource.Value='配置文件'; c.resumeDirectory=string(folder);
+                    panel.populate(c); c.resumeDirectory=string(folder);
                 else
                     c=panel.readConfig();
                 end
@@ -268,10 +273,11 @@ classdef ParameterSweepPanel < handle
 
         function setRunning(panel,running)
             panel.Running=running;
-            for name=["Start","Preview","Load","Save","Resume","MeasurementTime","WorkingMemoryMB"]
+            for name=["Start","Preview","Load","Save","Resume","Reset","MeasurementTime","WorkingMemoryMB"]
                 if running, panel.Controls.(name).Enable='off'; else, panel.Controls.(name).Enable='on'; end
             end
             if running, panel.Controls.Stop.Enable='on'; else, panel.Controls.Stop.Enable='off'; end
+            panel.BaseSettings.setEnabled(~running);
         end
 
         function openOutput(panel)

@@ -106,3 +106,20 @@ MATLAB R2025b实际运行64项相关测试，64 PASS、0 FAIL、0 INCOMPLETE：
 
 验证表：`outputs/parameter_sweep_validation/simplified_settings_tests.csv`；
 界面图：`outputs/parameter_sweep_validation/simplified_settings.png`。
+
+## 2026-10-16 单次仿真与研究扫描独立配置
+
+扫描面板不再接收或调用主界面的参数提供函数；删除基准来源选择和主界面同步
+按钮。扫描使用自己的默认配置，新增“独立基准 / 效应开关”子页：包含五项效应
+开关、各因素固定值及光路/PDE/记录效率/TDC等固定参数。未勾选因素使用这里的
+值，勾选因素由扫描数列覆盖。载入JSON、恢复扫描默认和运行扫描都只影响扫描页。
+
+MATLAB R2025b实际执行69项相关测试，69 PASS、0 FAIL、0 INCOMPLETE：独立性5项、
+简化设置5项、扫描20项、方法选择5项、原单次仿真31项、双TDC GUI 3项。
+独立性检查包括主界面改变光源模式/参数/时长/效应开关后扫描配置保持不变，
+扫描改值、载入、恢复默认及实际运行后主界面所有控件与已有结果保持不变；
+EFFECT_DISABLED只依据扫描自己的开关产生。扫描运行锁定自己的编辑控件，
+不禁用主界面控件。35项扫描专项测试均已纳入独立smoke入口。
+
+结果：`outputs/parameter_sweep_validation/independent_scan_tests.csv`；
+已导出并目视核查界面：`outputs/parameter_sweep_validation/independent_base_settings.png`。

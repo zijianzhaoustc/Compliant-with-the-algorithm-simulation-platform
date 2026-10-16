@@ -30,7 +30,7 @@ classdef TestSweepSimplifiedSettings < matlab.unittest.TestCase
             c.factors=scanFactor("algorithm.binWidth",[10 20]);
             c=validateScanConfig(jsondecode(jsonencode(c)));
             app=CoincidenceSimulatorApp(); cleanup=onCleanup(@()delete(app)); app.UIFigure.Visible='off';
-            panel=app.ParameterSweepPanel; panel.populate(c); panel.Controls.BaseSource.Value='配置文件';
+            panel=app.ParameterSweepPanel; panel.populate(c);
             t.verifyEqual(panel.Controls.MeasurementTime.Value,.075);
             t.verifyEqual(panel.Controls.WorkingMemoryMB.Value,1024.5);
             decoded=validateScanConfig(jsondecode(jsonencode(panel.readConfig())));

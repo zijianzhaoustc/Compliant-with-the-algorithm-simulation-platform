@@ -84,7 +84,7 @@ classdef CoincidenceSimulatorApp < handle
             app.StatusLabel=uilabel(right,'Text','就绪：可运行仿真或导入双通道 TXT', ...
                 'FontColor',[.18 .25 .34]); app.StatusLabel.Layout.Row=8;
             app.DualTdcPanel=DualTdcComparisonPanel(dualPage,@()app.readParameters());
-            app.ParameterSweepPanel=ParameterSweepPanel(scanPage,@()app.readParameters());
+            app.ParameterSweepPanel=ParameterSweepPanel(scanPage);
         end
 
         function buildSourceTab(app,p)
