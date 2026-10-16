@@ -7,8 +7,9 @@ selected=values(ismember(values,string(selected)));
 if isempty(selected), selected=values(1); end
 if ~ismember(string(inputMode),["fixed","list"]), inputMode="list"; end
 pos=parent.Position;
+dialogHeight=max(410,280+numel(values)*42);
 fig=uifigure('Name','选择扫描方法','WindowStyle','modal', ...
-    'Position',[pos(1)+max(0,(pos(3)-560)/2),pos(2)+max(0,(pos(4)-410)/2),560,410]);
+    'Position',[pos(1)+max(0,(pos(3)-560)/2),pos(2)+max(0,(pos(4)-dialogHeight)/2),560,dialogHeight]);
 g=uigridlayout(fig,[numel(values)+6,2]); g.ColumnWidth={130,'1x'};
 g.RowHeight=[{28,30,32,24},repmat({28},1,numel(values)),{36,'1x'}];
 g.Padding=[14 12 14 12];
