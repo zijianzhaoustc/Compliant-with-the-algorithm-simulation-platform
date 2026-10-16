@@ -12,6 +12,16 @@ for i=1:numel(keys)
     r=struct('seed_group_key',keys(i),'physical_config_id',selected.physical_config_id(1), ...
         'analysis_config_id',selected.analysis_config_id(1),'replicate_count',height(selected), ...
         'success_count',nnz(valid),'invalid_count',nnz(~valid));
+    axes=["Rpair_per_s","T_s","bin_width_ps","n_bins_each_side","K_requested", ...
+        "hist_half_range_ns","dark_A_cps","dark_B_cps","bg_A_cps","bg_B_cps", ...
+        "detectorJitter_A_ps","detectorJitter_B_ps","tdcJitter_A_ps","tdcJitter_B_ps", ...
+        "param_algorithm_window","param_algorithm_fixedPeakCenter","param_algorithm_segmentDuration"];
+    for name=axes
+        if ismember(name,string(selected.Properties.VariableNames)), r.(name)=selected.(name)(1); end
+    end
+    for name=["mode","estimator","peak_method"]
+        if ismember(name,string(selected.Properties.VariableNames)), r.(name)=selected.(name)(1); end
+    end
     for metric=metrics
         values=selected.(metric)(valid); values=values(isfinite(values));
         r.(metric+"_mean")=mean(values); r.(metric+"_std")=std(values);
