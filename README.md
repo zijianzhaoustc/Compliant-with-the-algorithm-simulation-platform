@@ -21,6 +21,7 @@ disp(out.metrics)
 运行自动验证：
 
 ```matlab
+addpath(pwd)
 results = runtests("tests");
 table(results)
 ```
@@ -56,7 +57,7 @@ table(results)
 - 扫描：符合窗口扫描，并绘制速率与 Precision/Recall/F1
 - 时间戳分窗：导入 Start/Stop 时可按固定秒数切分，每个子窗独立计算直方图、
   A/B 通道计数、原始符合计数、偶然符合计数和净符合计数
-- 界面：三个参数页使用自适应网格，无需滚动条即可完整显示；左下方显示局部时间戳和匹配连线，可设置时间起点及不超过 100 μs 的显示长度
+- 界面：四个参数页（含统计不确定度）使用自适应网格；左下方显示局部时间戳和匹配连线，可设置时间起点及不超过 100 μs 的显示长度
 
 ### 真值评价指标
 
@@ -161,3 +162,84 @@ out = importTimestampFiles("StartCh.txt", "StopCh.txt", 1e-12, p); % 1 ps/单位
 - `tests/TestSimulation.m`：基础物理与确定性回归测试
 
 默认参数下，符合峰应位于约 `+5 ns`，理论标准差约为 `213 ps`。
+
+## 自动统计不确定度分析
+
+每次新仿真、导入 TXT/BIN 或按当前算法重新计算，都会同时保存旁窗法和理论法
+的背景估计、解析标准不确定度、联合分块 Bootstrap 标准不确定度和百分位置信区间。
+原有偶然修正下拉框继续控制原有 `Nacc/Rnet` 等字段；两种新增估计始终单独输出。
+默认匹配为 all-pairs（`many-to-many`）；切换匹配规则后，统计沿用该规则和同一批
+匹配，不修改探测器、TDC 或光子生成模型。理论公式与 Poisson 假设仅作近似参考。
+
+GUI 新增“统计不确定度”页。默认自动分块 `M=max(30,ceil(T/1s))`，实际块长为
+`T/M`；1 s 数据分为 30 块，60 s 数据分为 60 块。手动模式使用
+`M=ceil(T/blockSize)` 个等时长块。默认重采样 2000 次、置信水平 0.95、独立种子
+20261019；局部随机流不会消耗或重置仿真的全局随机状态。旧参数文件自动补齐新字段。
+
+主界面的“统计不确定度分析”分组只显示 `Nraw`、`Nacc_side`、`Nacc_theory`、
+`Ncorr_side`、`Ncorr_theory` 五项：数值栏为“估计值 ± 解析 u”，说明栏给出
+Bootstrap u 和置信区间。RA/RB 保留在原计数性能分组，不在统计分组重复显示。
+各计数率的不确定度、相对不确定度、协方差、相关系数及统计配置完整保存在结果
+结构体中，并在结果 CSV 和数值型统计 CSV 中保留，供 Origin 绘图与后续统计使用。
+
+先对完整采集执行匹配，固定本次寻峰和主窗/旁窗边界，再按 A 路事件时间将匹配
+归入分块，因此跨分块边界的匹配不会丢失。每次有放回抽取 M 个完整分块向量，
+主窗、各旁窗、A/B 单计数和 TP/FP 使用相同索引。理论法每轮重新计算
+`NA*NB*W/T`，不相加各块的局部乘积；净计数保留负值。原有非负截断 `Rnet`
+保持原定义，新增 `Ncorr_*` 是统计使用的未截断值。
+
+核心数值字段：
+
+| 位置 | 字段与含义 |
+| --- | --- |
+| `out.metrics` | `Nacc_side/theory`、`Ncorr_side/theory`、`Delta_acc_methods` |
+| `out.metrics` | `Nacc_GT=FP`、`Ncorr_GT=TP`；`Nrec` 仍为双路可记录真实对数 |
+| `out.metrics` | `epsilon_acc_side/theory=(Nacc-FP)/FP`、`epsilon_corr_side/theory=(Ncorr-TP)/TP` |
+| `out.uncertainty.summary` | 每行一个指标，含 `Estimate`、`U_Poisson`、`U_Bootstrap`、`CI_Lower/Upper`、`Relative_U`、`GroundTruth`、`RelativeError`、`ValidityFlag` |
+| `out.uncertainty.blocks.table` | 每块起止时间、NA/NB、主窗、各有效旁窗、旁窗平均、净计数、TP/FP |
+| `out.uncertainty.bootstrap.replicates` | 每轮两种估计、净计数、NA/NB、TP/FP、方法差值、相对真值误差 |
+| `out.uncertainty.bootstrap` | `names` 对应 `point`、`standardUncertainty`、`CI`、`covariance`、`correlation` 的列序 |
+
+解析近似为 `u(Nraw)=sqrt(Nraw)`、`u(Nacc_side)=sqrt(sum(S))/L`，
+`u(Nacc_theory)=(W/T)*sqrt(NB^2*NA+NA^2*NB)`；净计数解析不确定度忽略协方差。
+Bootstrap 保留相关性，满足 `var(Ncorr)=var(Nraw)+var(Nacc)-2*cov(Nraw,Nacc)`。
+`RA/RB` 及各计数率的不确定度和区间由计数除以固定 T 得到；相对不确定度为
+`uBootstrap/abs(Estimate)`，零分母返回 NaN。
+
+统计汇总 CSV 还记录总采集时间、A/B 事件数、峰位置、名义/实际窗口宽、旁窗对数、
+有效旁窗数、保护距离、旁窗总计数、实际块长、分块数、重采样次数、置信水平和种子。
+“选择性导出”新增统计导出选项，生成 `*_uncertainty_summary.csv`、
+`*_bootstrap_blocks.csv`、`*_bootstrap_replicates.csv`，均为带 BOM 的 UTF-8。
+关闭 Bootstrap 时仍导出解析汇总；没有重采样数据时不生成样本文件。
+
+无有效旁窗、零背景、分块少于两个、零分母及未知真值使用 NaN/N/A，并保留诊断。
+主窗/背景少于 20 个计数或块数低于 `minBlocks` 时显示稀疏统计提示；这不是严格的
+充分样本判据。未观察到背景事件时不将经验分布退化的零方差当作已知零不确定度。
+TXT/BIN 没有 pairID，其真值和真值误差全部为 NaN。既有时间戳分窗和逐秒导出
+只计算解析参考值，不触发每个子窗重复执行 2000 次 Bootstrap。
+
+有效窗口宽度统一使用 `raw.window`。这修正了 n bin 窗口在谱边缘截短时，旧背景
+估计使用名义宽度的问题；此类历史结果的偶然计数会随实际宽度修正。
+固定峰 Bootstrap 不包含寻峰、光路校准、窗口选择或模型系统误差；连续块之间的
+慢漂移需通过改变块长检查，当前实现为不重叠等时长块抽样。
+
+```matlab
+p = defaultParams();
+out = runSimulation(p);                    % 默认自动统计
+disp(out.uncertainty.summary(:,1:11))
+p.uncertainty.blockMode = "manual";
+p.uncertainty.blockSize = 0.05;             % 1 s 数据约 20 块
+out = recalculateAnalysis(out,p);           % 复用时间戳
+```
+
+实测采集时长目前由末事件时间推导。已知准确曝光时间时，可对导入数据显式设置
+`p.measurementTime` 后调用 `analyzeTimestampData(A,B,p,source,"imported")`；该时间
+须覆盖两路相对时间戳范围，且仍以导入时的共同时间原点定义。
+
+新增统计测试在 `tests/TestUncertainty.m`，与原测试一起运行：
+
+```matlab
+addpath(pwd)
+results = runtests("tests");
+assertSuccess(results)
+```

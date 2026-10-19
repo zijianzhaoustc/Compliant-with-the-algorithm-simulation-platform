@@ -10,6 +10,7 @@ classdef CoincidenceSimulatorApp < handle
         SourceTab
         DetectorTab
         AlgorithmTab
+        UncertaintyTab
         HistogramAxes
         TimestampAxes
         SweepRateAxes
@@ -44,12 +45,13 @@ classdef CoincidenceSimulatorApp < handle
             main=uigridlayout(app.UIFigure,[1 3]);
             main.ColumnWidth={520,'1x',430}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
 
-            % 左栏：上方三个自适应参数页，下方局部时间戳及时间范围设置。
+            % 左栏：上方四个自适应参数页，下方局部时间戳及时间范围设置。
             left=uigridlayout(main,[2 1]); left.RowHeight={'3x','2x'}; left.RowSpacing=8;
             app.ParameterTabs=uitabgroup(left);
             app.buildSourceTab(p);
             app.buildDetectorTab(p);
             app.buildAlgorithmTab(p);
+            app.buildUncertaintyTab(p);
             app.buildTimestampPanel(left);
 
             % 中栏：原局部时间戳区域重新分配给符合直方图和 Parameter Sweep。
@@ -161,6 +163,29 @@ classdef CoincidenceSimulatorApp < handle
             app.Controls.ImportLSB=app.addNum(g,20,'TXT的 LSB (ps)',p.tdc.resolution*1e12);
         end
 
+        function buildUncertaintyTab(app,p)
+            app.UncertaintyTab=uitab(app.ParameterTabs,'Title','统计不确定度','Scrollable','off');
+            g=uigridlayout(app.UncertaintyTab,[11 2]);
+            g.ColumnWidth={'1x',155}; g.RowHeight={28,28,28,28,28,28,28,40,40,40,'1x'};
+            g.Padding=[8 8 8 8]; g.RowSpacing=5;
+            app.Controls.BootstrapEnabled=app.addDrop(g,1,'分块 Bootstrap', ...
+                {'自动计算','关闭（保留解析参考值）'},{true,false},p.uncertainty.enabled);
+            app.Controls.BlockMode=app.addDrop(g,2,'分块模式',{'自动分块','手动目标块长'}, ...
+                {'auto','manual'},p.uncertainty.blockMode);
+            app.Controls.BlockSize=app.addNum(g,3,'手动目标块长 (s)',p.uncertainty.blockSize);
+            app.Controls.BootstrapB=app.addNum(g,4,'重采样次数 B',p.uncertainty.resamples);
+            app.Controls.Confidence=app.addNum(g,5,'置信水平 (0~1)',p.uncertainty.confidenceLevel);
+            app.Controls.BootstrapSeed=app.addNum(g,6,'Bootstrap 独立随机种子',p.uncertainty.seed);
+            app.Controls.MinBlocks=app.addNum(g,7,'最小建议分块数',p.uncertainty.minBlocks);
+            notes={'每次仿真、导入和重新计算同时给出旁窗法与理论法。', ...
+                '自动分块：M=max(30,ceil(T/1s))；整段峰与窗口固定。', ...
+                '解析值为 Poisson 近似；Bootstrap 仅描述统计波动。'};
+            for k=1:3
+                note=uilabel(g,'Text',notes{k},'WordWrap','on','FontColor',[.35 .4 .48]);
+                note.Layout.Row=7+k; note.Layout.Column=[1 2];
+            end
+        end
+
         function buildTimestampPanel(app,parent)
             panel=uipanel(parent,'Title','局部时间戳与匹配');
             g=uigridlayout(panel,[2 1]); g.RowHeight={'1x',62}; g.Padding=[5 5 5 5];
@@ -226,6 +251,13 @@ classdef CoincidenceSimulatorApp < handle
             p.algorithm.timeShiftCount=round(c.ShiftCount.Value);
             p.algorithm.timestampWindowMode=logical(c.TimestampWindowMode.Value);
             p.algorithm.timestampWindowSize=c.TimestampWindowSize.Value;
+            p.uncertainty.enabled=logical(c.BootstrapEnabled.Value);
+            p.uncertainty.blockMode=string(c.BlockMode.Value);
+            p.uncertainty.blockSize=c.BlockSize.Value;
+            p.uncertainty.resamples=c.BootstrapB.Value;
+            p.uncertainty.confidenceLevel=c.Confidence.Value;
+            p.uncertainty.seed=c.BootstrapSeed.Value;
+            p.uncertainty.minBlocks=c.MinBlocks.Value;
         end
 
         function populateControls(app,p)
@@ -262,6 +294,13 @@ classdef CoincidenceSimulatorApp < handle
             c.ShiftCount.Value=p.algorithm.timeShiftCount;
             c.TimestampWindowMode.Value=p.algorithm.timestampWindowMode;
             c.TimestampWindowSize.Value=p.algorithm.timestampWindowSize;
+            c.BootstrapEnabled.Value=p.uncertainty.enabled;
+            c.BlockMode.Value=char(p.uncertainty.blockMode);
+            c.BlockSize.Value=p.uncertainty.blockSize;
+            c.BootstrapB.Value=p.uncertainty.resamples;
+            c.Confidence.Value=p.uncertainty.confidenceLevel;
+            c.BootstrapSeed.Value=p.uncertainty.seed;
+            c.MinBlocks.Value=p.uncertainty.minBlocks;
         end
 
         function runNewSimulation(app)
@@ -481,12 +520,15 @@ classdef CoincidenceSimulatorApp < handle
             summary=buildMetricSummaryTable(app.LastResult);
             app.ResultTable.Data=table2cell(summary);
 
-            % 四个分组标题使用不同的强调色，普通指标行保持默认样式。
+            % 分组标题使用不同的强调色，普通指标行保持默认样式。
             % 先清除旧样式，避免重新仿真或导入数据后重复叠加。
             removeStyle(app.ResultTable);
-            sectionNames=["【计数性能】","【时间性能】","【算法性能】","【系统效率与性能】"];
-            fontColors={[.05 .32 .68],[.82 .36 .04],[.05 .48 .25],[.48 .20 .66]};%改变颜色
-            backgroundColors={[.88 .93 1.00],[1.00 .94 .86],[.88 .97 .91],[.95 .89 .99]};%改变背景颜色
+            sectionNames=["【计数性能】","【时间性能】","【算法性能】","【系统效率与性能】", ...
+                "【偶然符合估计与真值验证】","【统计不确定度分析】"];
+            fontColors={[.05 .32 .68],[.82 .36 .04],[.05 .48 .25],[.48 .20 .66], ...
+                [.55 .30 .08],[.10 .35 .45]};
+            backgroundColors={[.88 .93 1.00],[1.00 .94 .86],[.88 .97 .91],[.95 .89 .99], ...
+                [1 .95 .86],[.88 .96 .97]};
             parameters=string(summary.('参数'));
             for k=1:numel(sectionNames)
                 row=find(parameters==sectionNames(k),1);

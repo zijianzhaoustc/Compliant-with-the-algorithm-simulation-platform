@@ -1,7 +1,7 @@
 function files = exportSelectedResults(out, folder, baseName, options)
 %EXPORTSELECTEDRESULTS 按用户选择导出设置、直方图、结果表、扫描和时间戳。
 %   OPTIONS 包含 settings、histogram、results、sweep、timeWindows、countRates、
-%   timestamps、unitSeconds 字段。缺少新增字段时默认不导出，以兼容旧调用。
+%   timestamps、uncertainty、unitSeconds 字段。缺少新增字段时默认不导出，以兼容旧调用。
 %   时间戳文件采用与实测样例相同的“每行一个数值、无表头”格式。
 
 if ~isfolder(folder), mkdir(folder); end
@@ -19,8 +19,8 @@ if options.histogram
     writeUtf8BomTable(histogramTable,file); files(end+1,1)=file;
 end
 if options.results
-    % 结果 CSV 与 GUI 右侧的四类指标顺序、名称和说明完全一致。
-    resultsTable=buildMetricSummaryTable(out);
+    % GUI 精简显示五项计数；结果 CSV 仍保留完整统计指标和中间配置。
+    resultsTable=buildMetricSummaryTable(out,true);
     file=fullfile(folder,baseName+"_results.csv");
     writeUtf8BomTable(resultsTable,file); files(end+1,1)=file;
 end
@@ -76,5 +76,20 @@ if options.timestamps
     writematrix(startValues,startFile,'Delimiter','tab');
     writematrix(stopValues,stopFile,'Delimiter','tab');
     files=[files;string(startFile);string(stopFile)];
+end
+if isfield(options,'uncertainty') && options.uncertainty
+    if ~isfield(out,'uncertainty')
+        error('CoincidenceSim:MissingUncertainty','请重新计算以生成统计不确定度结果。');
+    end
+    file=fullfile(folder,baseName+"_uncertainty_summary.csv");
+    writeUtf8BomTable(out.uncertainty.summary,file); files(end+1,1)=file;
+    if ~isempty(out.uncertainty.blocks)
+        file=fullfile(folder,baseName+"_bootstrap_blocks.csv");
+        writeUtf8BomTable(out.uncertainty.blocks.table,file); files(end+1,1)=file;
+    end
+    if ~isempty(out.uncertainty.bootstrap)
+        file=fullfile(folder,baseName+"_bootstrap_replicates.csv");
+        writeUtf8BomTable(out.uncertainty.bootstrap.replicates,file); files(end+1,1)=file;
+    end
 end
 end

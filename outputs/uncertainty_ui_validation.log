@@ -1,0 +1,34 @@
+           Metric               Method         Estimate      U_Poisson    U_Bootstrap     CI_Lower      CI_Upper     Relative_U    GroundTruth    RelativeError     ValidityFlag  
+    _____________________    _____________    ___________    _________    ___________    __________    __________    __________    ___________    _____________    _______________
+
+    "Nraw"                   "main"                 19312      138.97          130.8          19051         19562    0.0067731        19312                NaN     "ok"           
+    "Nacc_side"              "side-window"         62.667      3.2318         3.4591         56.496        69.833     0.055199           54            0.16049     "ok"           
+    "Nacc_theory"            "theory"              62.425     0.23244        0.26085         61.927        62.941    0.0041787           54            0.15601     "ok"           
+    "Ncorr_side"             "side-window"          19249      139.01         130.29          18990         19497    0.0067687        19258        -0.00045003     "ok"           
+    "Ncorr_theory"           "theory"               19250      138.97         130.66          18989         19499    0.0067877        19258        -0.00043746     "ok"           
+    "NA"                     "channel-A"       1.4388e+05      379.32         391.39     1.4311e+05    1.4466e+05    0.0027202          NaN                NaN     "ok"           
+    "NB"                     "channel-B"       1.4462e+05      380.29         334.04     1.4396e+05    1.4527e+05    0.0023098          NaN                NaN     "ok"           
+    "Rraw"                   "main"                 19312      138.97          130.8          19051         19562    0.0067731        19312                NaN     "ok"           
+    "Racc_side"              "side-window"         62.667      3.2318         3.4591         56.496        69.833     0.055199           54            0.16049     "ok"           
+    "Racc_theory"            "theory"              62.425     0.23244        0.26085         61.927        62.941    0.0041787           54            0.15601     "ok"           
+    "Rcorr_side"             "side-window"          19249      139.01         130.29          18990         19497    0.0067687        19258        -0.00045003     "ok"           
+    "Rcorr_theory"           "theory"               19250      138.97         130.66          18989         19499    0.0067877        19258        -0.00043746     "ok"           
+    "RA"                     "channel-A"       1.4388e+05      379.32         391.39     1.4311e+05    1.4466e+05    0.0027202          NaN                NaN     "ok"           
+    "RB"                     "channel-B"       1.4462e+05      380.29         334.04     1.4396e+05    1.4527e+05    0.0023098          NaN                NaN     "ok"           
+    "Delta_acc_methods"      "comparison"         0.24202         NaN         3.4045        -5.9399         7.256          NaN          NaN                NaN     "ok"           
+    "epsilon_acc_side"       "comparison"         0.16049         NaN        0.19802       -0.11905       0.62727          NaN          NaN                NaN     "ok"           
+    "epsilon_acc_theory"     "comparison"         0.15601         NaN        0.16516      -0.078326       0.56563          NaN          NaN                NaN     "ok"           
+    "epsilon_corr_side"      "comparison"     -0.00045003         NaN     0.00045747      -0.001337    0.00041681          NaN          NaN                NaN     "ok"           
+    "epsilon_corr_theory"    "comparison"     -0.00043746         NaN     0.00036967     -0.0011775    0.00027471          NaN          NaN                NaN     "ok"           
+    "Cov_raw_acc_side"       "bootstrap"           72.424         NaN            NaN            NaN           NaN          NaN          NaN                NaN     "estimate-only"
+    "Cov_raw_acc_theory"     "bootstrap"           18.692         NaN            NaN            NaN           NaN          NaN          NaN                NaN     "estimate-only"
+    "Corr_raw_acc_side"      "bootstrap"          0.16007         NaN            NaN            NaN           NaN          NaN          NaN                NaN     "estimate-only"
+    "Corr_raw_acc_theory"    "bootstrap"          0.54783         NaN            NaN            NaN           NaN          NaN          NaN                NaN     "estimate-only"
+    "Cov_acc_methods"        "bootstrap"          0.22149         NaN            NaN            NaN           NaN          NaN          NaN                NaN     "estimate-only"
+    "Corr_acc_methods"       "bootstrap"          0.24547         NaN            NaN            NaN           NaN          NaN          NaN                NaN     "estimate-only"
+
+    "D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\uncertainty_example\example_uncertainty_summary.csv"
+    "D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\uncertainty_example\example_bootstrap_blocks.csv"
+    "D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\uncertainty_example\example_bootstrap_replicates.csv"
+
+UI callbacks, export dialog, CSV example and syntax checks passed.

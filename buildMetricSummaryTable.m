@@ -1,7 +1,9 @@
-function summary = buildMetricSummaryTable(out)
-%BUILDMETRICSUMMARYTABLE 按界面约定的四类指标生成结果表。
-%   该函数同时供 GUI 和 CSV 导出使用，保证界面显示、公式说明和
-%   导出文件的参数顺序一致。时间量在表中分别以 ns 和 ps 显示。
+function summary = buildMetricSummaryTable(out, includeIntermediate)
+%BUILDMETRICSUMMARYTABLE 主界面仅显示五项符合计数的统计不确定度。
+%   导出时传入 includeIntermediate=true，保留完整统计指标和配置。
+%   数值型中间量始终保存在 out.uncertainty 中，不受显示筛选影响。
+
+if nargin<2, includeIntermediate=false; end
 
 m=out.metrics;
 rows={
@@ -44,6 +46,60 @@ rows={
     '符合估计双路联合探测效率',fmt(m.EtaJointEstimate),'Rnet/Rpair（仅仿真）'};
 
 summary=cell2table(rows,'VariableNames',{'参数','数值','作用'});
+if isfield(out,'uncertainty')
+    m=out.metrics;
+    comparison={
+        '【偶然符合估计与真值验证】','','';
+        '实际偶然符合 Nacc_GT',fmt(m.Nacc_GT),'FP：当前主窗误配数；仅仿真';
+        '实际相关符合 Ncorr_GT',fmt(m.Ncorr_GT),'TP：当前主窗同源对；不是 Nrec';
+        '旁窗法偶然计数 Nacc_side',fmt(m.Nacc_side),'全部有效等宽旁窗计数的平均值';
+        '理论法偶然计数 Nacc_theory',fmt(m.Nacc_theory),'NA·NB·W_effective/T';
+        '旁窗法净计数 Ncorr_side',fmt(m.Ncorr_side),'Nraw-Nacc_side；不截断负值';
+        '理论法净计数 Ncorr_theory',fmt(m.Ncorr_theory),'Nraw-Nacc_theory；不截断负值';
+        '旁窗法偶然相对误差',fmt(m.epsilon_acc_side),'(Nacc_side-FP)/FP';
+        '理论法偶然相对误差',fmt(m.epsilon_acc_theory),'(Nacc_theory-FP)/FP';
+        '旁窗法净符合恢复相对误差',fmt(m.epsilon_corr_side),'(Ncorr_side-TP)/TP';
+        '理论法净符合恢复相对误差',fmt(m.epsilon_corr_theory),'(Ncorr_theory-TP)/TP';
+        '两种偶然估计差值',fmt(m.Delta_acc_methods),'Nacc_side-Nacc_theory';
+        '【统计不确定度分析】','',''};
+    summary=[summary;cell2table(comparison,'VariableNames',summary.Properties.VariableNames)];
+    t=out.uncertainty.summary;
+    displayed=["Nraw","Nacc_side","Nacc_theory","Ncorr_side","Ncorr_theory"];
+    labels=["原始符合计数 Nraw","旁窗偶然符合 Nacc_side", ...
+        "理论偶然符合 Nacc_theory","旁窗净符合 Ncorr_side","理论净符合 Ncorr_theory"];
+    if includeIntermediate, selected=t.Metric(:)'; else, selected=displayed; end
+    for metric=selected
+        k=find(t.Metric==metric,1);
+        if isempty(k), continue; end
+        label=char(metric);
+        labelIndex=find(displayed==metric,1);
+        if ~isempty(labelIndex), label=char(labels(labelIndex)); end
+        value=sprintf('%s ± %s',fmt(t.Estimate(k)),fmt(t.U_Poisson(k)));
+        info=sprintf('估计值 ± 解析 u；Bootstrap u=%s；%.3g%% CI=[%s, %s]', ...
+            fmt(t.U_Bootstrap(k)),100*t.ConfidenceLevel(k), ...
+            fmt(t.CI_Lower(k)),fmt(t.CI_Upper(k)));
+        if includeIntermediate
+            info=sprintf('%s；uRel=%s；状态=%s',info,fmt(t.Relative_U(k)),t.ValidityFlag(k));
+            if startsWith(metric,["Cov_","Corr_"])
+                value=fmt(t.Estimate(k)); info='联合分块抽样统计量';
+            end
+        end
+        summary=[summary;cell2table({label,value,info},'VariableNames',summary.Properties.VariableNames)]; %#ok<AGROW>
+    end
+    if includeIntermediate
+        config={
+            '采集时长 T (s)',fmt(t.T_s(1)),'速率与理论估计使用固定采集时间';
+            '有效符合窗宽 W (ns)',fmt(t.W_effective_s(1)*1e9),'背景估计与主窗实际宽度一致';
+            '有效旁窗数量 L',fmt(t.ValidSideWindows(1)),'完整落在时间谱内的等宽旁窗';
+            '旁窗总计数',fmt(t.Nside_total(1)),'解析不确定度直接输入';
+            '实际分块时长 (s)',fmt(t.BlockSize_s(1)),'等时长分块；匹配对以 A 路时间归属';
+            'Bootstrap 分块数',fmt(t.BlockCount(1)),'独立同分布近似；需检查分块尺度稳定性';
+            'Bootstrap 次数 / 种子',sprintf('%d / %d',t.BootstrapB(1),t.BootstrapSeed(1)),'固定峰与窗口，联合有放回抽样';
+            '解析计算假设','近似参考值',char(out.uncertainty.analytical.assumption);
+            '统计诊断',char(strjoin(out.uncertainty.messages,'；')),'不可用值显示 N/A，不等于零不确定度'};
+        summary=[summary;cell2table(config,'VariableNames',summary.Properties.VariableNames)];
+    end
+end
 end
 
 function s=fmt(x)

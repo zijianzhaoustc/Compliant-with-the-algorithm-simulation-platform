@@ -48,7 +48,7 @@ for k=1:nWindows
     windowed.start(k)=windowStart;
     windowed.stop(k)=windowStop;
     windowed.results{k}=analyzeTimestampData(segmentA,segmentB,segmentParams, ...
-        segmentSource,dataMode);
+        segmentSource,dataMode,false);
 end
 windowed.count=nWindows;
 end

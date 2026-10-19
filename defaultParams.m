@@ -3,7 +3,7 @@ function p = defaultParams()
 %   P = DEFAULTPARAMS() 创建一个嵌套结构体 P。除 GUI 显示单位外，计算
 %   内核统一使用 SI 单位：时间为 s，频率/计数率为 Hz，功率为 W，长度为 m。
 %
-%   参数按 source、optics、detector、tdc 和 algorithm 五组组织。调用者可先
+%   参数按 source、optics、detector、tdc、algorithm 和 uncertainty 组织。调用者可先
 %   获取默认值，再仅覆盖实验中需要改变的字段。
 
 % 光源：默认直接指定有效 SPDC 光子对产生率。
@@ -76,4 +76,13 @@ p.algorithm.timeShiftCount = 5;
 % 导入实测 Start/Stop 时可按固定时长分窗；默认关闭，默认窗长 5 s。
 p.algorithm.timestampWindowMode = false;
 p.algorithm.timestampWindowSize = 5;
+
+% 整段分析默认同时计算旁窗/理论估计、解析近似与联合分块 Bootstrap。
+p.uncertainty.enabled = true;
+p.uncertainty.blockMode = "auto";
+p.uncertainty.blockSize = 1; % 手动目标块长；实际块长=T/ceil(T/blockSize)
+p.uncertainty.resamples = 2000;
+p.uncertainty.confidenceLevel = 0.95;
+p.uncertainty.seed = 20261019;
+p.uncertainty.minBlocks = 20;
 end

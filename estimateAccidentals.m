@@ -8,7 +8,16 @@ function acc = estimateAccidentals(A, B, matches, histResult, p)
 %     time-shift - 时间戳平移法：对多个循环平移的符合计数取平均。
 %   W 始终指完整符合窗宽度，返回 rate 的单位为 counts/s。
 
-W=resolveCoincidenceWindow(histResult,p); T=p.measurementTime;
+raw=calculateRawCoincidence(matches,histResult,p);
+W=raw.window; T=p.measurementTime;
+% 两种参考估计始终同时计算，并与 Bootstrap 共用实际主窗宽和旁窗边界。
+sideEdges=accidentalSideWindows(histResult,p,W);
+sideCounts=zeros(size(sideEdges,1),1);
+for j=1:numel(sideCounts)
+    sideCounts(j)=nnz(matches.deltaT>=sideEdges(j,1) & matches.deltaT<sideEdges(j,2));
+end
+if isempty(sideCounts), sideCount=NaN; else, sideCount=mean(sideCounts); end
+theoryCount=numel(A.time)*numel(B.time)*W/T;
 sampleOffsets=zeros(0,1); sampleCounts=zeros(0,1);
 switch p.algorithm.accidentalMethod
     case "none"
@@ -18,7 +27,7 @@ switch p.algorithm.accidentalMethod
 
     case "theory"
         % 适用于两个近似独立 Poisson 单计数流及较窄符合窗。
-        rate=(numel(A.time)/T)*(numel(B.time)/T)*W;
+        rate=theoryCount/T;
         details="R_A R_B W";
 
     case "sideband"
@@ -34,25 +43,9 @@ switch p.algorithm.accidentalMethod
         details="sideband density";
 
     case "side-window"
-        lo=p.algorithm.histRange(1); hi=p.algorithm.histRange(2);
-        guard=max(p.algorithm.sidebandGuard,W/2); K=p.algorithm.sideWindowPairs;
-        windowCounts=zeros(0,1); windowCenters=zeros(0,1);
-        % 左右各放 K 个与主符合窗等宽的背景窗，只统计完整落在搜索范围内的窗。
-        for k=1:K
-            leftEdges=histResult.peak-guard-[k*W,(k-1)*W];
-            rightEdges=histResult.peak+guard+[(k-1)*W,k*W];
-            if leftEdges(1)>=lo && leftEdges(2)<=hi
-                windowCounts(end+1,1)=nnz(matches.deltaT>=leftEdges(1) & matches.deltaT<leftEdges(2)); %#ok<AGROW>
-                windowCenters(end+1,1)=mean(leftEdges); %#ok<AGROW>
-            end
-            if rightEdges(1)>=lo && rightEdges(2)<=hi
-                windowCounts(end+1,1)=nnz(matches.deltaT>=rightEdges(1) & matches.deltaT<rightEdges(2)); %#ok<AGROW>
-                windowCenters(end+1,1)=mean(rightEdges); %#ok<AGROW>
-            end
-        end
-        if isempty(windowCounts), rate=NaN; else, rate=mean(windowCounts)/T; end
-        sampleOffsets=windowCenters-histResult.peak; sampleCounts=windowCounts;
-        details=sprintf("side-window mean over %d valid windows",numel(windowCounts));
+        rate=sideCount/T;
+        sampleOffsets=mean(sideEdges,2)-histResult.peak; sampleCounts=sideCounts;
+        details=sprintf("side-window mean over %d valid windows",numel(sideCounts));
 
     case "time-shift"
         % 使用 start+(k-1)*step 循环平移 B 路，对每次窗内符合计数取平均。
@@ -84,4 +77,9 @@ acc.details=details;
 % 记录旁窗中心或平移量以及各次计数，便于检查估计稳定性。
 acc.sampleOffsets=sampleOffsets;
 acc.sampleCounts=sampleCounts;
+acc.sideWindowEdges=sideEdges;
+acc.sideWindowCounts=sideCounts;
+acc.sideCount=sideCount;
+acc.theoryCount=theoryCount;
+acc.effectiveWindow=W;
 end

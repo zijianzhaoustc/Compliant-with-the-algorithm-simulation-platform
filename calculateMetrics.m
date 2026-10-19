@@ -47,6 +47,26 @@ m.EtaW=truthRatio(tp,eligible);
 m.EpsilonAcc=truthRatio(m.Nacc-fp,fp);
 m.EpsilonNet=truthRatio(m.Nnet-tp,tp);
 m.Geff=truthRatio(fp,m.RA*m.RB*raw.window*T);
+% 两种背景估计同时保留；统计净计数不进行非负截断。
+m.Nacc_GT=fp; m.Ncorr_GT=tp;
+if isfield(acc,'sideCount')
+    m.Nacc_side=acc.sideCount; m.Nacc_theory=acc.theoryCount;
+else
+    % 兼容直接调用计算指标的旧代码与早期保存的 acc 结构。
+    edges=accidentalSideWindows(histResult,p,raw.window);
+    counts=zeros(size(edges,1),1);
+    for j=1:numel(counts)
+        counts(j)=nnz(matches.deltaT>=edges(j,1) & matches.deltaT<edges(j,2));
+    end
+    if isempty(counts), m.Nacc_side=NaN; else, m.Nacc_side=mean(counts); end
+    m.Nacc_theory=numel(A.time)*numel(B.time)*raw.window/T;
+end
+m.Ncorr_side=m.Nraw-m.Nacc_side; m.Ncorr_theory=m.Nraw-m.Nacc_theory;
+m.epsilon_acc_side=truthRatio(m.Nacc_side-fp,fp);
+m.epsilon_acc_theory=truthRatio(m.Nacc_theory-fp,fp);
+m.epsilon_corr_side=truthRatio(m.Ncorr_side-tp,tp);
+m.epsilon_corr_theory=truthRatio(m.Ncorr_theory-tp,tp);
+m.Delta_acc_methods=m.Nacc_side-m.Nacc_theory;
 % PeakSigma 来自实际符合时间谱的寻峰/拟合；TrueSigma 则只对
 % pairID 相同的匹配时间差计算 N-1 归一化的样本标准差。
 m.PeakPosition=histResult.peak;

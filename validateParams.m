@@ -4,7 +4,11 @@ function p = validateParams(p)
 %   进行检查。发现不合法输入时立即报错，避免错误单位或概率进入仿真内核。
 
 % 采集时间必须为正；seed 必须为整数以确保 rng 可重复。
+p=mergeParamsWithDefaults(defaultParams(),p);
 mustBePositive(p.measurementTime);
+if ~isscalar(p.measurementTime) || ~isfinite(p.measurementTime)
+    error('CoincidenceSim:InvalidDuration','采集时长必须为有限正标量。');
+end
 mustBeInteger(p.seed);
 if p.source.mode == "pump"
     % 单个泵浦光子能量为 h*c/lambda；spdcProbability 定义为每泵浦光子
@@ -72,6 +76,27 @@ if ~isscalar(p.algorithm.timestampWindowMode) || ...
 end
 p.algorithm.timestampWindowMode=logical(p.algorithm.timestampWindowMode);
 mustBePositive(p.algorithm.timestampWindowSize);
+u=p.uncertainty;
+if ~isscalar(u.enabled) || ~(islogical(u.enabled) || isnumeric(u.enabled)) || ...
+        ~isfinite(u.enabled) || ~ismember(u.enabled,[0 1])
+    error('CoincidenceSim:InvalidUncertainty','Bootstrap 开关必须为逻辑标量。');
+end
+if ~isscalar(string(u.blockMode)) || ~any(string(u.blockMode)==["auto","manual"])
+    error('CoincidenceSim:InvalidUncertainty','分块模式必须为 auto 或 manual。');
+end
+finiteScalar(u.blockSize,eps,Inf,'blockSize');
+finiteScalar(u.resamples,2,Inf,'resamples'); mustBeInteger(u.resamples);
+finiteScalar(u.confidenceLevel,eps,1-eps,'confidenceLevel');
+finiteScalar(u.seed,0,2^32-1,'seed'); mustBeInteger(u.seed);
+finiteScalar(u.minBlocks,2,Inf,'minBlocks'); mustBeInteger(u.minBlocks);
+p.uncertainty.enabled=logical(u.enabled);
+p.uncertainty.blockMode=string(u.blockMode);
+end
+
+function finiteScalar(x,lo,hi,name)
+if ~isnumeric(x) || ~isscalar(x) || ~isfinite(x) || x<lo || x>hi
+    error('CoincidenceSim:InvalidUncertainty','无效的不确定度参数 %s。',name);
+end
 end
 
 function unitInterval(x, name)
