@@ -25,9 +25,8 @@ else
     tp=NaN; fp=NaN; fn=NaN;
     precision=NaN; recall=NaN; f1=NaN; rTrue=NaN;
 end
-% 旧 GUI 继续显示截零后的净符合率；论文统计另存不截零的有符号量。
-rNetSigned=raw.rate-acc.rate;
-rNet=max(0,rNetSigned);
+% 净符合率不允许因统计涨落造成负值。
+rNet=max(0,raw.rate-acc.rate);
 m.RA=numel(A.time)/T; m.RB=numel(B.time)/T;
 m.Rraw=raw.rate; m.Racc=acc.rate; m.Rnet=rNet; m.Rtrue=rTrue;
 % 计数与计数率同时保留：Nraw 是当前窗口内实际选中的整数事件数，
@@ -35,9 +34,6 @@ m.Rraw=raw.rate; m.Racc=acc.rate; m.Rnet=rNet; m.Rtrue=rTrue;
 m.Nraw=raw.count;
 m.Nacc=acc.countEquivalent;
 m.Nnet=rNet*T;
-m.RnetSigned=rNetSigned;
-m.NnetSigned=rNetSigned*T;
-m.WActual=raw.window;
 m.Nrec=eligible;
 m.AccidentalMethod=string(acc.method);
 m.AccidentalFraction=safeDivide(m.Racc,m.Rraw);
@@ -50,9 +46,7 @@ m.Precision=precision; m.Recall=recall; m.F1=f1;
 m.EtaW=truthRatio(tp,eligible);
 m.EpsilonAcc=truthRatio(m.Nacc-fp,fp);
 m.EpsilonNet=truthRatio(m.Nnet-tp,tp);
-m.EpsilonNetSigned=truthRatio(m.NnetSigned-tp,tp);
 m.Geff=truthRatio(fp,m.RA*m.RB*raw.window*T);
-m.MuProxy=m.RB*raw.window;
 % PeakSigma 来自实际符合时间谱的寻峰/拟合；TrueSigma 则只对
 % pairID 相同的匹配时间差计算 N-1 归一化的样本标准差。
 m.PeakPosition=histResult.peak;

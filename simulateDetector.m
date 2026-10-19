@@ -1,4 +1,4 @@
-function [events, stats] = simulateDetector(photons, p, channel)
+function events = simulateDetector(photons, p, channel)
 %SIMULATEDETECTOR 模拟单通道探测器及记录电子学。
 %   EVENTS = SIMULATEDETECTOR(PHOTONS,P,CHANNEL) 依次施加 PDE/记录效率、
 %   探测器 Gaussian 抖动、暗计数/背景和采集区间裁剪，再按时间顺序处理
@@ -29,7 +29,6 @@ end
 % 先裁剪抖动造成的越界原始候选；后脉冲生成时另外检查采集终点。
 inside = time >= 0 & time <= p.measurementTime;
 time = time(inside); pairID = pairID(inside); type = type(inside);
-stats.inputCount=numel(time);
 events = struct("time",time,"pairID",pairID,"type",type);
 if p.detector.enableAfterpulse && cfg.afterpulseProbability > 0
     deadTime=0;
@@ -42,9 +41,6 @@ elseif p.detector.enableDeadTime && cfg.deadTime > 0
     time = time(keep); pairID = pairID(keep); type = type(keep);
     events = struct("time",time,"pairID",pairID,"type",type);
 end
-stats.acceptedCount=numel(events.time);
-stats.inputRate=stats.inputCount/p.measurementTime;
-stats.acceptedRate=stats.acceptedCount/p.measurementTime;
 end
 
 function t = localPoissonTimes(rate, duration)

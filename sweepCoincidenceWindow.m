@@ -8,8 +8,7 @@ widths=widths(:); n=numel(widths);
 % 预分配所有曲线字段，输出顺序与 widths 一一对应。
 names=["Nraw","Nacc","Rraw","Racc","Rnet","AccidentalFraction","TP","FP","FN", ...
     "Precision","Recall","F1","WindowCaptureRate","Bias","CAR","SNR", ...
-    "EtaW","EpsilonAcc","EpsilonNet","EpsilonNetSigned","NnetSigned", ...
-    "RnetSigned","WActual","MuProxy","Geff"];
+    "EtaW","EpsilonAcc","EpsilonNet","Geff"];
 for name=names, sweep.(name)=nan(n,1); end
 sweep.window=widths;
 % 修正算法在一次窗口扫描中保持不变，作为扫描级元数据保存并随 CSV 输出。

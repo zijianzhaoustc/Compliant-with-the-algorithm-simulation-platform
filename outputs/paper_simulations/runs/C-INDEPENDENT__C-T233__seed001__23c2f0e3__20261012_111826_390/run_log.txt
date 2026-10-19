@@ -1,8 +1,0 @@
-mode=smoke
-revision=8542088
-status=OK
-elapsed_s=0.328379
-N_generated=0
-events_A=99272
-events_B=99873
-match_pairs=9942
