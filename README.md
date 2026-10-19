@@ -57,7 +57,7 @@ table(results)
 - 扫描：符合窗口扫描，并绘制速率与 Precision/Recall/F1
 - 时间戳分窗：导入 Start/Stop 时可按固定秒数切分，每个子窗独立计算直方图、
   A/B 通道计数、原始符合计数、偶然符合计数和净符合计数
-- 界面：四个参数页（含统计不确定度）使用自适应网格；左下方显示局部时间戳和匹配连线，可设置时间起点及不超过 100 μs 的显示长度
+- 界面：五个参数页（含统计不确定度、自适应符合）使用自适应网格；左下方显示局部时间戳和匹配连线，可设置时间起点及不超过 100 μs 的显示长度
 
 ### 真值评价指标
 
@@ -143,7 +143,10 @@ p = defaultParams();
 out = importTimestampFiles("StartCh.txt", "StopCh.txt", 1e-12, p); % 1 ps/单位
 ```
 
-“按当前算法重新计算”复用已经生成或导入的时间戳，只更新匹配、寻峰、窗口、偶然修正和指标，不重新进行 Monte Carlo 抽样。
+“按当前设置重新计算”复用已经生成或导入的时间戳，按“算法设置”“统计不确定度”
+“自适应符合”三页的当前配置，更新匹配、寻峰、窗口、偶然修正、指标、Bootstrap
+及自适应推荐/应用结果，不重新进行 Monte Carlo 抽样。重新导入、重算或切换到窗口
+扫描时完整重置扫描图及隐藏参考线，避免旧的推荐线、目标线和图例残留。
 
 ## 主要文件
 
@@ -165,7 +168,7 @@ out = importTimestampFiles("StartCh.txt", "StopCh.txt", 1e-12, p); % 1 ps/单位
 
 ## 自动统计不确定度分析
 
-每次新仿真、导入 TXT/BIN 或按当前算法重新计算，都会同时保存旁窗法和理论法
+每次新仿真、导入 TXT/BIN 或按当前设置重新计算，都会同时保存旁窗法和理论法
 的背景估计、解析标准不确定度、联合分块 Bootstrap 标准不确定度和百分位置信区间。
 原有偶然修正下拉框继续控制原有 `Nacc/Rnet` 等字段；两种新增估计始终单独输出。
 默认匹配为 all-pairs（`many-to-many`）；切换匹配规则后，统计沿用该规则和同一批
@@ -243,3 +246,99 @@ addpath(pwd)
 results = runtests("tests");
 assertSuccess(results)
 ```
+
+## 自适应符合参数优化
+
+“自适应符合”页提供手动、仅推荐、自动应用三种模式。默认 `recommend`（仅推荐），
+对整段仿真、导入、重新计算生成推荐结果，原有正式测量参数和计数结果保持不变。
+选择 `apply` 后，只有通过检查的推荐才更新实际 bin 宽、固定窗口和保护距离；
+同时更新独立峰参数与直方图模型曲线。失败时保留当前参数，并输出诊断。
+已有 TXT/BIN 导入共用此入口。内部逐秒与分窗分析不重复运行优化。
+
+优化复用一次 all-pairs 匹配，不重新生成光子、不重新施加探测器/TDC 效应，也不
+根据 TP、FP 或 pairID 选择参数。其他匹配规则仍可用于原有分析，但不自动推荐。
+仿真真值只在推荐确定后写入候选表，实测数据的这些字段为 NaN。
+
+算法分为三个部分：
+
+1. 先用与显示 bin 无关的固定 pilot 网格定位主峰，再对局部未分箱时间差拟合
+   Gaussian 峰加均匀背景。使用模型与经验 CDF 的偏差、峰显著性、分辨率、
+   搜索边界和竞争峰诊断；不满足条件时拒绝自动推荐。
+2. 对默认候选 `{20,25,50,75,100,150,200} ps` 计算 Shimazaki-Shinomoto 代价
+   `(2*mean(counts)-var(counts,1))/h^2`。候选量化到 TDC 分辨率整数倍；使用
+   四个 bin 起点相位的平均代价，并检查峰位置、峰宽随相位的变化。保存所有候选
+   和每个相位的结果，选择通过稳定性检查的最低代价 bin。
+3. 由 `F(W)=erf(W/(2*sqrt(2)*sigma))` 构造窗口候选，默认目标为 0.99。
+   同时要求主窗完整位于搜索范围内、全部 `2K` 个旁窗有效、足够的背景计数和
+   左右背景平坦性。保护距离至少为现有设置、窗口半宽和 `4 sigma` 中的最大值。
+   默认选择最窄的有效窗口。这里的捕获率是模型估计，不保证实际真值 ηW 达到 99%。
+
+左右背景差异使用计数密度差的 Poisson 近似 z 指标，默认阈值 3；默认旁窗总计数
+至少 20。它是诊断近似，并不是在共享事件、后脉冲条件下已校准的显著性检验。
+背景不平坦、多峰、明显偏离 Gaussian、峰分辨不足或无有效窗口时拒绝推荐。
+当前不自动改用非 Gaussian 峰模型或线性背景模型。阈值可在界面或参数结构中调整，
+所有设置都会保存；关闭约束会改变推荐的适用条件。
+
+对最多 5 个候选，默认各做 300 次联合分块 Bootstrap。相同分块、随机种子、抽样
+次数确保候选使用相同索引。默认最窄窗口策略选择靠前的有效候选作敏感性比较；
+`bootstrap-score` 策略先以解析近似筛选最多 5 个候选，再比较
+`J(W)=uBootstrap(Ncorr_side)^2/F(W)^2`，这是有限候选排序，不是全局最优证明。
+未做 Bootstrap 的候选，其相应字段为 NaN。最终应用后的正式统计仍使用原统计页
+设置（默认 2000 次）。关闭 Bootstrap 时，评分策略没有可用评分便不自动推荐。
+
+固定峰位置和窗口后，计数直接在原始时间差上积分，改变绘图 bin 不改变这些固定
+边界内的计数。`calculateRawCoincidence(...,[lower,upper])` 也支持显式连续窗口。
+原有 `n bin` 模式仍按离散 bin 计数，定义保持不变。
+
+推荐保存在 `out.optimization`，包括：
+
+| 字段 | 内容 |
+| --- | --- |
+| `valid/applied/status` | 推荐是否有效、是否真正用于正式测量、诊断状态 |
+| `binWidth/window/peak/sigma/sideGuard/captureEstimate` | 推荐值，时间内部使用秒 |
+| `peakModel` | 独立峰拟合、背景密度、局部范围和模型偏差 |
+| `binScan` | 所有 bin 候选、四相位结果、代价和稳定性 |
+| `windowScan` | 双方法计数、捕获率、旁窗、背景诊断、解析/Bootstrap u、区间、评分及事后真值误差 |
+| `candidateBootstrap` | 候选分块、重采样输出、协方差及抽样配置 |
+| `settings/uncertaintyScope` | 全部优化配置，以及固定参数不确定度的口径 |
+
+窗口扫描 CSV 同样增加双方法计数、模型捕获率、背景诊断、候选不确定度和评分字段。
+原有扫描列保留。界面新增推荐及诊断分组，候选曲线使用原扫描图区域；
+主界面统计不确定度分组仍只显示原先要求的五个符合计数指标。
+
+选择性导出中的“自适应优化推荐、候选与验证 CSV”按已有数据输出：
+
+- `*_optimization_summary.csv`：推荐、实际应用状态和全部阈值配置。
+- `*_optimization_bins.csv`、`*_optimization_windows.csv`：完整候选数据。
+- `*_optimization_candidate_bootstrap.csv`、`*_optimization_candidate_blocks.csv`：
+  已执行 Bootstrap 的候选样本和逐块数值；未抽样候选不会伪造样本。
+- `*_optimization_validation.csv`：启用独立验证后生成的四方法对照。
+
+固定参数 Bootstrap 不包含“在同一批数据上自动选参”的随机性，不应称为全流程
+置信区间。高级模式提供 `held-out` 训练/评价：交替时间块中一组用于选参，另一组
+固定训练参数，比较 A 固定参数、B 分箱 Gaussian 峰宽法、C 自动 bin 加独立峰宽法、
+D 完整约束法。匹配先在完整采集上完成，再按 A 时间分配，不拼接后重新匹配；
+每组只压缩曝光时间坐标，保留原块长与跨边界匹配。时间块独立性仍是近似假设。
+验证结果、训练推荐和分块序号保存在 `out.optimization.validation`。
+
+```matlab
+p=defaultParams();
+out=runSimulation(p);                         % 默认仅推荐
+disp(buildOptimizationSummaryTable(out.optimization))
+p.optimization.mode="apply";
+p.optimization.targetCapture=.99;
+out=recalculateAnalysis(out,p);               % 同一批时间戳，应用有效推荐
+p.optimization.validationMode="held-out";
+out=recalculateAnalysis(out,p);               % 另外执行训练/评价对照
+
+% 以多个不同种子比较四种方法（先用较小采集量验证运行成本）
+report=runOptimizationValidationSweep(p,1:20);
+writeUtf8BomTable(report.samples,'adaptive_trials.csv');
+writeUtf8BomTable(report.summary,'adaptive_validation_summary.csv');
+```
+
+多种子汇总提供经验标准差、平均 Bootstrap u、相对每轮 TP/FP 的平均偏差与 RMSE，
+同时给出实际 ηW。不同窗口的 TP 对应不同计数目标，不能据此直接宣称恢复了更多
+全峰光子对；单轮随机 TP/FP 也不是固定总体目标，所以不报告虚构的区间覆盖率。
+完整命令行示例见 `examples/adaptiveCoincidenceAnalysis.m`，新增测试见
+`tests/TestOptimization.m`。

@@ -5,6 +5,9 @@ function sweep = sweepCoincidenceWindow(out, widths)
 %   差异来自算法参数，而不是不同 Monte Carlo 样本的统计涨落。
 
 widths=widths(:); n=numel(widths);
+if isempty(widths) || any(~isfinite(widths) | widths<=0)
+    error('CoincidenceSim:InvalidSweep','扫描窗口必须是有限正数。');
+end
 % 预分配所有曲线字段，输出顺序与 widths 一一对应。
 names=["Nraw","Nacc","Rraw","Racc","Rnet","AccidentalFraction","TP","FP","FN", ...
     "Precision","Recall","F1","WindowCaptureRate","Bias","CAR","SNR", ...
@@ -22,4 +25,22 @@ for k=1:n
     m=calculateMetrics(out.A,out.B,out.matches,raw,acc,out.hist,p,out.dataMode);
     for name=names, sweep.(name)(k)=m.(name); end
 end
+% 固定主分析的峰位置，对双方法估计和少量候选执行共同分块 Bootstrap。
+p=out.params;
+model=estimateCoincidencePeak(out.matches,p);
+model.peak=out.hist.peak;
+% 扫描保留当前保护距离，不自动应用推荐配置。
+p.optimization.peakTailSigma=0;
+extended=optimizeCoincidenceWindow(out.A,out.B,out.matches,p,model,widths);
+extra=extended.table;
+% 候选表按宽度排序/去重；原扫描仍保留调用者给出的行序和重复点。
+[~,order]=ismember(widths,extra.Window_s);
+for name=["Nacc_side","Nacc_theory","Ncorr_side","Ncorr_theory", ...
+        "CaptureEstimate","ValidSideWindows","BackgroundZ","BackgroundDiagnostic", ...
+        "AnalyticalU_side","AnalyticalU_theory","BootstrapU_side","BootstrapU_theory", ...
+        "CI_side_lower","CI_side_upper","CI_theory_lower","CI_theory_upper", ...
+        "OptimizationScore","ValidCandidate","BootstrapB"]
+    sweep.(name)=extra.(name)(order,:);
+end
+sweep.candidateBootstrap=extended.candidateBootstrap;
 end

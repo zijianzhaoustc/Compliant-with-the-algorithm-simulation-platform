@@ -5,7 +5,9 @@ p=out.params; T=p.measurementTime; u=p.uncertainty;
 if u.blockMode=="auto"
     M=max(30,ceil(T));
 else
-    M=max(1,ceil(T/u.blockSize));
+    ratio=T/u.blockSize;
+    if abs(ratio-round(ratio))<=64*eps(max(1,abs(ratio))), ratio=round(ratio); end
+    M=max(1,ceil(ratio));
 end
 if M>1e6
     error('CoincidenceSim:TooManyBootstrapBlocks','分块数超过 100 万，请增大分块时长。');

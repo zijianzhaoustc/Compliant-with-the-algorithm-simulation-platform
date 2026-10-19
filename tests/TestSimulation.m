@@ -389,7 +389,8 @@ classdef TestSimulation < matlab.unittest.TestCase
             out=runSimulation(p); widths=[.1;.2;.5]*1e-9;
             sweep=sweepCoincidenceWindow(out,widths);
             sweepTable=buildSweepSummaryTable(sweep);
-            testCase.verifySize(sweepTable,[3 22]);
+            testCase.verifyEqual(height(sweepTable),3);
+            testCase.verifyGreaterThanOrEqual(width(sweepTable),22);
             testCase.verifyEqual(sweepTable.('窗口大小_ns'),[.1;.2;.5],'AbsTol',1e-12);
             expected=["偶然符合修正算法","Nraw_count","Nacc_count", ...
                 "Rraw_cps","Racc_cps","Rnet_cps","Precision","Recall", ...

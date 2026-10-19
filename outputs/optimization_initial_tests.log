@@ -1,0 +1,99 @@
+ok
+                valid: 1
+                 peak: 4.9980e-09
+                sigma: 2.1135e-10
+          signalTotal: 1.9329e+04
+    backgroundDensity: 4.1654e+09
+       modelDeviation: 0.0093
+               status: "ok"
+                  roi: [3.7769e-09 6.2227e-09]
+         signalCounts: 1.9329e+04
+
+    BinWidth_s       Cost        PeakPhaseSpread_s    SigmaPhaseSpread_s    Stable    ValidCandidate    Selected
+    __________    ___________    _________________    __________________    ______    ______________    ________
+
+       2e-11      -1.2289e+25        8.523e-13            8.8012e-13        true          true           true   
+       3e-11      -1.2263e+25       4.7776e-12            1.2207e-12        true          true           false  
+       5e-11      -1.2243e+25       5.5986e-12            4.2325e-13        true          true           false  
+       8e-11      -1.2245e+25       7.0205e-13            2.0767e-12        true          true           false  
+       1e-10      -1.2162e+25       1.5751e-12            2.9913e-12        true          true           false  
+     1.5e-10         -1.2e+25       4.2891e-12            3.2451e-12        true          true           false  
+       2e-10      -1.1829e+25       5.1274e-12            4.9195e-12        true          true           false  
+
+    Window_s    CaptureEstimate    ValidSideWindows    Nside_total    BackgroundZ    ValidCandidate    Selected
+    ________    _______________    ________________    ___________    ___________    ______________    ________
+
+       1e-10        0.18702               6                 2                 0          false          false  
+       2e-10         0.3639               6                 4                 0          false          false  
+       3e-10        0.52213               6                 5           0.44721          false          false  
+       5e-10        0.76315               6                 7            1.1339          false          false  
+     7.5e-10        0.92399               6                12                 0          false          false  
+       1e-09        0.98201               6                15            0.7746          false          false  
+    1.09e-09        0.99008               6                15            0.7746          false          false  
+     1.2e-09        0.99547               6                17           0.72761          false          false  
+    1.31e-09        0.99806               6                18           0.94281          false          false  
+    1.42e-09        0.99922               6                18           0.94281          false          false  
+     1.5e-09        0.99961               6                20           0.44721          true           true   
+    1.53e-09        0.99971               6                20           0.44721          true           false  
+    1.64e-09         0.9999               6                25               0.6          true           false  
+    1.75e-09        0.99997               6                26           0.78446          true           false  
+    1.86e-09        0.99999               6                27           0.57735          true           false  
+    1.96e-09              1               6                28           0.75593          true           false  
+       2e-09              1               6                29           0.55709          true           false  
+       3e-09              1               6                40           0.31623          true           false  
+       4e-09              1               6                56           0.53452          true           false  
+       5e-09              1               5                53           0.22291          false          false  
+       6e-09              1               5                65           0.98773          false          false  
+       8e-09              1               3                50           0.39223          false          false  
+
+正在运行 TestSimulation
+.......... .......... .....
+================================================================================
+TestSimulation/windowSweepExportLayout 中验证失败。
+    --------
+    框架诊断:
+    --------
+    verifySize 失败。
+    --> 值大小不正确。
+        
+        实际大小:
+             3    41
+        预期大小:
+             3    22
+    
+    实际值:
+      3×41 table
+    
+        窗口大小_ns    偶然符合修正算法    Nraw_count    Nacc_count     Rraw_cps     Racc_cps       Rnet_cps         facc       TP     FP    FN    Precision    Recall    F1    几何窗口捕获率            Bias                   CAR                 SNR           eta_W    epsilon_acc         epsilon_net         g_eff    Nacc_side    Nacc_theory    Ncorr_side    Ncorr_theory     CaptureEstimate    ValidSideWindows    BackgroundZ                BackgroundDiagnostic                AnalyticalU_side    AnalyticalU_theory    BootstrapU_side    BootstrapU_theory    CI_side_lower    CI_side_upper    CI_theory_lower    CI_theory_upper    OptimizationScore    ValidCandidate    BootstrapB
+        __________    _____________    __________    ___________    ________    __________    _____________    _________    ___    __    __    _________    ______    __    ____________    _____________________    ________________    ________________    _____    ___________    _____________________    _____    _________    ___________    __________    _____________    _______________    ________________    ___________    ____________________________________________    ________________    __________________    _______________    _________________    _____________    _____________    _______________    _______________    _________________    ______________    __________
+    
+           0.1           "理论法"          513        0.000263169      5130      0.00263169    5129.99736831     5.13e-07    513    0     0         1          1       1          1          -5.13000000052864e-07    1949316.73879142    22.6494858770247      1          NaN        -5.13000000097186e-07      0          0        0.000263169       513        512.999736831           1                  6                NaN        "invalid-peak-model;insufficient-background"          NaN            22.6495033058182           NaN                 NaN                NaN              NaN               NaN                NaN                 NaN               false            NaN    
+           0.2           "理论法"          513        0.000526338      5130      0.00526338    5129.99473662    1.026e-06    513    0     0         1          1       1          1          -1.02599999992844e-06    974657.869395711    22.6494684482475      1          NaN        -1.02599999997276e-06      0          0        0.000526338       513        512.999473662           1                  6                NaN        "invalid-peak-model;insufficient-background"          NaN            22.6495033058361           NaN                 NaN                NaN              NaN               NaN                NaN                 NaN               false            NaN    
+           0.5           "理论法"          513        0.001315845      5130      0.01315845    5129.98684155    2.565e-06    513    0     0         1          1       1          1          -2.56500000008703e-06    389862.547758285    22.6494161619787      1          NaN        -2.56500000004271e-06      0          0        0.001315845       513        512.998684155           1                  6                NaN        "invalid-peak-model;insufficient-background"          NaN            22.6495033059613           NaN                 NaN                NaN              NaN               NaN                NaN                 NaN               false            NaN    
+    --------
+    堆栈信息:
+    --------
+    位置: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\tests\TestSimulation.m (TestSimulation.windowSweepExportLayout)，位置: 392
+================================================================================
+..... .
+已完成 TestSimulation
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+失败摘要:
+
+     Name                                    Failed  Incomplete  原因
+    =======================================================================
+     TestSimulation/windowSweepExportLayout    X                 验证失败。
+Passed: 40 / 41; Failed: 1
+{错误使用 assert
+测试会话中有至少一个测试失败。
+
+出错 matlab.unittest.internal.BaseTestResult/assertSuccess (第 126 行)
+             assert(~any([resultArray.Failed]),message('MATLAB:unittest:TestResult:UnsuccessfulRun'));
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 

@@ -85,4 +85,24 @@ p.uncertainty.resamples = 2000;
 p.uncertainty.confidenceLevel = 0.95;
 p.uncertainty.seed = 20261019;
 p.uncertainty.minBlocks = 20;
+
+% 自适应参数选择默认只推荐，不覆盖原有计算设置或使用事件真值选参。
+p.optimization.mode = "recommend"; % manual / recommend / apply
+p.optimization.binCandidates = [20 25 50 75 100 150 200]*1e-12;
+p.optimization.windowCandidates = [.1 .2 .3 .5 .75 1 1.5 2 3 4 5 6 8]*1e-9;
+p.optimization.targetCapture = .99;
+p.optimization.selection = "narrowest"; % 或 bootstrap-score（有限候选排序）
+p.optimization.requireFullSideWindows = true;
+p.optimization.checkBackground = true;
+p.optimization.checkBinStability = true;
+p.optimization.minPeakCounts = 30;
+p.optimization.minBackgroundCounts = 20;
+p.optimization.backgroundZ = 3;
+p.optimization.peakTailSigma = 4;
+p.optimization.peakStabilitySigma = .25;
+p.optimization.widthStabilityFraction = .25;
+p.optimization.maxModelDeviation = .08;
+p.optimization.bootstrapCandidates = 5;
+p.optimization.candidateResamples = 300;
+p.optimization.validationMode = "none"; % held-out：交替时间块训练/独立评价
 end

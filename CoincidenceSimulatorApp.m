@@ -11,6 +11,8 @@ classdef CoincidenceSimulatorApp < handle
         DetectorTab
         AlgorithmTab
         UncertaintyTab
+        OptimizationTab
+        OptimizationStatusLabel
         HistogramAxes
         TimestampAxes
         SweepRateAxes
@@ -18,6 +20,7 @@ classdef CoincidenceSimulatorApp < handle
         ResultTable
         StatusLabel
         LastResult
+        SettingsTemplate struct = struct()
     end
 
     methods
@@ -33,6 +36,7 @@ classdef CoincidenceSimulatorApp < handle
     methods (Access=private)
         function buildUI(app)
             p=defaultParams();
+            app.SettingsTemplate=p;
             screen=get(groot,'ScreenSize');
             % 主界面始终保持 16:9；在小屏幕上按相同比例缩小，并为
             % Windows 任务栏、标题栏和屏幕边缘预留空间。
@@ -45,13 +49,14 @@ classdef CoincidenceSimulatorApp < handle
             main=uigridlayout(app.UIFigure,[1 3]);
             main.ColumnWidth={520,'1x',430}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
 
-            % 左栏：上方四个自适应参数页，下方局部时间戳及时间范围设置。
+            % 左栏：五个参数页，下方局部时间戳及时间范围设置。
             left=uigridlayout(main,[2 1]); left.RowHeight={'3x','2x'}; left.RowSpacing=8;
             app.ParameterTabs=uitabgroup(left);
             app.buildSourceTab(p);
             app.buildDetectorTab(p);
             app.buildAlgorithmTab(p);
             app.buildUncertaintyTab(p);
+            app.buildOptimizationTab(p);
             app.buildTimestampPanel(left);
 
             % 中栏：原局部时间戳区域重新分配给符合直方图和 Parameter Sweep。
@@ -70,7 +75,10 @@ classdef CoincidenceSimulatorApp < handle
             app.ResultTable=uitable(right,'ColumnName',{'指标','数值','说明'}, ...
                 'ColumnWidth',{205,90,'auto'},'RowName',[]);
             app.addActionButton(right,2,'运行新仿真',[0.12 0.45 0.82],@(~,~)app.runNewSimulation());
-            app.addActionButton(right,3,'按当前算法重新计算',[0.18 0.58 0.42],@(~,~)app.recalculate());
+            app.Controls.RecalculateButton=app.addActionButton(right,3,'按当前设置重新计算', ...
+                [0.18 0.58 0.42],@(~,~)app.recalculate());
+            app.Controls.RecalculateButton.Tooltip= ...
+                '复用当前时间戳，按“算法设置”“统计不确定度”“自适应符合”三页的当前配置重新计算。';
             app.addActionButton(right,4,'导入 Start/Stop TXT/BIN',[0.36 0.50 0.70],@(~,~)app.importTimestamps());
             app.addActionButton(right,5,'导入设置参数 MAT',[0.42 0.50 0.58],@(~,~)app.importSettings());
             app.addActionButton(right,6,'扫描符合窗口',[0.58 0.42 0.68],@(~,~)app.runSweep());
@@ -186,6 +194,40 @@ classdef CoincidenceSimulatorApp < handle
             end
         end
 
+        function buildOptimizationTab(app,p)
+            app.OptimizationTab=uitab(app.ParameterTabs,'Title','自适应符合','Scrollable','off');
+            g=uigridlayout(app.OptimizationTab,[16 2]);
+            g.ColumnWidth={'1x',205}; g.RowHeight=[repmat({23},1,13),{36,48,'1x'}];
+            g.Padding=[7 6 7 6]; g.RowSpacing=3;
+            o=p.optimization;
+            app.Controls.OptimizationMode=app.addDrop(g,1,'参数选择模式', ...
+                {'手动参数，不优化','仅推荐，不应用','自动推荐并应用'}, ...
+                {'manual','recommend','apply'},o.mode);
+            app.addDrop(g,2,'自动 bin 方法',{'Shimazaki-Shinomoto'},{'shimazaki-shinomoto'},'shimazaki-shinomoto');
+            app.Controls.TargetCapture=app.addNum(g,3,'目标相关峰捕获率 (%)',o.targetCapture*100);
+            app.Controls.Selection=app.addDrop(g,4,'窗口选择策略', ...
+                {'最窄有效窗口','Bootstrap 评分（候选子集）'}, ...
+                {'narrowest','bootstrap-score'},o.selection);
+            app.Controls.MinBackground=app.addNum(g,5,'最少旁窗背景总计数',o.minBackgroundCounts);
+            app.Controls.BackgroundZ=app.addNum(g,6,'左右背景差异阈值 (z)',o.backgroundZ);
+            app.Controls.PeakTail=app.addNum(g,7,'峰尾保护距离 (σ)',o.peakTailSigma);
+            app.Controls.CandidateB=app.addNum(g,8,'候选 Bootstrap 次数',o.candidateResamples);
+            app.Controls.CandidateCount=app.addNum(g,9,'最多 Bootstrap 候选数',o.bootstrapCandidates);
+            app.Controls.ValidationMode=app.addDrop(g,10,'高级独立验证', ...
+                {'关闭','交替时间块训练/评价'}, {'none','held-out'},o.validationMode);
+            app.Controls.FullSides=uicheckbox(g,'Text','要求全部 2K 个旁窗完整有效','Value',o.requireFullSideWindows);
+            app.Controls.FullSides.Layout.Row=11; app.Controls.FullSides.Layout.Column=[1 2];
+            app.Controls.BackgroundCheck=uicheckbox(g,'Text','检查左右背景平坦性和计数充分性','Value',o.checkBackground);
+            app.Controls.BackgroundCheck.Layout.Row=12; app.Controls.BackgroundCheck.Layout.Column=[1 2];
+            app.Controls.BinStability=uicheckbox(g,'Text','检查峰位置及 bin 边界稳定性','Value',o.checkBinStability);
+            app.Controls.BinStability.Layout.Row=13; app.Controls.BinStability.Layout.Column=[1 2];
+            note=uilabel(g,'Text','默认只推荐；选参复用时间戳，不使用 TP/FP 真值。', ...
+                'WordWrap','on','FontColor',[.35 .4 .48]); note.Layout.Row=14; note.Layout.Column=[1 2];
+            app.OptimizationStatusLabel=uilabel(g,'Text','运行仿真、导入或重新计算后显示推荐及诊断。', ...
+                'WordWrap','on','FontColor',[.1 .35 .45]);
+            app.OptimizationStatusLabel.Layout.Row=15; app.OptimizationStatusLabel.Layout.Column=[1 2];
+        end
+
         function buildTimestampPanel(app,parent)
             panel=uipanel(parent,'Title','局部时间戳与匹配');
             g=uigridlayout(panel,[2 1]); g.RowHeight={'1x',62}; g.Padding=[5 5 5 5];
@@ -214,7 +256,7 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function p=readParameters(app)
-            c=app.Controls; p=defaultParams();
+            c=app.Controls; p=mergeParamsWithDefaults(defaultParams(),app.SettingsTemplate);
             p.source.mode=string(c.SourceMode.Value); p.source.pairRate=c.PairRate.Value;
             p.source.pumpPower=c.PumpPower.Value*1e-3; p.source.pumpWavelength=c.Wavelength.Value*1e-9;
             p.source.laserToCrystalTransmission=c.EtaLaser.Value; p.source.spdcProbability=c.EtaSPDC.Value;
@@ -258,10 +300,23 @@ classdef CoincidenceSimulatorApp < handle
             p.uncertainty.confidenceLevel=c.Confidence.Value;
             p.uncertainty.seed=c.BootstrapSeed.Value;
             p.uncertainty.minBlocks=c.MinBlocks.Value;
+            p.optimization.mode=string(c.OptimizationMode.Value);
+            p.optimization.targetCapture=c.TargetCapture.Value/100;
+            p.optimization.selection=string(c.Selection.Value);
+            p.optimization.minBackgroundCounts=c.MinBackground.Value;
+            p.optimization.backgroundZ=c.BackgroundZ.Value;
+            p.optimization.peakTailSigma=c.PeakTail.Value;
+            p.optimization.candidateResamples=c.CandidateB.Value;
+            p.optimization.bootstrapCandidates=c.CandidateCount.Value;
+            p.optimization.validationMode=string(c.ValidationMode.Value);
+            p.optimization.requireFullSideWindows=c.FullSides.Value;
+            p.optimization.checkBackground=c.BackgroundCheck.Value;
+            p.optimization.checkBinStability=c.BinStability.Value;
         end
 
         function populateControls(app,p)
             % 从导入的 params 结构体恢复界面；只接受当前版本已知字段。
+            app.SettingsTemplate=p;
             c=app.Controls;
             c.SourceMode.Value=char(p.source.mode); c.PairRate.Value=p.source.pairRate;
             c.PumpPower.Value=p.source.pumpPower*1e3; c.Wavelength.Value=p.source.pumpWavelength*1e9;
@@ -301,6 +356,18 @@ classdef CoincidenceSimulatorApp < handle
             c.Confidence.Value=p.uncertainty.confidenceLevel;
             c.BootstrapSeed.Value=p.uncertainty.seed;
             c.MinBlocks.Value=p.uncertainty.minBlocks;
+            c.OptimizationMode.Value=char(p.optimization.mode);
+            c.TargetCapture.Value=p.optimization.targetCapture*100;
+            c.Selection.Value=char(p.optimization.selection);
+            c.MinBackground.Value=p.optimization.minBackgroundCounts;
+            c.BackgroundZ.Value=p.optimization.backgroundZ;
+            c.PeakTail.Value=p.optimization.peakTailSigma;
+            c.CandidateB.Value=p.optimization.candidateResamples;
+            c.CandidateCount.Value=p.optimization.bootstrapCandidates;
+            c.ValidationMode.Value=char(p.optimization.validationMode);
+            c.FullSides.Value=p.optimization.requireFullSideWindows;
+            c.BackgroundCheck.Value=p.optimization.checkBackground;
+            c.BinStability.Value=p.optimization.checkBinStability;
         end
 
         function runNewSimulation(app)
@@ -321,10 +388,10 @@ classdef CoincidenceSimulatorApp < handle
 
         function recalculate(app)
             if isempty(app.LastResult), app.runNewSimulation(); return; end
-            app.setBusy('复用当前时间戳，正在按新算法参数重新计算…');
+            app.setBusy('复用当前时间戳，正在按算法、统计不确定度及自适应符合设置重新计算…');
             try
                 app.LastResult=recalculateAnalysis(app.LastResult,app.readParameters());
-                app.refreshAll(); app.StatusLabel.Text='重新计算完成（未重新生成时间戳）';
+                app.refreshAll(); app.StatusLabel.Text='重算完成：算法、统计及自适应设置均已更新';
             catch ME
                 app.showError(ME,'重新计算失败');
             end
@@ -395,9 +462,10 @@ classdef CoincidenceSimulatorApp < handle
                 s=sweepCoincidenceWindow(app.LastResult,widths);
                 % 保存本次扫描数据，供选择性导出直接生成纵向窗口表。
                 app.LastResult.sweep=s;
-                cla(app.SweepRateAxes); plot(app.SweepRateAxes,widths*1e9,[s.Rraw s.Racc s.Rnet],'LineWidth',1.25);
+                app.resetSweepAxes();
+                plot(app.SweepRateAxes,widths*1e9,[s.Rraw s.Racc s.Rnet],'LineWidth',1.25);
                 legend(app.SweepRateAxes,{'原始符合','偶然符合','净符合'},'Location','best');
-                cla(app.SweepMetricAxes); plot(app.SweepMetricAxes,widths*1e9,[s.Precision s.Recall s.F1],'LineWidth',1.25);
+                plot(app.SweepMetricAxes,widths*1e9,[s.Precision s.Recall s.F1],'LineWidth',1.25);
                 legend(app.SweepMetricAxes,{'查准率','查全率','F1'},'Location','best'); ylim(app.SweepMetricAxes,[0 1.05]);
                 methodName=accidentalMethodDisplayName(s.accidentalMethod);
                 app.StatusLabel.Text=sprintf('符合窗口扫描完成：%d 个点；偶然修正：%s', ...
@@ -408,7 +476,65 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function refreshAll(app)
+            if isfield(app.LastResult,'optimization') && ~isempty(app.LastResult.optimization) && app.LastResult.optimization.applied
+                p=app.LastResult.params;
+                app.Controls.Bin.Value=p.algorithm.binWidth*1e12;
+                app.Controls.WindowMode.Value='fixed'; app.Controls.Window.Value=p.algorithm.window*1e9;
+                app.Controls.SideGuard.Value=p.algorithm.sidebandGuard*1e9;
+            end
             app.updateHistogram(); app.updateTimestampPlot(); app.updateResultTable();
+            app.updateOptimizationPlot();
+        end
+
+        function resetSweepAxes(app)
+            % 普通 cla 不删除 HandleVisibility=off 的参考线；reset 同时清除
+            % 隐藏图元、上次缩放和 hold 状态，避免导入/重算/扫描间互相残留。
+            axesList={app.SweepRateAxes,app.SweepMetricAxes};
+            for k=1:numel(axesList)
+                ax=axesList{k};
+                legend(ax,'off'); cla(ax,'reset');
+                xlabel(ax,'窗口全宽 (ns)'); grid(ax,'on');
+            end
+            title(app.SweepRateAxes,'符合速率'); ylabel(app.SweepRateAxes,'cps');
+            title(app.SweepMetricAxes,'算法指标'); ylim(app.SweepMetricAxes,[0 1.05]);
+        end
+
+        function updateOptimizationPlot(app)
+            app.resetSweepAxes();
+            o=app.LastResult;
+            if ~isfield(o,'optimization') || isempty(o.optimization)
+                app.OptimizationStatusLabel.Text='手动参数模式：未执行自动优化。'; return
+            end
+            opt=o.optimization;
+            if opt.valid
+                if opt.applied, action='已应用'; else, action='仅推荐'; end
+                app.OptimizationStatusLabel.Text=sprintf('%s：bin %.3g ps，窗口 %.4g ns，估计捕获率 %.3f%%。', ...
+                    action,opt.binWidth*1e12,opt.window*1e9,opt.captureEstimate*100);
+            else
+                app.OptimizationStatusLabel.Text=char(strjoin(opt.diagnostics,'；'));
+            end
+            t=opt.windowScan; if isempty(t), return; end
+            x=t.Window_s*1e9; T=o.params.measurementTime;
+            plot(app.SweepRateAxes,x,[t.Ncorr_side,t.Nacc_side,t.Nacc_theory]/T,'LineWidth',1.25);
+            sampled=isfinite(t.BootstrapU_side);
+            if any(sampled)
+                hold(app.SweepRateAxes,'on');
+                errorbar(app.SweepRateAxes,x(sampled),t.Ncorr_side(sampled)/T, ...
+                    t.BootstrapU_side(sampled)/T,'LineStyle','none', ...
+                    'Color',[0 .45 .74],'HandleVisibility','off');
+                hold(app.SweepRateAxes,'off');
+            end
+            title(app.SweepRateAxes,'自适应候选速率');
+            legend(app.SweepRateAxes,{'旁窗净符合','旁窗偶然','理论偶然'},'Location','best');
+            plot(app.SweepMetricAxes,x,t.CaptureEstimate,'LineWidth',1.25); hold(app.SweepMetricAxes,'on');
+            scatter(app.SweepMetricAxes,x(t.ValidCandidate),t.CaptureEstimate(t.ValidCandidate),18,'filled');
+            if opt.valid
+                xline(app.SweepRateAxes,opt.window*1e9,'--k','推荐','HandleVisibility','off');
+                xline(app.SweepMetricAxes,opt.window*1e9,'--k','推荐','HandleVisibility','off');
+            end
+            yline(app.SweepMetricAxes,o.params.optimization.targetCapture,':','目标','HandleVisibility','off');
+            hold(app.SweepMetricAxes,'off'); ylim(app.SweepMetricAxes,[0 1.05]);
+            title(app.SweepMetricAxes,'捕获率与有效候选');
         end
 
         function updateHistogram(app)
@@ -524,11 +650,11 @@ classdef CoincidenceSimulatorApp < handle
             % 先清除旧样式，避免重新仿真或导入数据后重复叠加。
             removeStyle(app.ResultTable);
             sectionNames=["【计数性能】","【时间性能】","【算法性能】","【系统效率与性能】", ...
-                "【偶然符合估计与真值验证】","【统计不确定度分析】"];
+                "【偶然符合估计与真值验证】","【统计不确定度分析】","【自适应符合参数】"];
             fontColors={[.05 .32 .68],[.82 .36 .04],[.05 .48 .25],[.48 .20 .66], ...
-                [.55 .30 .08],[.10 .35 .45]};
+                [.55 .30 .08],[.10 .35 .45],[.30 .30 .55]};
             backgroundColors={[.88 .93 1.00],[1.00 .94 .86],[.88 .97 .91],[.95 .89 .99], ...
-                [1 .95 .86],[.88 .96 .97]};
+                [1 .95 .86],[.88 .96 .97],[.93 .93 1]};
             parameters=string(summary.('参数'));
             for k=1:numel(sectionNames)
                 row=find(parameters==sectionNames(k),1);
@@ -590,7 +716,7 @@ classdef CoincidenceSimulatorApp < handle
             f=uicheckbox(g,'Text',label,'Value',value); f.Layout.Row=row; f.Layout.Column=[col col+1];
         end
 
-        function addActionButton(~,g,row,textValue,color,callback)
+        function b=addActionButton(~,g,row,textValue,color,callback)
             b=uibutton(g,'Text',textValue,'ButtonPushedFcn',callback,'FontWeight','bold', ...
                 'BackgroundColor',color,'FontColor','white'); b.Layout.Row=row;
         end

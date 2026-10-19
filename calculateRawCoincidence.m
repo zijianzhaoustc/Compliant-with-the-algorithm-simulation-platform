@@ -1,10 +1,18 @@
-function raw = calculateRawCoincidence(matches, histResult, p)
+function raw = calculateRawCoincidence(matches, histResult, p, windowEdges)
 %CALCULATERAWCOINCIDENCE 统计峰值附近符合窗口中的原始符合。
 %   RAW = CALCULATERAWCOINCIDENCE(MATCHES,HISTRESULT,P) 使用完整窗口宽度
 %   p.algorithm.window，以直方图峰值为中心选择事件对。RAW.mask 与匹配数组
 %   等长，可用于回查每一对事件及其 ground truth。
 
-if p.algorithm.windowMode=="bins"
+if nargin>=4 && ~isempty(windowEdges)
+    if ~isnumeric(windowEdges) || numel(windowEdges)~=2 || ...
+            any(~isfinite(windowEdges)) || windowEdges(1)>=windowEdges(2)
+        error('CoincidenceSim:InvalidWindowEdges','外部符合窗边界必须为两个递增有限数。');
+    end
+    lowerEdge=windowEdges(1); upperEdge=windowEdges(2);
+    window=upperEdge-lowerEdge; includeUpperEdge=true;
+    mask=matches.deltaT>=lowerEdge & matches.deltaT<=upperEdge;
+elseif p.algorithm.windowMode=="bins"
     % “左右 n bin”是离散直方图选择：峰值所在 bin 必须计入，再向左右
     % 各扩展 n 个 bin。使用真实 edges，避免把连续窗口错误地居中在拟合峰值上。
     n=p.algorithm.windowMultiplier;

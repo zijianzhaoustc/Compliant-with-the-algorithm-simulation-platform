@@ -46,6 +46,28 @@ rows={
     '符合估计双路联合探测效率',fmt(m.EtaJointEstimate),'Rnet/Rpair（仅仿真）'};
 
 summary=cell2table(rows,'VariableNames',{'参数','数值','作用'});
+if isfield(out,'optimization') && ~isempty(out.optimization)
+    o=out.optimization;
+    state='不可用'; stateInfo=['沿用当前参数；' char(o.status)];
+    if o.valid
+        if o.applied
+            state='已自动应用'; stateInfo='正式结果采用推荐 bin、窗口及独立峰参数';
+        else
+            state='仅推荐'; stateInfo='当前计算参数保持原设置';
+        end
+    end
+    diagnostic=char(strjoin(o.diagnostics,'；'));
+    if isempty(diagnostic), diagnostic='通过峰形、捕获率与已启用的统计约束检查'; end
+    optimizationRows={
+        '【自适应符合参数】','','';
+        '自适应优化状态',state,stateInfo;
+        '推荐 bin 宽 (ps)',fmt(o.binWidth*1e12),'跨 bin 相位的 Shimazaki-Shinomoto 代价与稳定性';
+        '推荐窗口全宽 (ns)',fmt(o.window*1e9),'按预设捕获率与背景约束选择';
+        '模型估计峰捕获率',fmt(o.captureEstimate),'Gaussian 峰模型估计；不是仿真真值 ηW';
+        '独立峰位置 / σ (ps)',pair(o.peak*1e12,o.sigma*1e12),'从未分箱时间差拟合，与显示 bin 宽分开';
+        '优化诊断',diagnostic,'默认固定参数 Bootstrap；不包含参数选择的随机性'};
+    summary=[summary;cell2table(optimizationRows,'VariableNames',summary.Properties.VariableNames)];
+end
 if isfield(out,'uncertainty')
     m=out.metrics;
     comparison={

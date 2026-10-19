@@ -57,6 +57,10 @@ summary.ConfidenceLevel=repmat(u.confidenceLevel,n,1);
 summary.MatchMethod=repmat(string(out.params.algorithm.matchMethod),n,1);
 summary.AnalyticalAssumption=repmat(result.analytical.assumption,n,1);
 summary.Diagnostics=repmat(strjoin(result.messages,"；"),n,1);
+summary.OptimizationMode=repmat(string(out.params.optimization.mode),n,1);
+applied=isfield(out,'optimization') && ~isempty(out.optimization) && out.optimization.applied;
+summary.OptimizationApplied=repmat(applied,n,1);
+summary.UncertaintyScope=repmat("fixed peak and window; excludes parameter-selection uncertainty",n,1);
 end
 
 function t=makeRows(names,method,point,up,ub,ci,rel,truth,err)

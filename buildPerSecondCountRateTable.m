@@ -45,7 +45,7 @@ for k=1:nWindows
     segmentSource.secondIndex=k;
     segmentSource.windowStart=startSeconds(k);
     segmentSource.windowStop=stopSeconds(k);
-    result=analyzeTimestampData(segmentA,segmentB,segmentParams,segmentSource,out.dataMode,false);
+    result=analyzeTimestampData(segmentA,segmentB,segmentParams,segmentSource,out.dataMode,false,false);
 
     rateA(k)=result.metrics.RA; rateB(k)=result.metrics.RB;
     rRaw(k)=result.metrics.Rraw; rAcc(k)=result.metrics.Racc;

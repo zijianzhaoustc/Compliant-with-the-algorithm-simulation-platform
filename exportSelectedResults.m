@@ -92,4 +92,52 @@ if isfield(options,'uncertainty') && options.uncertainty
         writeUtf8BomTable(out.uncertainty.bootstrap.replicates,file); files(end+1,1)=file;
     end
 end
+if isfield(options,'optimization') && options.optimization
+    if ~isfield(out,'optimization') || isempty(out.optimization)
+        error('CoincidenceSim:MissingOptimization','当前结果未执行自适应参数优化。');
+    end
+    o=out.optimization;
+    file=fullfile(folder,baseName+"_optimization_summary.csv");
+    writeUtf8BomTable(buildOptimizationSummaryTable(o),file); files(end+1,1)=file;
+    scans={o.binScan,o.windowScan}; suffix=["_optimization_bins.csv","_optimization_windows.csv"];
+    for k=1:2
+        if ~isempty(scans{k})
+            file=fullfile(folder,baseName+suffix(k));
+            writeUtf8BomTable(scans{k},file); files(end+1,1)=file;
+        end
+    end
+    replicates=table(); candidateBlocks=table();
+    for k=1:numel(o.candidateBootstrap)
+        if isempty(o.candidateBootstrap{k}), continue; end
+        r=o.candidateBootstrap{k}.replicates;
+        r=addvars(r,repmat(k,height(r),1),repmat(o.windowScan.Window_s(k),height(r),1), ...
+            'Before',1,'NewVariableNames',{'CandidateIndex','Window_s'});
+        replicates=[replicates;r]; %#ok<AGROW>
+        b=o.candidateBootstrap{k}.blocks.table;
+        b=addvars(b,repmat(k,height(b),1),repmat(o.windowScan.Window_s(k),height(b),1), ...
+            'Before',1,'NewVariableNames',{'CandidateIndex','Window_s'});
+        % 有效旁窗数不同时，补齐缺失列为 NaN，保留 Origin 可直接使用的数值列。
+        if isempty(candidateBlocks)
+            candidateBlocks=b;
+        else
+            missing=setdiff(b.Properties.VariableNames,candidateBlocks.Properties.VariableNames,'stable');
+            for j=1:numel(missing), candidateBlocks.(missing{j})=nan(height(candidateBlocks),1); end
+            missing=setdiff(candidateBlocks.Properties.VariableNames,b.Properties.VariableNames,'stable');
+            for j=1:numel(missing), b.(missing{j})=nan(height(b),1); end
+            candidateBlocks=[candidateBlocks;b(:,candidateBlocks.Properties.VariableNames)]; %#ok<AGROW>
+        end
+    end
+    if ~isempty(replicates)
+        file=fullfile(folder,baseName+"_optimization_candidate_bootstrap.csv");
+        writeUtf8BomTable(replicates,file); files(end+1,1)=file;
+    end
+    if ~isempty(candidateBlocks)
+        file=fullfile(folder,baseName+"_optimization_candidate_blocks.csv");
+        writeUtf8BomTable(candidateBlocks,file); files(end+1,1)=file;
+    end
+    if isfield(o,'validation') && ~isempty(o.validation.summary)
+        file=fullfile(folder,baseName+"_optimization_validation.csv");
+        writeUtf8BomTable(o.validation.summary,file); files(end+1,1)=file;
+    end
+end
 end

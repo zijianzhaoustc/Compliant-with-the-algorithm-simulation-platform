@@ -6,9 +6,9 @@ function dialogFigure = showExportDialog(parent, out)
 
 parentPos=parent.Position;
 dialogFigure=uifigure('Name','选择导出内容','WindowStyle','modal', ...
-    'Position',[parentPos(1)+parentPos(3)/2-220 parentPos(2)+parentPos(4)/2-260 440 520]);
-g=uigridlayout(dialogFigure,[14 2]); g.ColumnWidth={145,'1x'};
-g.RowHeight={30,30,30,30,30,30,30,30,30,30,30,30,36,24};
+    'Position',[parentPos(1)+parentPos(3)/2-220 parentPos(2)+parentPos(4)/2-280 440 560]);
+g=uigridlayout(dialogFigure,[15 2]); g.ColumnWidth={145,'1x'};
+g.RowHeight={30,30,30,30,30,30,30,30,30,30,30,30,30,36,24};
 g.Padding=[12 12 12 12]; g.RowSpacing=5;
 
 settings=uicheckbox(g,'Text','设置参数 MAT','Value',true); settings.Layout.Row=1; settings.Layout.Column=[1 2];
@@ -33,17 +33,22 @@ if hasUncertainty, uncertaintyEnable='on'; else, uncertaintyEnable='off'; end
 uncertainty=uicheckbox(g,'Text','不确定度汇总、分块与 Bootstrap 样本 CSV', ...
     'Value',hasUncertainty,'Enable',uncertaintyEnable);
 uncertainty.Layout.Row=7; uncertainty.Layout.Column=[1 2];
+hasOptimization=isfield(out,'optimization') && ~isempty(out.optimization);
+if hasOptimization, optimizationEnable='on'; else, optimizationEnable='off'; end
+optimization=uicheckbox(g,'Text','自适应优化推荐、候选与验证 CSV', ...
+    'Value',hasOptimization,'Enable',optimizationEnable);
+optimization.Layout.Row=9; optimization.Layout.Column=[1 2];
 
-l=uilabel(g,'Text','时间戳/直方图单位'); l.Layout.Row=9; l.Layout.Column=1;
-unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12); unit.Layout.Row=9; unit.Layout.Column=2;
-l=uilabel(g,'Text','文件名前缀'); l.Layout.Row=10; l.Layout.Column=1;
-base=uieditfield(g,'text','Value','coincidence_result'); base.Layout.Row=10; base.Layout.Column=2;
-l=uilabel(g,'Text','导出目录'); l.Layout.Row=11; l.Layout.Column=1;
-folder=uieditfield(g,'text','Value',pwd); folder.Layout.Row=11; folder.Layout.Column=2;
-browse=uibutton(g,'Text','选择目录…','ButtonPushedFcn',@browseFolder); browse.Layout.Row=12; browse.Layout.Column=[1 2];
+l=uilabel(g,'Text','时间戳/直方图单位'); l.Layout.Row=10; l.Layout.Column=1;
+unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12); unit.Layout.Row=10; unit.Layout.Column=2;
+l=uilabel(g,'Text','文件名前缀'); l.Layout.Row=11; l.Layout.Column=1;
+base=uieditfield(g,'text','Value','coincidence_result'); base.Layout.Row=11; base.Layout.Column=2;
+l=uilabel(g,'Text','导出目录'); l.Layout.Row=12; l.Layout.Column=1;
+folder=uieditfield(g,'text','Value',pwd); folder.Layout.Row=12; folder.Layout.Column=2;
+browse=uibutton(g,'Text','选择目录…','ButtonPushedFcn',@browseFolder); browse.Layout.Row=13; browse.Layout.Column=[1 2];
 exportButton=uibutton(g,'Text','开始导出','FontWeight','bold','BackgroundColor',[.16 .52 .35], ...
-    'FontColor','white','ButtonPushedFcn',@doExport); exportButton.Layout.Row=13; exportButton.Layout.Column=[1 2];
-status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=14; status.Layout.Column=[1 2];
+    'FontColor','white','ButtonPushedFcn',@doExport); exportButton.Layout.Row=14; exportButton.Layout.Column=[1 2];
+status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=15; status.Layout.Column=[1 2];
 
     function browseFolder(~,~)
         selected=uigetdir(folder.Value,'选择导出目录');
@@ -57,9 +62,10 @@ status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=14;
             'timeWindows',timeWindowResults.Value,'countRates',countRates.Value, ...
             'timestamps',timestamps.Value, ...
             'uncertainty',uncertainty.Value, ...
+            'optimization',optimization.Value, ...
             'unitSeconds',unit.Value);
         if ~any([options.settings options.histogram options.results options.sweep ...
-                options.timeWindows options.countRates options.timestamps options.uncertainty])
+                options.timeWindows options.countRates options.timestamps options.uncertainty options.optimization])
             uialert(dialogFigure,'至少选择一种导出内容。','导出错误'); return
         end
         try

@@ -1,0 +1,17 @@
+正在运行 TestOptimization
+..........
+已完成 TestOptimization
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+Passed: 51 / 51; Failed: 0
+UI recommend/apply callbacks, five count rows, settings preservation and export passed.

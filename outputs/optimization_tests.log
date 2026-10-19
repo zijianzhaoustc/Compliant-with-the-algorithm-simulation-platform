@@ -1,0 +1,24 @@
+正在运行 TestOptimization
+..........
+已完成 TestOptimization
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+Passed: 51 / 51; Failed: 0
+            Method             CompleteTrials    EmpiricalSD_Ncorr_side    Mean_U_Bootstrap_side    BiasAcc_side    RMSEAcc_side    BiasCorr_side    RMSECorr_side    BiasAcc_theory    RMSEAcc_theory    BiasCorr_theory    RMSECorr_theory    Mean_EtaW
+    _______________________    ______________    ______________________    _____________________    ____________    ____________    _____________    _____________    ______________    ______________    _______________    _______________    _________
+
+    "A_fixed"                        3                   48.898                    49.46               1.6667          3.4987          -1.6667          3.4987            1.5236            2.9164            -1.5236            2.9164                1 
+    "B_peak-width"                   3                   50.252                   49.154              -1.3333          2.9721           1.3333          2.9721           -1.0983            2.2498             1.0983            2.2498           0.9909 
+    "C_auto-bin-peak-width"          3                   77.896                   47.786              -1.3333          2.8707           1.3333          2.8707           -1.3362            2.3072             1.3362            2.3072           0.9796 
+    "D_constrained"                  3                   78.161                   47.899              -1.3333          2.8707           1.3333          2.8707           -1.3199              2.29             1.3199              2.29          0.97978 
+
