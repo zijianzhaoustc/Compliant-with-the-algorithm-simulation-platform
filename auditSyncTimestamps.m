@@ -7,10 +7,6 @@ if n<3, error('DualTDC:SyncTooShort','SYNC requires at least three tags.'); end
 chunk=o.auditChunk; anchorIndices=unique(round(linspace(1,n,min(n,o.maxAnchors))))';
 anchorCycles=zeros(size(anchorIndices)); nextAnchor=2; cycle=0;
 start=floor(t(1)/.1)*.1; countBins=max(1,floor((t(end)-start)/.1)+1);
-% Guard before allocating edges/QA arrays, including calls outside the GUI.
-if ~isfinite(countBins) || countBins>1e6
-    error('DualTDC:TimelineRange','SYNC observed span exceeds bounded audit capacity; inspect timestamp units/outliers before allocating diagnostics.');
-end
 edges=start+(0:countBins)*.1;
 rates=zeros(countBins,1); missing=rates; glitches=rates; invalid=rates;
 periods=[]; bursts=zeros(0,3); intervals=zeros(1,20); localRows=zeros(0,5);

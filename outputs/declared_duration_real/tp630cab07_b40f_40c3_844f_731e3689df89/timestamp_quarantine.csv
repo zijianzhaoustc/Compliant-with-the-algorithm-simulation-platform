@@ -1,3 +1,0 @@
-﻿device,channel,first_sorted_index,last_sorted_index,excluded_count,first_timestamp_s,last_timestamp_s,reason
-F,F1,18328985,18329248,264,35.3666332860325,2169.76405280603,Timestamp minus shared device origin exceeds the user-declared acquisition duration.
-F,Fsync,14988159,14988159,1,30.0312005820325,30.0312005820325,Timestamp minus shared device origin exceeds the user-declared acquisition duration.

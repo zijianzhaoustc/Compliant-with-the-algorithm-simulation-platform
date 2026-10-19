@@ -8,13 +8,6 @@ recalculationMetadata=struct(); %#ok<NASGU>
 if isfield(out,'recalculation'), recalculationMetadata=out.recalculation; end
 if isfield(out.data,'metadata'), inputMetadata=out.data.metadata; end
 save(fullfile(folder,'settings_and_alignment.mat'),'settings','alignment','inputMetadata','recalculationMetadata');
-if isfield(out,'timelineQuality')
-    timelineQuality=out.timelineQuality; %#ok<NASGU>
-    save(fullfile(folder,'settings_and_alignment.mat'),'timelineQuality','-append');
-    writeUtf8BomTable(out.timelineQuality.channels,fullfile(folder,'timestamp_timeline_quality.csv'));
-    writeUtf8BomTable(out.timelineQuality.quarantine,fullfile(folder,'timestamp_quarantine.csv'));
-    writeUtf8BomTable(out.timelineQuality.excludedRanges,fullfile(folder,'timestamp_excluded_ranges.csv'));
-end
 importQuality=timestampImportQuality(out.data);
 if ~isempty(importQuality)
     writeUtf8BomTable(importQuality,fullfile(folder,'timestamp_import_quality.csv'));
@@ -117,14 +110,6 @@ t.main_bin_count=m.mainBinCount; t.main_window_left_ps=m.windowLeft_ps; t.main_w
 if isfield(r,'accidental'), t.accidental_time_origin_s=r.accidental.timeOrigin_s; end
 t.Nraw_rate_cps=m.Nraw/m.duration_s; t.Nacc_rate_cps=m.Nacc/m.duration_s;
 t.Nnet_signed_rate_cps=m.NnetSigned/m.duration_s;
-if isfield(m,'timelineFlag')
-    t.channel1_original_count=m.originalCount1; t.channel2_original_count=m.originalCount2;
-    t.channel1_quarantined_count=m.quarantinedCount1; t.channel2_quarantined_count=m.quarantinedCount2;
-    t.original_span_s=m.originalSpan_s; t.duration_basis=m.durationBasis;
-    t.timeline_qa_flag=m.timelineFlag;
-    t.declared_acquisition_s=m.declaredAcquisition_s; t.timestamp_cutoff_s=m.timestampCutoff_s;
-    t.channel1_excluded_count=m.quarantinedCount1; t.channel2_excluded_count=m.quarantinedCount2;
-end
 writeUtf8BomTable(t,fullfile(folder,[prefix '_metrics.csv']));
 writeUtf8BomTable(r.sweep,fullfile(folder,[prefix '_window_sweep.csv']));
 if isfield(r,'accidental') && ~isempty(r.accidental.sampleCounts)

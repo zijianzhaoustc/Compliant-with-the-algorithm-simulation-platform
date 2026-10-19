@@ -1,9 +1,7 @@
 function out=analyzeDualTdcSync(data,o,base)
 %ANALYZEDUALTDCSYNC QA -> cycle disambiguation -> SYNC map -> unique SPD events.
 if nargin<3
-    % Public two-argument calls must pass through the same timeline audit as
-    % GUI imports/recalculation; the three-argument branch is the core helper.
-    o.sync.enabled=true; out=analyzeDualTdc(data,o); return
+    plain=o; plain.sync.enabled=false; out=analyzeDualTdc(data,plain);
 else, out=base; end
 qF=auditSyncTimestamps(data.Fsync,o.sync); qS=auditSyncTimestamps(data.Ssync,o.sync);
 model=alignTdcBySync(qF,qS,out.alignment,o);

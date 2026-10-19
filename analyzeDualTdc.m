@@ -6,10 +6,7 @@ validateDualTdcOptions(o);
 names={'F1','F2','S1','S2'};
 for k=1:4
     v=data.(names{k}); validateattributes(v,{'numeric'},{'vector','real','finite','nonempty'});
-    for first=1:100000:numel(v)
-        ix=first:min(numel(v),first+100000);
-        if any(diff(v(ix))<0), error('DualTDC:Unsorted','Nondecreasing timestamps required.'); end
-    end
+    if any(diff(v)<0), error('DualTDC:Unsorted','Nondecreasing timestamps required.'); end
     data.(names{k})=v(:);
 end
 if sum(cellfun(@(n)numel(data.(n)),names))*32>o.maxResidentBytes
@@ -23,15 +20,7 @@ if useSync && (numel(data.Fsync)+numel(data.Ssync))*16+ ...
         sum(cellfun(@(n)numel(data.(n)),names))*32>o.maxResidentBytes
     error('DualTDC:MemoryBudget','Six-channel estimated resident working data exceed the configured budget.');
 end
-rawData=data;
-[data,timelineQuality]=auditDualTdcTimeline(data,o);
-for k=1:4
-    if isempty(data.(names{k}))
-        error('DualTDC:EmptyAfterDurationFilter', ...
-            '%s 在声明采集时长内无可用时间戳，请检查文件、单位和声明采集时长。',names{k});
-    end
-end
-durF=timelineQuality.F.duration_s; durS=timelineQuality.S.duration_s;
+durF=duration(data,'F'); durS=duration(data,'S');
 out=struct('options',o,'data',data,'F',analyzeDualTdcDevice(data.F1,data.F2,o,durF), ...
     'S',analyzeDualTdcDevice(data.S1,data.S2,o,durS));
 out.alignment=alignDualTdcTimestamps(data.F1,data.F2,data.S1,data.S2,o.alignment);
@@ -64,26 +53,14 @@ if useSync
 elseif isfield(o,'computePerSecond') && o.computePerSecond
     out.perSecond=buildDualTdcPerSecond(out);
 end
-% Derived computations above all use the same accepted arrays and duration.
-% Restore immutable raw cache and map association indices back into that cache.
-out.data=rawData; out.timelineQuality=timelineQuality;
-for ch=1:2
-    field=sprintf('channel%d',ch); c=out.alignment.(field);
-    c.indexF=c.indexF+timelineQuality.(sprintf('F%d',ch)).firstIndex-1;
-    c.indexS=c.indexS+timelineQuality.(sprintf('S%d',ch)).firstIndex-1;
-    out.alignment.(field)=c;
 end
-for device=["F","S"]
-    m=out.(device).metrics; q=timelineQuality.(device);
-    for ch=1:2
-        c=timelineQuality.(sprintf('%s%d',device,ch));
-        m.(sprintf('originalCount%d',ch))=c.originalCount;
-        m.(sprintf('quarantinedCount%d',ch))=c.quarantinedCount;
-    end
-    m.originalSpan_s=q.originalSpan_s; m.durationBasis=q.durationBasis;
-    m.timelineFlag="OK";
-    if q.quarantinedCount>0, m.timelineFlag="EXCLUDED_DECLARED_DURATION"; end
-    m.declaredAcquisition_s=q.declaredAcquisition_s; m.timestampCutoff_s=q.cutoff_s;
-    out.(device).metrics=m;
+
+function d=duration(data,prefix)
+field=char(prefix);
+if isfield(data,'metadata') && isfield(data.metadata,field) && isfield(data.metadata.(field),'duration_s')
+    d=data.metadata.(field).duration_s;
+else
+    a=data.([field '1']); b=data.([field '2']); d=max(a(end),b(end))-min(a(1),b(1));
 end
+if d<=0, error('DualTDC:Duration','Positive acquisition span required.'); end
 end
