@@ -1,2 +1,0 @@
-﻿SPD_events_per_channel,SYNC_events_per_device,timestamp_total,elapsed_s,initial_working_set_bytes,process_lifetime_peak_working_set_bytes,final_working_set_bytes,alignment_status,relative_clock_ppm,F1_rate_cps,max_pair_scratch_count,pair_chunk_limit
-3000000,1500073,15000146,15.7229863,2267811840,2769985536,2476232704,ALIGNED,24.9999999997197,999952.435329889,250000,250000

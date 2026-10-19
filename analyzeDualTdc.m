@@ -12,21 +12,13 @@ end
 if sum(cellfun(@(n)numel(data.(n)),names))*32>o.maxResidentBytes
     error('DualTDC:MemoryBudget','Timestamp input exceeds configured working memory budget.');
 end
-useSync=isfield(o,'sync') && o.sync.enabled && isfield(data,'Fsync') && isfield(data,'Ssync');
-if isfield(o,'sync') && o.sync.enabled && ~useSync
-    error('DualTDC:SyncFiles','SYNC enabled but both Fsync and Ssync are required.');
-end
-if useSync && (numel(data.Fsync)+numel(data.Ssync))*16+ ...
-        sum(cellfun(@(n)numel(data.(n)),names))*32>o.maxResidentBytes
-    error('DualTDC:MemoryBudget','Six-channel estimated resident working data exceed the configured budget.');
-end
 durF=duration(data,'F'); durS=duration(data,'S');
 out=struct('options',o,'data',data,'F',analyzeDualTdcDevice(data.F1,data.F2,o,durF), ...
     'S',analyzeDualTdcDevice(data.S1,data.S2,o,durS));
 out.alignment=alignDualTdcTimestamps(data.F1,data.F2,data.S1,data.S2,o.alignment);
 out.status=out.alignment.status; out.common=struct('status',"UNALIGNED",'F',[],'S',[]);
 out.overlap=struct('status',"UNALIGNED",'F',[],'S',[]);
-if out.status=="ALIGNED" && ~useSync
+if out.status=="ALIGNED"
     a=out.alignment.channel1; b=out.alignment.channel2;
     lo=max(a.overlapF_s(1),b.overlapF_s(1)); hi=min(a.overlapF_s(2),b.overlapF_s(2));
     take1=data.F1(a.indexF)>=lo & data.F1(a.indexF)<=hi;
@@ -48,11 +40,6 @@ if out.status=="ALIGNED" && ~useSync
     out.overlap=struct('status',"ALIGNED",'F',overlapF,'S',overlapS);
 end
 out.interpretation="Neither TDC is absolute truth; cross-device residual includes both responses and splitter/cable effects.";
-if useSync
-    out=analyzeDualTdcSync(data,o,out);
-elseif isfield(o,'computePerSecond') && o.computePerSecond
-    out.perSecond=buildDualTdcPerSecond(out);
-end
 end
 
 function d=duration(data,prefix)

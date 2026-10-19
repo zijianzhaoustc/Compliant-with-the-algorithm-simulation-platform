@@ -1,25 +1,5 @@
 classdef TestDualTdcGui < matlab.unittest.TestCase
     methods(Test)
-        function optionalSyncControlsAndViews(t)
-            app=CoincidenceSimulatorApp(); cleanup=onCleanup(@()delete(app));
-            app.UIFigure.Visible='off'; panel=app.DualTdcPanel;
-            t.verifyFalse(panel.Controls.UseSync.Value);
-            t.verifyEqual(panel.Controls.SyncFrequency.Value,500000);
-            panel.Controls.UseSync.Value=true; o=panel.readOptions();
-            t.verifyTrue(o.sync.enabled); t.verifyEqual(o.sync.model,"auto");
-            plain=simulateDualTdc(); d=plain.data; s=plain.simulation.settings;
-            pulse=(0:49999)'*2e-6;
-            d.Fsync=s.F.offset_s+(1+s.F.clockPpm*1e-6)*pulse;
-            d.Ssync=s.S.offset_s+(1+s.S.clockPpm*1e-6)*pulse;
-            out=analyzeDualTdc(d,o); panel.setResult(out);
-            t.verifyTrue(ismember(out.status,["ALIGNED","PARTIAL"]),out.alignment.reason);
-            t.verifyNotEmpty(panel.SyncRateAxes.Children);
-            t.verifyNotEmpty(panel.PerSecondTable.Data);
-            t.verifyEqual(numel(findall(panel.OverlayAxes,'Type','bar')),2);
-            panel.setResult(plain);
-            t.verifyEmpty(panel.SyncRateAxes.Children); t.verifyEmpty(panel.PerSecondTable.Data);
-            clear cleanup
-        end
         function customBinWidthReachesAnalysisAndExport(t)
             app=CoincidenceSimulatorApp(); cleanup=onCleanup(@()delete(app));
             app.UIFigure.Visible='off'; panel=app.DualTdcPanel;

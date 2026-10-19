@@ -166,7 +166,7 @@ out = importTimestampFiles("StartCh.txt", "StopCh.txt", 1e-12, p); % 1 ps/单位
 
 运行 `launchCoincidenceSimulator`，切换到新增的“双 TDC 时间戳对比分析”页面。
 按 F1/F2（FPGA）与 S1/S2（Swabian）选择四个文件，设置两台设备的 TXT 原始单位，
-点击“导入并分析（四路 / 六路）”。TXT 单列数值与 SSI DAQ BIN 格式均沿用原约定。
+点击“导入四路并分析”。TXT 单列数值与 SSI DAQ BIN 格式均沿用原约定。
 
 ```matlab
 o = defaultDualTdcOptions();
@@ -188,15 +188,3 @@ validationFolder = runDualTdcValidation(true);
 偶然符合使用峰前第 14–20 bin（共 7 bin）。净符合保留有符号值。
 `UNALIGNED` 时保留各设备自身的基础分析，不生成共同事件子集与跨仪器关联表。
 详细操作、对齐质量门、CSV 字段及解释限制见 [DUAL_TDC.md](DUAL_TDC.md)。
-
-### 可选 500 kHz SYNC 六路分析
-
-同页增加 Fsync/Ssync，勾选“启用 SYNC 辅助对齐”，保持标称 500000 Hz、rising。
-两台设备各自三路共用本机原点；先以共同 SPD 电事件消除整数周期歧义，再用同步脉冲
-独立时间块验证时钟模型。同步早停返回 PARTIAL，外推尾段不输出事件关联；不可靠返回 UNALIGNED。
-“重叠柱状图”页提供半透明两机柱形及各自 Gaussian 曲线；导出自动生成 PNG/PDF/Origin CSV。
-详细说明、六路示例、验收命令和新增字段见 [DUAL_TDC_SYNC.md](DUAL_TDC_SYNC.md)。
-
-成功加载后可点击“按当前参数重新计算（不重读文件）”，修改总 n-bin 符合窗、bin 宽、
-对齐参数及偶然符合方法；不重读文件、不重新生成事件。五种背景估计参数与单 TDC 页相同，
-同时保留原论文旁窗为默认。详见 [缓存重算说明](DUAL_TDC_RECALCULATION_UPDATE.md)。
