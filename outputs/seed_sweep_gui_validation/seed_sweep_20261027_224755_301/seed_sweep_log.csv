@@ -1,0 +1,3 @@
+﻿RunIndex,Seed,Status,Message,OutputFolder,ExportedFiles,CountA,CountB,Nraw,Nacc,Rnet
+1,11,success,,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\seed_sweep_gui_validation\seed_sweep_20261027_224755_301\0001_seed_11,3,275,288,77,0.001188,384.99406
+2,13,success,,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\seed_sweep_gui_validation\seed_sweep_20261027_224755_301\0002_seed_13,3,261,248,70,0.00097092,349.9951454

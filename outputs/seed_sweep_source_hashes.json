@@ -1,0 +1,38 @@
+[
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\CoincidenceSimulatorApp.m",
+    "Hash": "F79A76A71E369FC239911399D90AEEB078D29D4ED31C831C07D371A2BE16985C"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\showExportDialog.m",
+    "Hash": "CF3B8121A71A4867E20287F76530F432577FE7746F92C23FEC9D1F1985A4E263"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\createExportSelectionControls.m",
+    "Hash": "A97C793EF8DF2013E383D1B2CADF13572C11B230F6301900C26B6E0F29631B10"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\readExportSelection.m",
+    "Hash": "D12DB32103C48EA94C7483164017DD9B34F88D9F267FB42FB551F7A15DA1B89B"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\buildSeedSequence.m",
+    "Hash": "849AB437C02FF153C5857B4A55A403404C8CD26428004DDF0FD046AFE70B50F9"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\runRandomSeedSweep.m",
+    "Hash": "A3F289D7D353A324C67F1038F2E9059AD9C856AAD2996EA93C13868CA9F67FFC"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\showSeedSweepDialog.m",
+    "Hash": "DD61F11015B14B0F9BA65644B6E6207367A8EBE4B093C76E39D3D6837DCF5898"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\tests\\TestRandomSeedSweep.m",
+    "Hash": "4A6D456861A4B26489BDE281AFE5F2EFBD34B6B7AF054FEAA6D9C016A8083839"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\README.md",
+    "Hash": "64F5A35F56E1B51386A27209F79F2B3A17736A0997534D97A570F0940B2E0203"
+  }
+]

@@ -4,6 +4,10 @@ function files = exportSelectedResults(out, folder, baseName, options)
 %   timestamps、uncertainty、unitSeconds 字段。缺少新增字段时默认不导出，以兼容旧调用。
 %   时间戳文件采用与实测样例相同的“每行一个数值、无表头”格式。
 
+if isfield(options,'perSecond') && options.perSecond
+    files=exportTimestampSeconds(out,folder,baseName,options);
+    return
+end
 if ~isfolder(folder), mkdir(folder); end
 files=strings(0,1);
 if options.settings

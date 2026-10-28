@@ -1,0 +1,11 @@
+    RelativeFolder    BaseName                                                                     StartFile                                                                                                                                      StopFile                                                                       Status      Message                                                                                   OutputFolder                                                                                   OptimizationStatus
+    ______________    ________    ___________________________________________________________________________________________________________________________________________    ___________________________________________________________________________________________________________________________________________    _________    _______    __________________________________________________________________________________________________________________________________________________________________________    __________________
+
+          ""           "demo"     "D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\batch_feature_validation\demo_CH1.txt"    "D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\batch_feature_validation\demo_CH2.txt"    "success"      ""       "D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\batch_feature_validation\exports\batch_20261025_164448_489\0001_demo"        "disabled"    
+
+               参数                数值                 作用            
+    ___________________________    _____    ____________________________
+
+    "params.algorithm.binWidth"    1e-10    "实际计算参数（时间采用 SI 秒）"
+
+D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\batch_feature_validation\exports\batch_20261025_164448_489\0001_demo\demo_results.csv

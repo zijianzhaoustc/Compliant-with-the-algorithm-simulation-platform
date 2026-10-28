@@ -1,0 +1,4 @@
+﻿SecondIndex,Start_s,Stop_s,Duration_s,CountA,CountB,Nraw,OutputFolder
+1,0,1,1,2,2,2,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\per_second_gui_validation\gui_per_second_results\second_0001
+2,1,2,1,2,2,2,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\per_second_gui_validation\gui_per_second_results\second_0002
+3,2,2.4,0.4,2,2,2,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\per_second_gui_validation\gui_per_second_results\second_0003

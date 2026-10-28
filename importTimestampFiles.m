@@ -1,9 +1,11 @@
-function out = importTimestampFiles(startFile, stopFile, unitSeconds, p)
+function out = importTimestampFiles(startFile, stopFile, unitSeconds, p, analyzeWhole)
 %IMPORTTIMESTAMPFILES 导入 Start/Stop TXT 或 SSI DAQ 二进制时间戳。
 %   TXT 采用“每行一个整数/数值”，UNITSECONDS 指定原始单位对应的秒数；
 %   SSI_DAQ_TDC_TIMESTAMP_V1 的 BIN 文件自带格式标识，时间戳固定按 ps
-%   解释，因此 BIN 导入不受界面 TXT 单位设置影响。
+%   解释，因此 BIN 导入不受界面 TXT 单位设置影响。TXT/BIN 均先剔除非有限值，
+%   再按需升序排序；清洗信息保存在 source.startCleanup/stopCleanup。
 
+if nargin<5, analyzeWhole=true; end
 [startRaw,startUnit,startInfo]=readTimestampInput(startFile,unitSeconds);
 [stopRaw,stopUnit,stopInfo]=readTimestampInput(stopFile,unitSeconds);
 if isempty(startRaw) || isempty(stopRaw)
@@ -31,7 +33,14 @@ B=struct("time",stopTime,"pairID",zeros(size(stopTime)),"type",repmat("measured"
 source=struct("time",zeros(0,1),"pairID",zeros(0,1),"type",strings(0,1), ...
     "startFile",string(startFile),"stopFile",string(stopFile),"unitSeconds",sourceUnit, ...
     "rawOrigin",sourceOrigin,"startFormat",startInfo.format,"stopFormat",stopInfo.format, ...
-    "startChannelName",startInfo.channelName,"stopChannelName",stopInfo.channelName);
+    "startChannelName",startInfo.channelName,"stopChannelName",stopInfo.channelName, ...
+    "startCleanup",startInfo.cleanup,"stopCleanup",stopInfo.cleanup);
+% 批量逐秒模式仅载入清洗后的时间戳，避免先构造整段匹配和重复统计。
+if ~analyzeWhole
+    out=struct('params',validateParams(p),'source',source,'A',A,'B',B, ...
+        'dataMode',"imported",'optimization',[]);
+    return
+end
 out=analyzeTimestampData(A,B,p,source,"imported");
 % 分窗模式保留整段分析作为主界面结果，同时附加每个子时间窗的独立结果。
 if out.params.algorithm.timestampWindowMode
@@ -45,23 +54,28 @@ function [values,valueUnit,info]=readTimestampInput(filename,textUnitSeconds)
 if strcmpi(extension,'.bin')
     [values,metadata]=readSsiDaqTimestampBin(filename);
     valueUnit=1e-12;
-    info=struct('format',"ssi-daq-bin",'channelName',metadata.channelName);
+    cleanup=struct('originalCount',metadata.originalTimestampCount, ...
+        'validCount',metadata.timestampCount,'removedNonfiniteCount',metadata.removedNonfiniteCount, ...
+        'wasSorted',metadata.wasSorted);
+    info=struct('format',"ssi-daq-bin",'channelName',metadata.channelName,'cleanup',cleanup);
 elseif strcmpi(extension,'.txt')
-    values=readTimestampColumn(filename);
+    [values,cleanup]=readTimestampColumn(filename);
     valueUnit=textUnitSeconds;
-    info=struct('format',"text",'channelName',"");
+    info=struct('format',"text",'channelName',"",'cleanup',cleanup);
 else
     error("CoincidenceSim:UnsupportedTimestampFile", ...
         "仅支持 .txt 和 SSI DAQ .bin 时间戳文件：%s",filename);
 end
 end
 
-function values=readTimestampColumn(filename)
-%READTIMESTAMPCOLUMN 读取无表头单列数值并检查有限性和单调性。
+function [values,cleanup]=readTimestampColumn(filename)
+%READTIMESTAMPCOLUMN 剔除非有限值后按需排序，保留重复事件。
 values=readmatrix(filename,'FileType','text','OutputType','double');
 values=values(:);
+originalCount=numel(values);
 values=values(isfinite(values));
-if any(diff(values)<0)
-    error("CoincidenceSim:UnsortedTimestamps","时间戳必须按非递减顺序排列：%s",filename);
-end
+wasSorted=any(diff(values)<0);
+if wasSorted, values=sort(values); end
+cleanup=struct('originalCount',originalCount,'validCount',numel(values), ...
+    'removedNonfiniteCount',originalCount-numel(values),'wasSorted',wasSorted);
 end

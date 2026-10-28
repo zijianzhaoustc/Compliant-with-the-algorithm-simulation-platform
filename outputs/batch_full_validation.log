@@ -1,0 +1,88 @@
+CODE_ANALYZER discoverTimestampPairs.m: 0 messages
+CODE_ANALYZER batchAnalyzeTimestampFolder.m: 3 messages
+  line 24 [MSNU] 此处之前隐藏了一条代码分析器消息，但该消息不再产生。
+  line 49 [AGROW] 变量的大小似乎在每个循环迭代都会更改。请考虑进行预分配以提升速度。
+  line 51 [AGROW] 变量的大小似乎在每个循环迭代都会更改。请考虑进行预分配以提升速度。
+CODE_ANALYZER CoincidenceSimulatorApp.m: 0 messages
+CODE_ANALYZER tests/TestTimestampBatch.m: 0 messages
+正在运行 TestOptimization
+.......... .
+已完成 TestOptimization
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampBatch
+....
+已完成 TestTimestampBatch
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+                                         Name                                         Passed    Failed    Incomplete    Duration       Details   
+    ______________________________________________________________________________    ______    ______    __________    _________    ____________
+
+    {'TestOptimization/recommendationPreservesExistingMeasurement'               }    true      false       false          1.7983    {1×1 struct}
+    {'TestOptimization/applicationUsesIndependentPeakAndRawDifferences'          }    true      false       false         0.28861    {1×1 struct}
+    {'TestOptimization/truthLabelsCannotAffectSelection'                         }    true      false       false         0.26062    {1×1 struct}
+    {'TestOptimization/sharedResamplesAndCandidateScore'                         }    true      false       false         0.21853    {1×1 struct}
+    {'TestOptimization/invalidDataFallsBackAndInternalWindowsDoNotOptimize'      }    true      false       false          0.5893    {1×1 struct}
+    {'TestOptimization/backgroundAndSideWindowsRejectInvalidCandidates'          }    true      false       false         0.02738    {1×1 struct}
+    {'TestOptimization/independentHeldOutValidation'                             }    true      false       false         0.33172    {1×1 struct}
+    {'TestOptimization/optimizationExportAndCompleteSweep'                       }    true      false       false          2.0793    {1×1 struct}
+    {'TestOptimization/malformedSettingsAndLegacyCompatibility'                  }    true      false       false         0.25251    {1×1 struct}
+    {'TestOptimization/recalculationUsesAllThreeAnalysisSettings'                }    true      false       false         0.37299    {1×1 struct}
+    {'TestOptimization/peakModelDetectsBroadeningAndCompetingPeak'               }    true      false       false         0.09322    {1×1 struct}
+    {'TestSimulation/idealChainPreservesPairs'                                   }    true      false       false        0.087316    {1×1 struct}
+    {'TestSimulation/efficiencyScaling'                                          }    true      false       false         0.07247    {1×1 struct}
+    {'TestSimulation/jitterAddsInQuadrature'                                     }    true      false       false        0.081029    {1×1 struct}
+    {'TestSimulation/tdcUsesNonParalyzableDeadTime'                              }    true      false       false        0.024423    {1×1 struct}
+    {'TestSimulation/rejectedPrimariesDoNotSeedAfterpulses'                      }    true      false       false         0.01063    {1×1 struct}
+    {'TestSimulation/afterpulsesRecurAndObeyDeadTime'                            }    true      false       false        0.024949    {1×1 struct}
+    {'TestSimulation/avalancheQueueMatchesSortedReference'                       }    true      false       false        0.017997    {1×1 struct}
+    {'TestSimulation/detectorRoutesThroughCoupledAvalanches'                     }    true      false       false        0.010181    {1×1 struct}
+    {'TestSimulation/trueAndPeakSigmaAreSeparated'                               }    true      false       false        0.071726    {1×1 struct}
+    {'TestSimulation/oneToOneDoesNotReuseEvents'                                 }    true      false       false       0.0047238    {1×1 struct}
+    {'TestSimulation/accidentalEstimatorsAreFinite'                              }    true      false       false        0.087665    {1×1 struct}
+    {'TestSimulation/noAccidentalCorrection'                                     }    true      false       false         0.02785    {1×1 struct}
+    {'TestSimulation/sideWindowUsesPairedEqualWidthWindows'                      }    true      false       false       0.0041756    {1×1 struct}
+    {'TestSimulation/multipleTimeShiftParameters'                                }    true      false       false        0.031171    {1×1 struct}
+    {'TestSimulation/fourDocumentMatchingRules'                                  }    true      false       false         0.01455    {1×1 struct}
+    {'TestSimulation/nearestNeighborReuseRules'                                  }    true      false       false        0.011372    {1×1 struct}
+    {'TestSimulation/chronologicalGreedyIsOneToOne'                              }    true      false       false       0.0050806    {1×1 struct}
+    {'TestSimulation/gaussianPeakFit'                                            }    true      false       false        0.029353    {1×1 struct}
+    {'TestSimulation/histogramPreservesRequestedBinWidth'                        }    true      false       false        0.027683    {1×1 struct}
+    {'TestSimulation/binWindowIncludesPeakAndBothSides'                          }    true      false       false        0.035587    {1×1 struct}
+    {'TestSimulation/compactEfficiencyDefinitions'                               }    true      false       false          0.1214    {1×1 struct}
+    {'TestSimulation/truthEvaluationMetricsFollowCountDefinitions'               }    true      false       false        0.026428    {1×1 struct}
+    {'TestSimulation/resultSummaryMatchesRequestedGroups'                        }    true      false       false        0.075685    {1×1 struct}
+    {'TestSimulation/timestampConnectionClasses'                                 }    true      false       false        0.069205    {1×1 struct}
+    {'TestSimulation/exportedCsvUsesUtf8Bom'                                     }    true      false       false         0.22897    {1×1 struct}
+    {'TestSimulation/windowSweepExportLayout'                                    }    true      false       false          0.1361    {1×1 struct}
+    {'TestSimulation/selectiveExportWritesSweepCsv'                              }    true      false       false         0.24204    {1×1 struct}
+    {'TestSimulation/timestampWindowImportAndExport'                             }    true      false       false          0.7793    {1×1 struct}
+    {'TestSimulation/perSecondCountRateUsesOneSecondNormalization'               }    true      false       false         0.36672    {1×1 struct}
+    {'TestSimulation/perSecondTimingReportsGaussianFit'                          }    true      false       false         0.16026    {1×1 struct}
+    {'TestSimulation/ssiDaqBinaryTimestampImport'                                }    true      false       false         0.07378    {1×1 struct}
+    {'TestTimestampBatch/pairingKeepsDirectoriesAndDevicePrefixesSeparate'       }    true      false       false          2.0107    {1×1 struct}
+    {'TestTimestampBatch/exportsAgreeWithSingleImportAndKeepRequestedParameters' }    true      false       false          1.2448    {1×1 struct}
+    {'TestTimestampBatch/corruptPairDoesNotStopLaterPairsAndManualModeIsExplicit'}    true      false       false         0.45233    {1×1 struct}
+    {'TestTimestampBatch/cancellationKeepsFinishedExportsAndMarksRemainingPairs' }    true      false       false         0.32865    {1×1 struct}
+    {'TestUncertainty/automaticAnalysisAndBlockConservation'                     }    true      false       false         0.20424    {1×1 struct}
+    {'TestUncertainty/crossingBoundaryAndExposure'                               }    true      false       false        0.089927    {1×1 struct}
+    {'TestUncertainty/analyticalFormulaAndCovariance'                            }    true      false       false         0.16496    {1×1 struct}
+    {'TestUncertainty/reproducibleAndGlobalRngUnchanged'                         }    true      false       false         0.52074    {1×1 struct}
+    {'TestUncertainty/negativeNetAndSharedSamples'                               }    true      false       false        0.018403    {1×1 struct}
+    {'TestUncertainty/importedTruthAndSubwindowSuppression'                      }    true      false       false          0.3468    {1×1 struct}
+    {'TestUncertainty/emptySideWindowsAndSparseCounts'                           }    true      false       false         0.11745    {1×1 struct}
+    {'TestUncertainty/effectiveBinWidthAndLegacySettings'                        }    true      false       false        0.026641    {1×1 struct}
+    {'TestUncertainty/percentileAndValidation'                                   }    true      false       false        0.052611    {1×1 struct}
+    {'TestUncertainty/threeNumericExportsAndUiSummary'                           }    true      false       false         0.46881    {1×1 struct}
+
+REAL_DIRECTORY_DISCOVERY: 191 pairs, 2 skipped files

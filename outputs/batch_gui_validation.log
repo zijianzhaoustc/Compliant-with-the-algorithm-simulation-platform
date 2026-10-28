@@ -1,0 +1,5 @@
+CODE_ANALYZER discoverTimestampPairs.m: 0 messages
+CODE_ANALYZER batchAnalyzeTimestampFolder.m: 0 messages
+CODE_ANALYZER CoincidenceSimulatorApp.m: 0 messages
+CODE_ANALYZER tests/TestTimestampBatch.m: 0 messages
+GUI_BATCH_BUTTON_CONSTRUCTION_PASSED

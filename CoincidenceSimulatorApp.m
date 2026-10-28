@@ -70,8 +70,8 @@ classdef CoincidenceSimulatorApp < handle
             app.SweepMetricAxes=uiaxes(sweepGrid); title(app.SweepMetricAxes,'算法指标'); xlabel(app.SweepMetricAxes,'窗口全宽 (ns)'); ylim(app.SweepMetricAxes,[0 1.05]); grid(app.SweepMetricAxes,'on');
 
             % 右栏：中文结果列表和数据操作。
-            right=uigridlayout(main,[8 1]);
-            right.RowHeight={'1x',38,38,38,38,38,38,26}; right.RowSpacing=6;
+            right=uigridlayout(main,[10 1]);
+            right.RowHeight={'1x',38,38,38,38,38,38,38,38,26}; right.RowSpacing=6;
             app.ResultTable=uitable(right,'ColumnName',{'指标','数值','说明'}, ...
                 'ColumnWidth',{205,90,'auto'},'RowName',[]);
             app.addActionButton(right,2,'运行新仿真',[0.12 0.45 0.82],@(~,~)app.runNewSimulation());
@@ -83,8 +83,13 @@ classdef CoincidenceSimulatorApp < handle
             app.addActionButton(right,5,'导入设置参数 MAT',[0.42 0.50 0.58],@(~,~)app.importSettings());
             app.addActionButton(right,6,'扫描符合窗口',[0.58 0.42 0.68],@(~,~)app.runSweep());
             app.addActionButton(right,7,'选择性导出…',[0.78 0.43 0.18],@(~,~)app.openExport());
+            app.Controls.BatchButton=app.addActionButton(right,8,'文件夹批量计算并导出…', ...
+                [0.16 0.52 0.48],@(~,~)app.batchImport());
+            app.Controls.BatchButton.Tooltip='选择输入/导出目录、整段或逐秒分析，并勾选需要的四类 CSV。';
+            app.Controls.SeedSweepButton=app.addActionButton(right,9,'随机种子步进扫描…', ...
+                [0.35 0.43 0.72],@(~,~)app.seedSweep());
             app.StatusLabel=uilabel(right,'Text','就绪：可运行仿真或导入双通道 TXT', ...
-                'FontColor',[.18 .25 .34]); app.StatusLabel.Layout.Row=8;
+                'FontColor',[.18 .25 .34]); app.StatusLabel.Layout.Row=10;
         end
 
         function buildSourceTab(app,p)
@@ -418,8 +423,79 @@ classdef CoincidenceSimulatorApp < handle
                     app.StatusLabel.Text=sprintf('实测数据导入完成：时长 %.6g s，Start %d，Stop %d', ...
                         app.LastResult.params.measurementTime,numel(app.LastResult.A.time),numel(app.LastResult.B.time));
                 end
+                a=app.LastResult.source.startCleanup; b=app.LastResult.source.stopCleanup;
+                if a.wasSorted || b.wasSorted || a.removedNonfiniteCount+b.removedNonfiniteCount>0
+                    app.StatusLabel.Text=sprintf('%s；排序 A/B=%d/%d，剔除非有限值 A/B=%d/%d', ...
+                        app.StatusLabel.Text,a.wasSorted,b.wasSorted,a.removedNonfiniteCount,b.removedNonfiniteCount);
+                end
+                app.StatusLabel.Tooltip=app.StatusLabel.Text;
             catch ME
                 app.showError(ME,'导入时间戳失败');
+            end
+        end
+
+        function batchImport(app)
+            showBatchExportDialog(app.UIFigure,@runBatch);
+
+            function runBatch(input,output,options)
+            try
+                p=app.readParameters();
+                factor=app.Controls.ImportUnit.Value;
+                if isnan(factor), factor=app.Controls.ImportLSB.Value*1e-12; end
+                progress=uiprogressdlg(app.UIFigure,'Title','文件夹批量计算并导出', ...
+                    'Message','正在扫描文件…','Cancelable','on');
+                cleanup=onCleanup(@()close(progress));
+                callback=@(completed,total,message)updateProgress(progress,completed,total,message);
+                report=batchAnalyzeTimestampFolder(input,output,factor,p,callback,options);
+                state='完成'; if report.cancelled, state='已取消'; end
+                message=sprintf(['批处理%s：成功 %d 组，失败 %d 组，跳过 %d 个文件。\n' ...
+                    '导出目录：%s\n详见 batch_log.csv 和 batch_skipped.csv。'], ...
+                    state,report.successCount,report.failedCount,height(report.skipped),report.outputFolder);
+                app.StatusLabel.Text=sprintf('批处理%s：成功 %d，失败 %d', ...
+                    state,report.successCount,report.failedCount);
+                clear cleanup
+                uialert(app.UIFigure,message,'批处理结果','Icon','info');
+            catch ME
+                app.showError(ME,'文件夹批处理失败');
+            end
+            end
+
+            function keepGoing=updateProgress(progress,completed,total,message)
+                progress.Value=completed/max(1,total); progress.Message=message;
+                drawnow;
+                keepGoing=~progress.CancelRequested;
+            end
+        end
+
+        function seedSweep(app)
+            showSeedSweepDialog(app.UIFigure,app.readParameters(),@runSweep);
+
+            function runSweep(spec,folder,baseName,options)
+                p=app.readParameters();
+                if options.sweep
+                    c=app.Controls;
+                    if c.SweepStep.Value<=0 || c.SweepStop.Value<c.SweepStart.Value
+                        error('CoincidenceSim:InvalidSweep','窗口扫描步进须为正，终点不得小于起点。');
+                    end
+                    widths=(c.SweepStart.Value:c.SweepStep.Value:c.SweepStop.Value)*1e-9;
+                    if numel(widths)>500, error('CoincidenceSim:InvalidSweep','窗口扫描不得超过 500 个点。'); end
+                    options.sweepWidths=widths;
+                end
+                progress=uiprogressdlg(app.UIFigure,'Title','随机种子步进扫描', ...
+                    'Message','正在准备仿真…','Cancelable','on');
+                cleanup=onCleanup(@()close(progress));
+                callback=@(completed,total,message)updateProgress(progress,completed,total,message);
+                report=runRandomSeedSweep(p,spec,folder,string(baseName),options,callback);
+                state='完成'; if report.cancelled, state='已取消'; end
+                app.StatusLabel.Text=sprintf('种子扫描%s：成功 %d，失败 %d',state,report.successCount,report.failedCount);
+                clear cleanup
+                uialert(app.UIFigure,sprintf('%s\n导出目录：%s\n详见 seed_sweep_log.csv。', ...
+                    app.StatusLabel.Text,report.outputFolder),'种子扫描结果','Icon','info');
+            end
+
+            function keepGoing=updateProgress(progress,completed,total,message)
+                progress.Value=completed/max(1,total); progress.Message=message; drawnow;
+                keepGoing=~progress.CancelRequested;
             end
         end
 

@@ -1,0 +1,48 @@
+正在运行 TestTimestampBatch
+.
+================================================================================
+TestTimestampBatch/exportsAgreeWithSingleImportAndKeepRequestedParameters 中验证失败。
+    --------
+    框架诊断:
+    --------
+    verifyEqual 失败。
+    --> 使用 "isequaln" 确定数值不相等。
+    --> 失败表:
+            Actual    Expected    Error    RelativeError
+            ______    ________    _____    _____________
+                                                        
+             NaN       8e-11       NaN          NaN     
+    
+    实际值:
+       NaN
+    预期值:
+         8.000000000000000e-11
+    --------
+    堆栈信息:
+    --------
+    位置: D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\tests\TestTimestampBatch.m (TestTimestampBatch.exportsAgreeWithSingleImportAndKeepRequestedParameters)，位置: 49
+================================================================================
+...
+已完成 TestTimestampBatch
+__________
+
+失败摘要:
+
+     Name                                                                       Failed  Incomplete  原因
+    ==========================================================================================================
+     TestTimestampBatch/exportsAgreeWithSingleImportAndKeepRequestedParameters    X                 验证失败。
+                                         Name                                         Passed    Failed    Incomplete    Duration      Details   
+    ______________________________________________________________________________    ______    ______    __________    ________    ____________
+
+    {'TestTimestampBatch/pairingKeepsDirectoriesAndDevicePrefixesSeparate'       }    true      false       false        4.2851     {1×1 struct}
+    {'TestTimestampBatch/exportsAgreeWithSingleImportAndKeepRequestedParameters' }    false     true        false        8.7596     {1×1 struct}
+    {'TestTimestampBatch/corruptPairDoesNotStopLaterPairsAndManualModeIsExplicit'}    true      false       false       0.60373     {1×1 struct}
+    {'TestTimestampBatch/cancellationKeepsFinishedExportsAndMarksRemainingPairs' }    true      false       false       0.37645     {1×1 struct}
+
+{错误使用 assert
+测试会话中有至少一个测试失败。
+
+出错 matlab.unittest.internal.BaseTestResult/assertSuccess (第 126 行)
+             assert(~any([resultArray.Failed]),message('MATLAB:unittest:TestResult:UnsuccessfulRun'));
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 

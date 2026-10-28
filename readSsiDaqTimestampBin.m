@@ -3,7 +3,8 @@ function [timestamps, metadata] = readSsiDaqTimestampBin(filename)
 %   文件格式为大端 QDataStream：两个 QString（格式标识、通道文件名），
 %   后接若干块；每块由 uint32 记录数和相应数量的 big-endian double 组成。
 %   double 数值的单位为 ps。函数先扫描块头统计总记录数，再预分配并读取，
-%   避免大文件动态扩容造成额外内存峰值。
+%   避免大文件动态扩容造成额外内存峰值。剔除非有限值后，若存在块内或跨块
+%   乱序则对完整时间戳排序；保留重复时间戳，原文件不变。
 
 fid=fopen(filename,'rb','ieee-be');
 if fid<0
@@ -52,9 +53,10 @@ if totalCount>uint64(flintmax)
         "BIN 时间戳数量超过 MATLAB 可精确索引范围：%s",filename);
 end
 
-% 第二遍分块读取，读取时同时检查块内及跨块的非递减顺序。
+% 第二遍分块清洗并压紧写入，记录块内及跨块乱序，最后按需全局排序。
 timestamps=zeros(double(totalCount),1);
 fseek(fid,dataStart,'bof'); writePosition=1; previousLast=-Inf;
+removedNonfiniteCount=0; wasSorted=false;
 for blockIndex=1:double(blockCount)
     count=fread(fid,1,'uint32=>double');
     block=fread(fid,count,'double=>double');
@@ -62,20 +64,27 @@ for blockIndex=1:double(blockCount)
         error("CoincidenceSim:TruncatedBinaryTimestamp", ...
             "BIN 文件第 %d 个数据块不完整：%s",blockIndex,filename);
     end
-    if any(~isfinite(block)) || any(diff(block)<0) || (~isempty(block) && block(1)<previousLast)
-        error("CoincidenceSim:UnsortedTimestamps", ...
-            "BIN 时间戳包含非有限值或未按非递减顺序排列：%s",filename);
-    end
+    finite=isfinite(block);
+    removedNonfiniteCount=removedNonfiniteCount+nnz(~finite);
+    if ~all(finite), block=block(finite); end
+    wasSorted=wasSorted || any(diff(block)<0) || (~isempty(block) && block(1)<previousLast);
     if ~isempty(block)
-        target=writePosition:(writePosition+count-1);
+        target=writePosition:(writePosition+numel(block)-1);
         timestamps(target)=block;
-        writePosition=writePosition+count;
+        writePosition=writePosition+numel(block);
         previousLast=block(end);
     end
 end
+if writePosition==1
+    error("CoincidenceSim:EmptyTimestampFile","BIN 时间戳剔除非有限值后为空：%s",filename);
+end
+if removedNonfiniteCount>0, timestamps=timestamps(1:writePosition-1); end
+if wasSorted, timestamps=sort(timestamps); end
 
 metadata=struct('magic',magic,'channelName',channelName,'unitSeconds',1e-12, ...
-    'blockCount',double(blockCount),'timestampCount',double(totalCount));
+    'blockCount',double(blockCount),'timestampCount',numel(timestamps), ...
+    'originalTimestampCount',double(totalCount), ...
+    'removedNonfiniteCount',removedNonfiniteCount,'wasSorted',wasSorted);
 end
 
 function value = readQtString(fid,filename)
