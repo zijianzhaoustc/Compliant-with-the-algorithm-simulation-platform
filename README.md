@@ -196,6 +196,23 @@ report = batchAnalyzeTimestampFolder("E:\八通道30s\新实验测试", ...
     "D:\分析结果", 1e-12, p, @(~,~,~)true, options);
 ```
 
+窗口选择策略还提供 `bootstrap-bagging`（Bootstrap 稳定聚合）。仅该策略使用
+最小捕获窗口的 1～1.4 倍细网格（倍率步进 0.025），与已有窗口候选合并后沿用
+捕获率、完整旁窗和背景检查。复用“最多 Bootstrap 候选数”建立最多 11 个候选的池，
+缓存等长净计数块，用局部种子 `mod(Bootstrap种子+99173,2^32)` 做共享
+块索引重抽样，以 `M*var(blockNet,1)/capture^2` 评分选窗。将所选宽度均值投影到全部
+有效窗口，再仅对最终窗口运行原有候选 Bootstrap，保存 u 和 CI。
+“自适应符合”页的“Bagging 聚合次数”控制重抽样次数，默认 101，支持 1～100000
+的整数；对应 `p.optimization.baggingResamples`，仅用于 `bootstrap-bagging` 策略，
+与“候选 Bootstrap 次数”和统计不确定度的“重采样次数 B”独立。旧参数文件缺少
+此字段时补为 101；重新计算、文件夹批处理和随机种子扫描均沿用当前设置。
+`optimization.bagging` 记录实际聚合次数、候选池、每次宽度、均值、标准差、最终窗口及诊断；
+窗口 CSV 追加 `BaggingSelectionFrequency`，摘要 CSV 追加 Bagging 诊断字段。
+参数 MAT 保存所设次数；优化摘要记录 `BaggingReps` 和 `Config_baggingResamples`，
+文件夹批量导出的完整参数列表也记录 `params.optimization.baggingResamples`。
+关闭 Bootstrap、块数低于“最小建议分块数”或评分不可用时返回明确诊断，保留手动
+计算设置。默认仍为 `narrowest`，原 `narrowest` 和 `bootstrap-score` 路径保持不变。
+
 ## 随机种子步进扫描
 
 设置主界面的仿真、算法、统计不确定度和自适应参数后，点击“随机种子步进扫描…”，

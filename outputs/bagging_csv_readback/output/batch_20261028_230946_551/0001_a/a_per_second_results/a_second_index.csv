@@ -1,0 +1,3 @@
+﻿SecondIndex,Start_s,Stop_s,Duration_s,CountA,CountB,Nraw,OutputFolder
+1,0,1,1,2,2,2,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\bagging_csv_readback\output\batch_20261028_230946_551\0001_a\a_per_second_results\second_0001
+2,1,2,1,2,2,2,D:\Compliant algorithm simulation platform\Compliant-with-the-algorithm-simulation-platform\outputs\bagging_csv_readback\output\batch_20261028_230946_551\0001_a\a_per_second_results\second_0002

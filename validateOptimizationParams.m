@@ -7,7 +7,7 @@ for field=["mode","selection","validationMode"]
     o.(field)=string(o.(field));
 end
 if ~any(o.mode==["manual","recommend","apply"]) || ...
-        ~any(o.selection==["narrowest","bootstrap-score"]) || ...
+        ~any(o.selection==["narrowest","bootstrap-score","bootstrap-bagging"]) || ...
         ~any(o.validationMode==["none","held-out"])
     error('CoincidenceSim:InvalidOptimization','未知的优化模式、选择策略或验证模式。');
 end
@@ -32,6 +32,11 @@ for field=["targetCapture","minPeakCounts","minBackgroundCounts","backgroundZ", 
     if ~isnumeric(x) || ~isscalar(x) || ~isfinite(x) || x<=0
         error('CoincidenceSim:InvalidOptimization','%s 必须为有限正标量。',field);
     end
+end
+reps=o.baggingResamples;
+if ~isnumeric(reps) || ~isscalar(reps) || ~isreal(reps) || ~isfinite(reps) || ...
+        reps<1 || reps>1e5 || mod(reps,1)~=0
+    error('CoincidenceSim:InvalidOptimization','Bagging 聚合次数必须为 1~100000 的整数。');
 end
 if o.targetCapture>=1 || o.maxModelDeviation>=1 || ...
         o.bootstrapCandidates>200 || o.candidateResamples<2 || o.candidateResamples>1e5 || ...

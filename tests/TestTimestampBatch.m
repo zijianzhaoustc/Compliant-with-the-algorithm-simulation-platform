@@ -33,7 +33,7 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
             a=fullfile(input,'run_CH1.bin'); b=fullfile(input,'run_CH2.bin');
             values=[0;.2;1;1.2;2;2.4]*1e12;
             writeBin(a,"CH1.bin",values); writeBin(b,"CH2.bin",values);
-            p=parameters();
+            p=parameters(); p.optimization.baggingResamples=401;
             raw=importTimestampFiles(a,b,1,p,false);
             t.verifyFalse(isfield(raw,'matches')); t.verifyFalse(isfield(raw,'metrics'));
             t.verifyEqual(raw.params.measurementTime,2.4,'AbsTol',1e-12);
@@ -47,8 +47,13 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
                 'VariableNamingRule','preserve','TextType','string');
             row=summary.('参数')=="params.measurementTime";
             t.verifyEqual(str2double(string(summary.('数值')(row))),.4,'AbsTol',1e-12);
+            row=summary.('参数')=="params.optimization.baggingResamples";
+            t.verifyEqual(str2double(string(summary.('数值')(row))),401);
             o=readtable(fullfile(folder,'run_second_0003_optimization_summary.csv'),'TextType','string');
             t.verifyEqual(o.Mode,"recommend");
+            t.verifyEqual(o.Config_baggingResamples,401);
+            snapshot=load(fullfile(report.outputFolder,'batch_settings.mat'));
+            t.verifyEqual(snapshot.params.optimization.baggingResamples,401);
             % 整段模式也使用同一组选项，未勾选的两类文件不生成。
             options=struct('histogram',false,'results',false);
             whole=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
@@ -71,7 +76,9 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
             t.verifyTrue(report.cancelled);
             t.verifyEqual(report.log.Status,["cancelled";"cancelled"]);
             t.verifyEqual(report.log.CompletedSeconds,[2;0]);
-            index=readtable(fullfile(report.log.OutputFolder(1),'a_per_second_results','a_second_index.csv'));
+            % 两行短表显式指定首行表头及分隔符，避免自动格式探测。
+            index=readtable(fullfile(report.log.OutputFolder(1),'a_per_second_results','a_second_index.csv'), ...
+                'ReadVariableNames',true,'NumHeaderLines',0,'Delimiter',',','Encoding','UTF-8');
             t.verifyEqual(height(index),2); t.verifyEqual(index.Nraw,[2;2]);
             t.verifyTrue(isfile(fullfile(index.OutputFolder{2},'a_second_0002_histogram.csv')));
             clear cleanup

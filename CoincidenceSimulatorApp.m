@@ -201,8 +201,9 @@ classdef CoincidenceSimulatorApp < handle
 
         function buildOptimizationTab(app,p)
             app.OptimizationTab=uitab(app.ParameterTabs,'Title','自适应符合','Scrollable','off');
-            g=uigridlayout(app.OptimizationTab,[16 2]);
-            g.ColumnWidth={'1x',205}; g.RowHeight=[repmat({23},1,13),{36,48,'1x'}];
+            g=uigridlayout(app.OptimizationTab,[17 2]);
+            g.ColumnWidth={'1x',205}; g.RowHeight=[repmat({23},1,14),{36,48,'1x'}];
+            g.Scrollable='on';
             g.Padding=[7 6 7 6]; g.RowSpacing=3;
             o=p.optimization;
             app.Controls.OptimizationMode=app.addDrop(g,1,'参数选择模式', ...
@@ -211,26 +212,31 @@ classdef CoincidenceSimulatorApp < handle
             app.addDrop(g,2,'自动 bin 方法',{'Shimazaki-Shinomoto'},{'shimazaki-shinomoto'},'shimazaki-shinomoto');
             app.Controls.TargetCapture=app.addNum(g,3,'目标相关峰捕获率 (%)',o.targetCapture*100);
             app.Controls.Selection=app.addDrop(g,4,'窗口选择策略', ...
-                {'最窄有效窗口','Bootstrap 评分（候选子集）'}, ...
-                {'narrowest','bootstrap-score'},o.selection);
+                {'最窄有效窗口','Bootstrap 评分（候选子集）','Bootstrap 稳定聚合（Bagging）'}, ...
+                {'narrowest','bootstrap-score','bootstrap-bagging'},o.selection);
             app.Controls.MinBackground=app.addNum(g,5,'最少旁窗背景总计数',o.minBackgroundCounts);
             app.Controls.BackgroundZ=app.addNum(g,6,'左右背景差异阈值 (z)',o.backgroundZ);
             app.Controls.PeakTail=app.addNum(g,7,'峰尾保护距离 (σ)',o.peakTailSigma);
             app.Controls.CandidateB=app.addNum(g,8,'候选 Bootstrap 次数',o.candidateResamples);
             app.Controls.CandidateCount=app.addNum(g,9,'最多 Bootstrap 候选数',o.bootstrapCandidates);
-            app.Controls.ValidationMode=app.addDrop(g,10,'高级独立验证', ...
+            app.Controls.BaggingReps=app.addNum(g,10,'Bagging 聚合次数',o.baggingResamples);
+            app.Controls.BaggingReps.Limits=[1 1e5];
+            app.Controls.BaggingReps.RoundFractionalValues='on';
+            app.Controls.BaggingReps.Tooltip= ...
+                '仅用于 Bootstrap 稳定聚合策略。共享时间块重抽样次数，默认 101；支持 1~100000 的整数，与候选 Bootstrap 和正式不确定度次数独立。';
+            app.Controls.ValidationMode=app.addDrop(g,11,'高级独立验证', ...
                 {'关闭','交替时间块训练/评价'}, {'none','held-out'},o.validationMode);
             app.Controls.FullSides=uicheckbox(g,'Text','要求全部 2K 个旁窗完整有效','Value',o.requireFullSideWindows);
-            app.Controls.FullSides.Layout.Row=11; app.Controls.FullSides.Layout.Column=[1 2];
+            app.Controls.FullSides.Layout.Row=12; app.Controls.FullSides.Layout.Column=[1 2];
             app.Controls.BackgroundCheck=uicheckbox(g,'Text','检查左右背景平坦性和计数充分性','Value',o.checkBackground);
-            app.Controls.BackgroundCheck.Layout.Row=12; app.Controls.BackgroundCheck.Layout.Column=[1 2];
+            app.Controls.BackgroundCheck.Layout.Row=13; app.Controls.BackgroundCheck.Layout.Column=[1 2];
             app.Controls.BinStability=uicheckbox(g,'Text','检查峰位置及 bin 边界稳定性','Value',o.checkBinStability);
-            app.Controls.BinStability.Layout.Row=13; app.Controls.BinStability.Layout.Column=[1 2];
+            app.Controls.BinStability.Layout.Row=14; app.Controls.BinStability.Layout.Column=[1 2];
             note=uilabel(g,'Text','默认只推荐；选参复用时间戳，不使用 TP/FP 真值。', ...
-                'WordWrap','on','FontColor',[.35 .4 .48]); note.Layout.Row=14; note.Layout.Column=[1 2];
+                'WordWrap','on','FontColor',[.35 .4 .48]); note.Layout.Row=15; note.Layout.Column=[1 2];
             app.OptimizationStatusLabel=uilabel(g,'Text','运行仿真、导入或重新计算后显示推荐及诊断。', ...
                 'WordWrap','on','FontColor',[.1 .35 .45]);
-            app.OptimizationStatusLabel.Layout.Row=15; app.OptimizationStatusLabel.Layout.Column=[1 2];
+            app.OptimizationStatusLabel.Layout.Row=16; app.OptimizationStatusLabel.Layout.Column=[1 2];
         end
 
         function buildTimestampPanel(app,parent)
@@ -313,6 +319,7 @@ classdef CoincidenceSimulatorApp < handle
             p.optimization.peakTailSigma=c.PeakTail.Value;
             p.optimization.candidateResamples=c.CandidateB.Value;
             p.optimization.bootstrapCandidates=c.CandidateCount.Value;
+            p.optimization.baggingResamples=c.BaggingReps.Value;
             p.optimization.validationMode=string(c.ValidationMode.Value);
             p.optimization.requireFullSideWindows=c.FullSides.Value;
             p.optimization.checkBackground=c.BackgroundCheck.Value;
@@ -369,6 +376,7 @@ classdef CoincidenceSimulatorApp < handle
             c.PeakTail.Value=p.optimization.peakTailSigma;
             c.CandidateB.Value=p.optimization.candidateResamples;
             c.CandidateCount.Value=p.optimization.bootstrapCandidates;
+            c.BaggingReps.Value=p.optimization.baggingResamples;
             c.ValidationMode.Value=char(p.optimization.validationMode);
             c.FullSides.Value=p.optimization.requireFullSideWindows;
             c.BackgroundCheck.Value=p.optimization.checkBackground;

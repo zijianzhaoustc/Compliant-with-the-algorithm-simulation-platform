@@ -3,7 +3,11 @@ function result = optimizeCoincidenceWindow(A,B,matches,p,model,widths,bootstrap
 % shortlist 使用固定种子和相同分块，因此候选间使用相同抽样索引。
 if nargin<6 || isempty(widths)
     minimum=2*sqrt(2)*model.sigma*erfinv(p.optimization.targetCapture);
-    automatic=ceil(minimum*(1:.1:1.8)/p.tdc.resolution)*p.tdc.resolution;
+    if p.optimization.selection=="bootstrap-bagging"
+        automatic=ceil(minimum*(1:.025:1.40)/p.tdc.resolution)*p.tdc.resolution;
+    else
+        automatic=ceil(minimum*(1:.1:1.8)/p.tdc.resolution)*p.tdc.resolution;
+    end
     widths=unique([p.optimization.windowCandidates,automatic]);
 end
 if nargin<7, bootstrapBudget=p.optimization.bootstrapCandidates; end
@@ -53,6 +57,26 @@ for k=1:n
         upTheory(k)=sqrt(raw(k)+(width/T)^2*(numel(B.time)^2*numel(A.time)+numel(A.time)^2*numel(B.time)));
     end
 end
+isBagging=p.optimization.selection=="bootstrap-bagging";
+if isBagging
+    [bag,blocks]=selectBootstrapBaggedWindow(A,B,matches,p,model,widths,valid,guard,capture,upSide);
+    valid=bag.ValidCandidates;
+    diagnostic(bag.RejectedIndices)="bagging-score-unavailable";
+    choice=bag.selectedIndex; samples=cell(n,1);
+    if bag.valid
+        u=p.uncertainty; u.resamples=p.optimization.candidateResamples;
+        bs=runBlockBootstrap(blocks,u); bs.blocks=blocks;
+        samples{choice}=bs;
+        uSide(choice)=bs.standardUncertainty(4); uTheory(choice)=bs.standardUncertainty(5);
+        ciSide(choice,:)=bs.CI(:,4)'; ciTheory(choice,:)=bs.CI(:,5)';
+        score(choice)=uSide(choice)^2/capture(choice)^2; bootstrapB(choice)=u.resamples;
+        if ~isfinite(score(choice))
+            bag.valid=false; bag.selectedIndex=NaN; bag.FinalWindow_s=NaN;
+            bag.status="bagging-score-unavailable";
+            bag.FallbackReason="最终窗口的 Bootstrap 不确定度不可用。"; choice=NaN;
+        end
+    end
+else
 shortlist=find(valid);
 if p.optimization.selection=="bootstrap-score"
     [~,order]=sort(upSide(shortlist).^2./capture(shortlist).^2);
@@ -90,6 +114,7 @@ if any(valid)
         [best,k]=min(ranked); if isfinite(best), choice=k; end
     end
 end
+end
 if isfinite(choice), selected(choice)=true; end
 result=struct('valid',isfinite(choice),'window',NaN,'captureEstimate',NaN, ...
     'sideGuard',NaN,'selectedIndex',choice,'candidateBootstrap',{samples});
@@ -104,4 +129,8 @@ result.table=table(widths,raw,side,theory,raw-side,raw-theory,capture,L,total,z,
     'AnalyticalU_side','AnalyticalU_theory','BootstrapU_side','BootstrapU_theory', ...
     'CI_side_lower','CI_side_upper','CI_theory_lower','CI_theory_upper','BootstrapB', ...
     'OptimizationScore','ValidCandidate','Selected','BackgroundDiagnostic'});
+if isBagging
+    result.table.BaggingSelectionFrequency=bag.SelectionFrequency;
+    result.bagging=bag; result.status=bag.status;
+end
 end

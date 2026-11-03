@@ -8,6 +8,11 @@ optimization=struct('valid',false,'applied',false,'mode',p.optimization.mode, ..
     'uncertaintyScope',"fixed-parameters; parameter-selection uncertainty excluded", ...
     'settings',p.optimization,'uncertaintySettings',p.uncertainty, ...
     'requestedAlgorithm',p.algorithm,'effectiveAlgorithm',p.algorithm);
+if p.optimization.selection=="bootstrap-bagging" && ~p.uncertainty.enabled
+    optimization.bagging=selectBootstrapBaggedWindow(A,B,matches,p,struct(),[],false(0,1),[],[],[]);
+    optimization.status=optimization.bagging.status;
+    optimization.diagnostics=optimization.bagging.FallbackReason; return
+end
 if ~any(string(p.algorithm.matchMethod)==["many-to-many","all-pairs"])
     optimization.status="unsupported-matching-rule";
     optimization.diagnostics="自动优化需要 all-pairs 匹配；保留当前手动结果"; return
@@ -41,6 +46,13 @@ else
     optimization.valid=true; optimization.status="ok";
     optimization.window=windows.window; optimization.captureEstimate=windows.captureEstimate;
     optimization.sideGuard=windows.sideGuard;
+end
+if p.optimization.selection=="bootstrap-bagging"
+    optimization.bagging=windows.bagging;
+    optimization.status=windows.status;
+    if strlength(windows.bagging.FallbackReason)>0
+        optimization.diagnostics=windows.bagging.FallbackReason;
+    end
 end
 % 推荐已经确定后才加入真值诊断；这些字段完全不参与选参。
 t=optimization.windowScan; n=height(t); TP=nan(n,1); FP=nan(n,1); eta=nan(n,1);

@@ -1,0 +1,151 @@
+LEGACY_STRATEGIES_EXACT_MATCH: 4 runs
+正在运行 TestBootstrapBagging
+.......
+已完成 TestBootstrapBagging
+__________
+
+正在运行 TestOptimization
+.......... .
+已完成 TestOptimization
+__________
+
+正在运行 TestRandomSeedSweep
+....
+已完成 TestRandomSeedSweep
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampBatch
+..
+================================================================================
+TestTimestampBatch/batchCancellationBetweenSecondsKeepsCompletedOutputs 中出现错误并且未运行完毕。
+    --------
+    错误 ID:
+    --------
+    'MATLAB:table:UnrecognizedVarName'
+    -----------
+    错误详细信息:
+    -----------
+    错误使用 . (第 231 行)
+    无法识别表变量名称 'Nraw'。
+    
+    出错 TestTimestampBatch/batchCancellationBetweenSecondsKeepsCompletedOutputs (第 75 行)
+                t.verifyEqual(height(index),2); t.verifyEqual(index.Nraw,[2;2]);
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+================================================================================
+........
+已完成 TestTimestampBatch
+__________
+
+正在运行 TestTimestampSeconds
+...
+已完成 TestTimestampSeconds
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+失败摘要:
+
+     Name                                                                     Failed  Incomplete  原因
+    ====================================================================================================
+     TestTimestampBatch/batchCancellationBetweenSecondsKeepsCompletedOutputs    X         X       出错。
+                                             Name                                              Passed    Failed    Incomplete    Duration       Details   
+    _______________________________________________________________________________________    ______    ______    __________    _________    ____________
+
+    {'TestBootstrapBagging/tiedScoresPreferSmallestWidthAndSeedWraps'                     }    true      false       false         0.50829    {1×1 struct}
+    {'TestBootstrapBagging/existingCandidateControlCapsBaggingPoolAtEleven'               }    true      false       false         0.70566    {1×1 struct}
+    {'TestBootstrapBagging/fineGridReproducibilityAndTruthBlindness'                      }    true      false       false         0.51249    {1×1 struct}
+    {'TestBootstrapBagging/aggregationMatchesSharedIndexConditionalVariance'              }    true      false       false         0.11437    {1×1 struct}
+    {'TestBootstrapBagging/projectionOutsidePoolGetsFormalBootstrapAndExport'             }    true      false       false          3.6576    {1×1 struct}
+    {'TestBootstrapBagging/boundariesReturnExplicitDiagnostics'                           }    true      false       false         0.36479    {1×1 struct}
+    {'TestBootstrapBagging/heldOutRunsBaggingOnlyOnTrainingBlocks'                        }    true      false       false          2.3805    {1×1 struct}
+    {'TestOptimization/recommendationPreservesExistingMeasurement'                        }    true      false       false          1.4031    {1×1 struct}
+    {'TestOptimization/applicationUsesIndependentPeakAndRawDifferences'                   }    true      false       false         0.35019    {1×1 struct}
+    {'TestOptimization/truthLabelsCannotAffectSelection'                                  }    true      false       false         0.32507    {1×1 struct}
+    {'TestOptimization/sharedResamplesAndCandidateScore'                                  }    true      false       false         0.23346    {1×1 struct}
+    {'TestOptimization/invalidDataFallsBackAndInternalWindowsDoNotOptimize'               }    true      false       false         0.64839    {1×1 struct}
+    {'TestOptimization/backgroundAndSideWindowsRejectInvalidCandidates'                   }    true      false       false         0.04489    {1×1 struct}
+    {'TestOptimization/independentHeldOutValidation'                                      }    true      false       false         0.47913    {1×1 struct}
+    {'TestOptimization/optimizationExportAndCompleteSweep'                                }    true      false       false           1.317    {1×1 struct}
+    {'TestOptimization/malformedSettingsAndLegacyCompatibility'                           }    true      false       false         0.31671    {1×1 struct}
+    {'TestOptimization/recalculationUsesAllThreeAnalysisSettings'                         }    true      false       false         0.45167    {1×1 struct}
+    {'TestOptimization/peakModelDetectsBroadeningAndCompetingPeak'                        }    true      false       false         0.17057    {1×1 struct}
+    {'TestRandomSeedSweep/sequenceSupportsBothDirectionsAndRejectsOverflow'               }    true      false       false        0.056051    {1×1 struct}
+    {'TestRandomSeedSweep/eachSeedMatchesStandaloneSimulationAndLeavesBaseParametersFixed'}    true      false       false          2.4139    {1×1 struct}
+    {'TestRandomSeedSweep/allSelectiveExportCategoriesAreGeneratedForEachSimulation'      }    true      false       false          1.1084    {1×1 struct}
+    {'TestRandomSeedSweep/cancellationKeepsFinishedSeedsAndInvalidSelectionsCreateNoBatch'}    true      false       false         0.37792    {1×1 struct}
+    {'TestSimulation/idealChainPreservesPairs'                                            }    true      false       false         0.10783    {1×1 struct}
+    {'TestSimulation/efficiencyScaling'                                                   }    true      false       false         0.12004    {1×1 struct}
+    {'TestSimulation/jitterAddsInQuadrature'                                              }    true      false       false         0.15973    {1×1 struct}
+    {'TestSimulation/tdcUsesNonParalyzableDeadTime'                                       }    true      false       false        0.024133    {1×1 struct}
+    {'TestSimulation/rejectedPrimariesDoNotSeedAfterpulses'                               }    true      false       false        0.020946    {1×1 struct}
+    {'TestSimulation/afterpulsesRecurAndObeyDeadTime'                                     }    true      false       false        0.041285    {1×1 struct}
+    {'TestSimulation/avalancheQueueMatchesSortedReference'                                }    true      false       false        0.041874    {1×1 struct}
+    {'TestSimulation/detectorRoutesThroughCoupledAvalanches'                              }    true      false       false        0.019263    {1×1 struct}
+    {'TestSimulation/trueAndPeakSigmaAreSeparated'                                        }    true      false       false         0.15164    {1×1 struct}
+    {'TestSimulation/oneToOneDoesNotReuseEvents'                                          }    true      false       false       0.0085712    {1×1 struct}
+    {'TestSimulation/accidentalEstimatorsAreFinite'                                       }    true      false       false          0.2015    {1×1 struct}
+    {'TestSimulation/noAccidentalCorrection'                                              }    true      false       false        0.051183    {1×1 struct}
+    {'TestSimulation/sideWindowUsesPairedEqualWidthWindows'                               }    true      false       false       0.0076492    {1×1 struct}
+    {'TestSimulation/multipleTimeShiftParameters'                                         }    true      false       false         0.06703    {1×1 struct}
+    {'TestSimulation/fourDocumentMatchingRules'                                           }    true      false       false        0.028346    {1×1 struct}
+    {'TestSimulation/nearestNeighborReuseRules'                                           }    true      false       false        0.020135    {1×1 struct}
+    {'TestSimulation/chronologicalGreedyIsOneToOne'                                       }    true      false       false        0.010644    {1×1 struct}
+    {'TestSimulation/gaussianPeakFit'                                                     }    true      false       false         0.05441    {1×1 struct}
+    {'TestSimulation/histogramPreservesRequestedBinWidth'                                 }    true      false       false        0.053642    {1×1 struct}
+    {'TestSimulation/binWindowIncludesPeakAndBothSides'                                   }    true      false       false        0.033188    {1×1 struct}
+    {'TestSimulation/compactEfficiencyDefinitions'                                        }    true      false       false          0.2227    {1×1 struct}
+    {'TestSimulation/truthEvaluationMetricsFollowCountDefinitions'                        }    true      false       false        0.049946    {1×1 struct}
+    {'TestSimulation/resultSummaryMatchesRequestedGroups'                                 }    true      false       false        0.073908    {1×1 struct}
+    {'TestSimulation/timestampConnectionClasses'                                          }    true      false       false         0.12549    {1×1 struct}
+    {'TestSimulation/exportedCsvUsesUtf8Bom'                                              }    true      false       false         0.21511    {1×1 struct}
+    {'TestSimulation/windowSweepExportLayout'                                             }    true      false       false         0.18807    {1×1 struct}
+    {'TestSimulation/selectiveExportWritesSweepCsv'                                       }    true      false       false         0.23049    {1×1 struct}
+    {'TestSimulation/timestampWindowImportAndExport'                                      }    true      false       false         0.57111    {1×1 struct}
+    {'TestSimulation/perSecondCountRateUsesOneSecondNormalization'                        }    true      false       false         0.44002    {1×1 struct}
+    {'TestSimulation/perSecondTimingReportsGaussianFit'                                   }    true      false       false         0.29208    {1×1 struct}
+    {'TestSimulation/ssiDaqBinaryTimestampImport'                                         }    true      false       false         0.13191    {1×1 struct}
+    {'TestTimestampBatch/batchSecondsSplitEveryPairAndHonorSelectedOutputs'               }    true      false       false          4.9356    {1×1 struct}
+    {'TestTimestampBatch/batchSecondsExportFourSummariesAndFullParameterList'             }    true      false       false          1.7265    {1×1 struct}
+    {'TestTimestampBatch/batchCancellationBetweenSecondsKeepsCompletedOutputs'            }    false     true        true           1.5752    {1×1 struct}
+    {'TestTimestampBatch/binRepairPreservesFiniteDuplicatesAndSourceBytes'                }    true      false       false        0.092004    {1×1 struct}
+    {'TestTimestampBatch/cleanedTxtAndBinMatchReferenceAnalysisAndBatchExports'           }    true      false       false          1.6543    {1×1 struct}
+    {'TestTimestampBatch/sortedInputsAvoidSortingAndAllNonfiniteInputsStillFail'          }    true      false       false         0.14848    {1×1 struct}
+    {'TestTimestampBatch/pairingKeepsDirectoriesAndDevicePrefixesSeparate'                }    true      false       false         0.14709    {1×1 struct}
+    {'TestTimestampBatch/exportsAgreeWithSingleImportAndKeepRequestedParameters'          }    true      false       false          1.2365    {1×1 struct}
+    {'TestTimestampBatch/corruptPairDoesNotStopLaterPairsAndManualModeIsExplicit'         }    true      false       false         0.69849    {1×1 struct}
+    {'TestTimestampBatch/cancellationKeepsFinishedExportsAndMarksRemainingPairs'          }    true      false       false         0.48956    {1×1 struct}
+    {'TestTimestampSeconds/tenSecondsProduceTenSelectableHistograms'                      }    true      false       false         0.97323    {1×1 struct}
+    {'TestTimestampSeconds/partialSecondUsesActualDurationAndPreservesAbsoluteTimestamps' }    true      false       false          1.0248    {1×1 struct}
+    {'TestTimestampSeconds/emptySecondsStillExportIndependentUncertaintyAndRecommendation'}    true      false       false         0.65397    {1×1 struct}
+    {'TestUncertainty/automaticAnalysisAndBlockConservation'                              }    true      false       false         0.39757    {1×1 struct}
+    {'TestUncertainty/crossingBoundaryAndExposure'                                        }    true      false       false         0.15881    {1×1 struct}
+    {'TestUncertainty/analyticalFormulaAndCovariance'                                     }    true      false       false         0.29222    {1×1 struct}
+    {'TestUncertainty/reproducibleAndGlobalRngUnchanged'                                  }    true      false       false         0.65178    {1×1 struct}
+    {'TestUncertainty/negativeNetAndSharedSamples'                                        }    true      false       false        0.028003    {1×1 struct}
+    {'TestUncertainty/importedTruthAndSubwindowSuppression'                               }    true      false       false         0.63058    {1×1 struct}
+    {'TestUncertainty/emptySideWindowsAndSparseCounts'                                    }    true      false       false         0.20854    {1×1 struct}
+    {'TestUncertainty/effectiveBinWidthAndLegacySettings'                                 }    true      false       false         0.05167    {1×1 struct}
+    {'TestUncertainty/percentileAndValidation'                                            }    true      false       false        0.088261    {1×1 struct}
+    {'TestUncertainty/threeNumericExportsAndUiSummary'                                    }    true      false       false         0.73952    {1×1 struct}
+
+{错误使用 assert
+测试会话中有至少一个测试失败。
+
+出错 matlab.unittest.internal.BaseTestResult/assertSuccess (第 126 行)
+             assert(~any([resultArray.Failed]),message('MATLAB:unittest:TestResult:UnsuccessfulRun'));
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+出错 validate_bagging (第 13 行)
+save('outputs/bagging_test_results.mat','r'); assertSuccess(r);
+                                              ^^^^^^^^^^^^^^^^
+出错 run (第 112 行)
+evalin('caller', strcat(scriptStem, ';'));
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 

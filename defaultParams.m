@@ -104,5 +104,6 @@ p.optimization.widthStabilityFraction = .25;
 p.optimization.maxModelDeviation = .08;
 p.optimization.bootstrapCandidates = 5;
 p.optimization.candidateResamples = 300;
+p.optimization.baggingResamples = 101; % 稳定聚合的共享时间块重抽样次数
 p.optimization.validationMode = "none"; % held-out：交替时间块训练/独立评价
 end

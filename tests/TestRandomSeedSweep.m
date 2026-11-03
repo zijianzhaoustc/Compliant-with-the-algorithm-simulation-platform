@@ -11,7 +11,8 @@ classdef TestRandomSeedSweep < matlab.unittest.TestCase
 
         function eachSeedMatchesStandaloneSimulationAndLeavesBaseParametersFixed(t)
             root=string(tempname); mkdir(root); cleanup=onCleanup(@()rmdir(root,'s'));
-            p=parameters(); p.seed=42; p.optimization.mode="manual"; original=p;
+            p=parameters(); p.seed=42; p.optimization.mode="manual";
+            p.optimization.baggingResamples=401; original=p;
             options=struct('settings',true,'histogram',true,'timestamps',true,'unitSeconds',1);
             spec=struct('start',10,'step',3,'count',3); state=rng;
             report=runRandomSeedSweep(p,spec,root,"test",options);

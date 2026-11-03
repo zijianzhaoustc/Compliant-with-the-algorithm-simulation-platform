@@ -1,0 +1,38 @@
+[
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\CoincidenceSimulatorApp.m",
+    "Hash": "407B6ED7CCD9B842A326EED57E41BB939AA4620C0AD6E7A8E32D546603AA9215"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\validateOptimizationParams.m",
+    "Hash": "AE91CCD6C75DD3D1332FFB6877D80813AD458FA74AA90A7CCC4B22A511ED7FCD"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\optimizeCoincidenceWindow.m",
+    "Hash": "1E81FB05F14C6B13CB692FE265EF31607A6BDABE8F086853F7B73478E2287936"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\selectBootstrapBaggedWindow.m",
+    "Hash": "EF29DCB2D845901D2A788A7952E9AF840A21FEA89F7A95D1DA6E628B1C97768B"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\optimizeCoincidenceParameters.m",
+    "Hash": "9B868C06E2EC032076D540A38EA10A45D533A59ABFBE53523B2A1B29BD07652F"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\buildOptimizationSummaryTable.m",
+    "Hash": "5B22C857DA130EF359B8C5C371BCD4A9B6C5BD51B338A257B31F2443B7B4076B"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\tests\\TestBootstrapBagging.m",
+    "Hash": "DD190785392E64871987D4521DD07FEED801548859658691A0DF16823353A266"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\tests\\TestTimestampBatch.m",
+    "Hash": "1029888CC3916B777031F38E2D8798104C525EA76140137D54C9DACA2319B1E8"
+  },
+  {
+    "Path": "D:\\Compliant algorithm simulation platform\\Compliant-with-the-algorithm-simulation-platform\\README.md",
+    "Hash": "6E745B5D74FD0103A84C9A91BDA95D1EC824497E2BF4D6CE5287D8D770D2893E"
+  }
+]

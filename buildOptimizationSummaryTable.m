@@ -17,6 +17,18 @@ summary.ConfidenceLevel=o.uncertaintySettings.confidenceLevel;
 summary.BlockMode=string(o.uncertaintySettings.blockMode);
 summary.RequestedBlockSize_s=o.uncertaintySettings.blockSize;
 summary.FormalBootstrapB=o.uncertaintySettings.resamples;
+if isfield(o,'bagging') && ~isempty(o.bagging)
+    bag=o.bagging;
+    summary.BaggingReps=bag.Reps;
+    summary.BaggingPoolIndices=string(mat2str(bag.PoolIndices',17));
+    summary.BaggingPoolWindows_s=string(mat2str(bag.PoolWindows_s',17));
+    summary.BaggingMeanSelectedWindow_s=bag.MeanSelectedWindow_s;
+    summary.BaggingSelectedWindowSD_s=bag.SelectedWindowSD_s;
+    summary.BaggingFinalWindow_s=bag.FinalWindow_s;
+    summary.BaggingSeed=bag.Seed;
+    summary.BaggingFallbackReason=bag.FallbackReason;
+    summary.BaggingRangeFallback=bag.RangeFallback;
+end
 % 每项阈值完整导出，便于检查实验中是否改动过统计约束。
 fields=fieldnames(o.settings);
 for k=1:numel(fields)
