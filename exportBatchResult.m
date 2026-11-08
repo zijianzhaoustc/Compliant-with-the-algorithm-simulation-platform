@@ -32,6 +32,9 @@ if options.optimization
     file=fullfile(folder,baseName+"_optimization_summary.csv");
     writeUtf8BomTable(recommendation,file); files(end+1,1)=file;
 end
+if isfield(options,'evaluation') && options.evaluation
+    files(end+1,1)=exportWindowEvaluation(out,folder,baseName);
+end
 end
 
 function rows=parameterRows(value,prefix)

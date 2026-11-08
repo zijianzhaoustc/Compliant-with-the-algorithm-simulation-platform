@@ -68,6 +68,22 @@ classdef TestBootstrapBagging < matlab.unittest.TestCase
                 'VariableNamingRule','preserve','TextType','string');
             row=params.('参数')=="params.optimization.baggingResamples";
             t.verifyEqual(nnz(row),1); t.verifyEqual(str2double(string(params.('数值')(row))),401);
+
+            options=struct('settings',false,'histogram',false,'results',false,'timestamps',false, ...
+                'evaluation',true,'unitSeconds',1e-12);
+            files=exportSelectedResults(result,folder,"scores",options);
+            t.assertEqual(files,string(fullfile(folder,'scores_window_evaluation.csv')));
+            scores=readtable(files,'TextType','string');
+            scan=result.optimization.windowScan; bag=result.optimization.bagging;
+            pool=bag.PoolIndices;
+            t.verifyTrue(all(isnan(str2double(string(scores.Seed)))));
+            t.verifyEqual(scores.W_ns,scan.Window_s*1e9,'AbsTol',1e-12);
+            t.verifyEqual(logical(scores.Valid),scan.ValidCandidate);
+            t.verifyEqual(scores.V(pool),bag.ScoreVariance(pool),'RelTol',1e-12);
+            t.verifyEqual(scores.J(pool),scores.V(pool)./scores.Eta(pool).^2,'RelTol',1e-12);
+            t.verifyEqual(scores.J_mean(pool),bag.ScoreMean(pool),'RelTol',1e-12);
+            t.verifyEqual(scores.J_std(pool),bag.ScoreStd(pool),'RelTol',1e-12);
+            t.verifyTrue(all(isnan(scores.J(~scan.ValidCandidate))));
             clear cleanup
         end
 
@@ -150,12 +166,17 @@ classdef TestBootstrapBagging < matlab.unittest.TestCase
             end
             stream=RandStream('mt19937ar','Seed',bag.Seed); chosen=zeros(401,1);
             capture=r.table.CaptureEstimate(bag.PoolIndices)';
+            scores=zeros(401,numel(capture));
             for k=1:401
                 indices=randi(stream,M,M,1);
                 score=M*var(X(indices,:),1,1)./capture.^2;
+                scores(k,:)=score;
                 [~,winner]=min(score); chosen(k)=bag.PoolWindows_s(winner);
             end
             t.verifyEqual(bag.SelectedWindows_s,chosen);
+            t.verifyEqual(bag.ScoreVariance(bag.PoolIndices),(M*var(X,1,1))','RelTol',1e-12);
+            t.verifyEqual(bag.ScoreMean(bag.PoolIndices),mean(scores,1)','RelTol',1e-12);
+            t.verifyEqual(bag.ScoreStd(bag.PoolIndices),std(scores,0,1)','RelTol',1e-12);
             t.verifyEqual(bag.MeanSelectedWindow_s,mean(chosen));
             valid=find(r.table.ValidCandidate);
             [~,nearest]=min(abs(r.table.Window_s(valid)-mean(chosen)));

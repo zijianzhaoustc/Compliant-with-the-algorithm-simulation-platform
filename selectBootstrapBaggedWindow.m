@@ -10,7 +10,9 @@ bag=struct('valid',false,'selectedIndex',NaN,'status',"no-valid-window", ...
     'SelectedWindowSD_s',NaN,'FinalWindow_s',NaN,'Seed',seed, ...
     'FallbackReason',"",'RangeFallback',false,'BlockCount',NaN, ...
     'CacheBuildCount',0,'RejectedIndices',zeros(0,1), ...
-    'SelectionFrequency',nan(numel(widths),1),'ValidCandidates',valid);
+    'SelectionFrequency',nan(numel(widths),1),'ValidCandidates',valid, ...
+    'ScoreVariance',nan(numel(widths),1),'ScoreMean',nan(numel(widths),1), ...
+    'ScoreStd',nan(numel(widths),1));
 finalBlocks=[];
 if ~p.uncertainty.enabled
     bag.status="bagging-requires-bootstrap";
@@ -76,22 +78,32 @@ if isempty(pool)
     bag.FallbackReason="候选缺少完整旁窗或存在非有限净计数块。"; return
 end
 chosen=zeros(bag.Reps,1); wins=zeros(numel(pool),1);
+captureSquared=capture(pool)'.^2;
+scoreMean=zeros(size(captureSquared)); scoreM2=scoreMean;
+stream=RandStream('mt19937ar','Seed',seed);
+for b=1:bag.Reps
+    I=randi(stream,M,M,1);
+    ub2=M*var(X(I,:),1,1);
+    J=ub2./captureSquared;
+    if any(~isfinite(J))
+        bag.status="bagging-score-unavailable";
+        bag.FallbackReason="重抽样的方差评分存在非有限值。"; return
+    end
+    % 汇总同一轮候选评分，避免保存全部重抽样矩阵。
+    delta=J-scoreMean;
+    scoreMean=scoreMean+delta/b;
+    scoreM2=scoreM2+delta.*(J-scoreMean);
+    [~,winner]=min(J);
+    chosen(b)=widths(pool(winner)); wins(winner)=wins(winner)+1;
+end
+bag.ScoreVariance(pool)=M*var(X,1,1);
+bag.ScoreMean(pool)=scoreMean;
+if bag.Reps>1
+    bag.ScoreStd(pool)=sqrt(max(0,scoreM2)/(bag.Reps-1));
+end
 if isscalar(pool)
-    chosen(:)=widths(pool); wins(:)=bag.Reps;
     bag.status="bagging-single-candidate";
 else
-    stream=RandStream('mt19937ar','Seed',seed);
-    for b=1:bag.Reps
-        I=randi(stream,M,M,1);
-        ub2=M*var(X(I,:),1,1);
-        J=ub2./(capture(pool)'.^2);
-        if any(~isfinite(J))
-            bag.status="bagging-score-unavailable";
-            bag.FallbackReason="重抽样的方差评分存在非有限值。"; return
-        end
-        [~,winner]=min(J);
-        chosen(b)=widths(pool(winner)); wins(winner)=wins(winner)+1;
-    end
     bag.status="ok";
 end
 bag.SelectedWindows_s=chosen;

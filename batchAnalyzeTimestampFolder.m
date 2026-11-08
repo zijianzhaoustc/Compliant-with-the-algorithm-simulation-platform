@@ -1,26 +1,30 @@
 function report = batchAnalyzeTimestampFolder(inputFolder, outputFolder, unitSeconds, p, progress, exportOptions)
-%BATCHANALYZETIMESTAMPFOLDER 按同一参数快照逐对分析并导出四类 CSV。
+%BATCHANALYZETIMESTAMPFOLDER 按同一参数快照逐对分析并选择性导出 CSV。
 %   PROGRESS(completed,total,message) 返回 true 时继续，false 时在组间取消。
 %   每批生成独立目录，保留输入子目录；错误与未配对文件写入清单。
 if nargin<5, progress=@(~,~,~)true; end
 if nargin<6, exportOptions=struct(); end
 defaults=struct('perSecond',false,'histogram',true,'results',true, ...
-    'uncertainty',true,'optimization',true,'unitSeconds',1e-12);
+    'uncertainty',true,'optimization',true,'evaluation',false,'unitSeconds',1e-12);
 for name=string(fieldnames(defaults))'
     if ~isfield(exportOptions,name), exportOptions.(name)=defaults.(name); end
 end
-for name=["perSecond","histogram","results","uncertainty","optimization"]
+for name=["perSecond","histogram","results","uncertainty","optimization","evaluation"]
     value=exportOptions.(name);
     if ~(islogical(value) || isnumeric(value)) || ~isscalar(value) || ~ismember(value,[0 1])
         error('CoincidenceSim:InvalidBatchExport','导出选项 %s 必须为逻辑标量。',name);
     end
 end
-if ~any([exportOptions.histogram exportOptions.results exportOptions.uncertainty exportOptions.optimization])
+if ~any([exportOptions.histogram exportOptions.results exportOptions.uncertainty ...
+        exportOptions.optimization exportOptions.evaluation])
     error('CoincidenceSim:NoBatchExports','至少选择一种批处理导出内容。');
 end
 validateattributes(exportOptions.unitSeconds,{'numeric'},{'scalar','real','finite','positive'});
 exportOptions.batchSummary=true;
 p=validateParams(p);
+if exportOptions.evaluation && p.optimization.mode=="manual"
+    error('CoincidenceSim:MissingOptimization','请先选择自适应推荐或自动应用，再导出评价函数值。');
+end
 validateattributes(unitSeconds,{'numeric'},{'scalar','real','finite','positive'});
 inputFolder=string(char(java.io.File(char(inputFolder)).getCanonicalPath()));
 outputFolder=string(char(java.io.File(char(outputFolder)).getCanonicalPath()));

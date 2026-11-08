@@ -1,12 +1,17 @@
 function files = exportSelectedResults(out, folder, baseName, options)
 %EXPORTSELECTEDRESULTS 按用户选择导出设置、直方图、结果表、扫描和时间戳。
 %   OPTIONS 包含 settings、histogram、results、sweep、timeWindows、countRates、
-%   timestamps、uncertainty、unitSeconds 字段。缺少新增字段时默认不导出，以兼容旧调用。
+%   timestamps、uncertainty、optimization、evaluation、unitSeconds 字段。
+%   缺少新增字段时默认不导出，以兼容旧调用。
 %   时间戳文件采用与实测样例相同的“每行一个数值、无表头”格式。
 
 if isfield(options,'perSecond') && options.perSecond
     files=exportTimestampSeconds(out,folder,baseName,options);
     return
+end
+evaluation=isfield(options,'evaluation') && options.evaluation;
+if evaluation && (~isfield(out,'optimization') || isempty(out.optimization))
+    error('CoincidenceSim:MissingOptimization','请先运行自适应分析，再导出评价函数值。');
 end
 if ~isfolder(folder), mkdir(folder); end
 files=strings(0,1);
@@ -143,5 +148,8 @@ if isfield(options,'optimization') && options.optimization
         file=fullfile(folder,baseName+"_optimization_validation.csv");
         writeUtf8BomTable(o.validation.summary,file); files(end+1,1)=file;
     end
+end
+if evaluation
+    files(end+1,1)=exportWindowEvaluation(out,folder,baseName);
 end
 end

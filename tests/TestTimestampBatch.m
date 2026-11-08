@@ -59,6 +59,14 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
             whole=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
             t.verifyEqual(whole.successCount,1);
             t.verifyEqual(numel(dir(fullfile(whole.log.OutputFolder(1),'*.csv'))),2);
+            options=struct('perSecond',true,'histogram',false,'results',false, ...
+                'uncertainty',false,'optimization',false,'evaluation',true);
+            scores=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
+            t.verifyEqual(scores.successCount,1);
+            t.verifyEqual(scores.log.ExportedFiles,4);
+            folder=fullfile(scores.log.OutputFolder(1),'run_per_second_results','second_0003');
+            exported=dir(fullfile(folder,'*.csv'));
+            t.verifyEqual(string({exported.name}),"run_second_0003_window_evaluation.csv");
             clear cleanup
         end
 

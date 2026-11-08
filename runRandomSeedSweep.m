@@ -5,7 +5,7 @@ if nargin<6, progress=@(~,~,~)true; end
 seeds=buildSeedSequence(spec.start,spec.step,spec.count);
 p=validateParams(p);
 names=["settings","histogram","results","sweep","timeWindows","countRates", ...
-    "uncertainty","timestamps","optimization"];
+    "uncertainty","timestamps","optimization","evaluation"];
 for name=names
     if ~isfield(options,name), options.(name)=false; end
 end
@@ -14,7 +14,7 @@ if ~any(cellfun(@(name)logical(options.(name)),cellstr(names)))
 end
 if ~isfield(options,'unitSeconds'), options.unitSeconds=1e-12; end
 validateattributes(options.unitSeconds,{'numeric'},{'scalar','real','finite','positive'});
-if options.optimization && p.optimization.mode=="manual"
+if (options.optimization || options.evaluation) && p.optimization.mode=="manual"
     error('CoincidenceSim:MissingOptimization','请先在主界面选择自适应推荐或自动应用，或取消自适应导出。');
 end
 if options.sweep

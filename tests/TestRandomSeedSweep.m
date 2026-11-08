@@ -44,13 +44,13 @@ classdef TestRandomSeedSweep < matlab.unittest.TestCase
             p=parameters(); p.algorithm.timestampWindowSize=.05;
             options=struct('settings',true,'histogram',true,'results',true,'sweep',true, ...
                 'timeWindows',true,'countRates',true,'uncertainty',true,'timestamps',true, ...
-                'optimization',true,'unitSeconds',1e-12,'sweepWidths',[1;2]*1e-9);
+                'optimization',true,'evaluation',true,'unitSeconds',1e-12,'sweepWidths',[1;2]*1e-9);
             report=runRandomSeedSweep(p,struct('start',7,'step',1,'count',1),root,"all",options);
             t.verifyEqual(report.successCount,1,report.log.Message(1));
             folder=report.log.OutputFolder(1); prefix="all_seed_7";
             suffix=["_settings.mat","_histogram.csv","_results.csv","_window_sweep.csv", ...
                 "_uncertainty_summary.csv","_bootstrap_blocks.csv","_bootstrap_replicates.csv", ...
-                "_StartCh.txt","_StopCh.txt","_optimization_summary.csv"];
+                "_StartCh.txt","_StopCh.txt","_optimization_summary.csv","_window_evaluation.csv"];
             for ending=suffix, t.verifyTrue(isfile(fullfile(folder,prefix+ending))); end
             windows=fullfile(folder,prefix+"_time_windows");
             t.verifyEqual(numel(dir(fullfile(windows,'*_histogram.csv'))),4);
