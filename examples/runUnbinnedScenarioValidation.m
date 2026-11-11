@@ -1,12 +1,14 @@
-function [summary,trials] = runUnbinnedScenarioValidation(folder,repeats,bootstrapCount)
+function [summary,trials] = runUnbinnedScenarioValidation(folder,repeats,bootstrapCount,scenarios)
 %RUNUNBINNEDSCENARIOVALIDATION Independent raw-event controls, no legacy generator.
 % Reports signed bias, RMSE and empirical coverage with explicit trial count.
 if nargin<2, repeats=5; end
 if nargin<3, bootstrapCount=31; end
 validateattributes(repeats,{'numeric'},{'scalar','positive','integer'});
 if ~isfolder(folder), mkdir(folder); end
-scenarios=["independent","gaussian","doublegaussian","skew-misspecified", ...
-    "high-rate","deadtime","afterpulse","deadtime-afterpulse"];
+if nargin<4
+    scenarios=["independent","gaussian","doublegaussian","skew-misspecified", ...
+        "high-rate","deadtime","afterpulse","deadtime-afterpulse"];
+end
 rows=cell(0,13); p=defaultParams(); p.measurementTime=4;
 p.inference.blockSeconds=.2; p.inference.bootstrapCount=bootstrapCount;
 p.inference.initialSigma=.3e-9; p.inference.maxIterations=600;
@@ -17,6 +19,7 @@ for k=1:numel(scenarios)
     for r=1:repeats
         [A,B]=controlEvents(scenario,1000*k+r,p.measurementTime);
         tic; result=crossFitUnbinned(A,B,p); elapsed=toc;
+        save(fullfile(folder,sprintf('%s_%03d.mat',scenario,r)),'result','p','scenario','r');
         truth=result.truth_Nrec;
         if scenario=="independent", truth=0; end
         estimate=result.Npair_fulltime;
@@ -43,6 +46,7 @@ for scenario=scenarios
         'RMSE_counts','coverage_evaluable_trials','empirical_coverage','positive_area_fraction'});
     summary=[summary;row]; %#ok<AGROW>
 end
+summary.inference_not_coverage_certified=true(height(summary),1);
 writeUtf8BomTable(summary,fullfile(folder,'scenario_summary.csv'));
 end
 function [A,B]=controlEvents(scenario,seed,T)
