@@ -1,0 +1,6 @@
+Unbinned doublegaussian: 20 blocks, 982470 candidate pairs; starting 0 joint refits.
+    inference_Cpair_cps    inference_Fwindow    inference_status    elapsed_s
+    ___________________    _________________    ________________    _________
+
+           23366                0.86036         "model-mismatch"     153.26  
+

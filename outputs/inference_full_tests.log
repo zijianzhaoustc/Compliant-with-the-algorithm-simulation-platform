@@ -1,0 +1,55 @@
+正在运行 TestBootstrapBagging
+..........
+已完成 TestBootstrapBagging
+__________
+
+正在运行 TestOptimization
+.......... .
+已完成 TestOptimization
+__________
+
+正在运行 TestRandomSeedSweep
+....
+已完成 TestRandomSeedSweep
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampBatch
+.......... .
+已完成 TestTimestampBatch
+__________
+
+正在运行 TestTimestampSeconds
+...
+已完成 TestTimestampSeconds
+__________
+
+正在运行 TestUnbinnedInference
+..Unbinned gaussian: 20 blocks, 800 candidate pairs; starting 0 joint refits.
+Unbinned gaussian: 20 blocks, 800 candidate pairs; starting 0 joint refits.
+.Unbinned gaussian: 20 blocks, 0 candidate pairs; starting 2 joint refits.
+Unbinned gaussian: 1 blocks, 0 candidate pairs; starting 2 joint refits.
+Unbinned gaussian: 20 blocks, 0 candidate pairs; starting 0 joint refits.
+.Unbinned gaussian: 20 blocks, 800 candidate pairs; starting 3 joint refits.
+Unbinned gaussian: 20 blocks, 800 candidate pairs; starting 3 joint refits.
+...Unbinned gaussian: 20 blocks, 800 candidate pairs; starting 0 joint refits.
+..Unbinned gaussian: 20 blocks, 800 candidate pairs; starting 0 joint refits.
+.
+已完成 TestUnbinnedInference
+__________
+
+正在运行 TestUnbinnedMath
+...
+已完成 TestUnbinnedMath
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+PASSED=93 FAILED=0

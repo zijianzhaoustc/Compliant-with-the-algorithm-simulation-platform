@@ -1,0 +1,287 @@
+Unbinned gaussian: 20 blocks, 417 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: boundary-fit
+Unbinned bootstrap 10/31: unidentifiable-response
+Unbinned bootstrap 20/31: unidentifiable-response
+Unbinned bootstrap 30/31: unidentifiable-response
+Unbinned bootstrap 31/31: boundary-fit
+independent trial 1: boundary-fit, truth=0, estimate=0.42747
+Unbinned gaussian: 20 blocks, 458 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: unidentifiable-response
+Unbinned bootstrap 10/31: unidentifiable-response
+Unbinned bootstrap 20/31: unidentifiable-response
+Unbinned bootstrap 30/31: unidentifiable-response
+Unbinned bootstrap 31/31: boundary-fit
+independent trial 2: unidentifiable-response, truth=0, estimate=0
+Unbinned gaussian: 20 blocks, 401 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: boundary-fit
+Unbinned bootstrap 10/31: boundary-fit
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: boundary-fit
+Unbinned bootstrap 31/31: unidentifiable-response
+independent trial 3: boundary-fit, truth=0, estimate=0
+Unbinned gaussian: 20 blocks, 414 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: unidentifiable-response
+Unbinned bootstrap 10/31: unidentifiable-response
+Unbinned bootstrap 20/31: unidentifiable-response
+Unbinned bootstrap 30/31: boundary-fit
+Unbinned bootstrap 31/31: boundary-fit
+independent trial 4: unidentifiable-response, truth=0, estimate=2.44795
+Unbinned gaussian: 20 blocks, 431 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: boundary-fit
+Unbinned bootstrap 10/31: unidentifiable-response
+Unbinned bootstrap 20/31: unidentifiable-response
+Unbinned bootstrap 30/31: unidentifiable-response
+Unbinned bootstrap 31/31: unidentifiable-response
+independent trial 5: boundary-fit, truth=0, estimate=0.254315
+Unbinned gaussian: 20 blocks, 1677 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+gaussian trial 1: ok, truth=1677, estimate=1677
+Unbinned gaussian: 20 blocks, 1610 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+gaussian trial 2: ok, truth=1610, estimate=1610
+Unbinned gaussian: 20 blocks, 1603 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+gaussian trial 3: ok, truth=1603, estimate=1603
+Unbinned gaussian: 20 blocks, 1650 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+gaussian trial 4: ok, truth=1650, estimate=1650
+Unbinned gaussian: 20 blocks, 1643 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+gaussian trial 5: ok, truth=1643, estimate=1643
+Unbinned doublegaussian: 20 blocks, 1558 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+doublegaussian trial 1: ok, truth=1558, estimate=1557.99
+Unbinned doublegaussian: 20 blocks, 1627 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+doublegaussian trial 2: ok, truth=1627, estimate=1626.99
+Unbinned doublegaussian: 20 blocks, 1596 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+doublegaussian trial 3: ok, truth=1596, estimate=1595.99
+Unbinned doublegaussian: 20 blocks, 1545 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+doublegaussian trial 4: ok, truth=1545, estimate=1544.99
+Unbinned doublegaussian: 20 blocks, 1582 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+doublegaussian trial 5: ok, truth=1582, estimate=1581.99
+Unbinned gaussian: 20 blocks, 1687 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+skew-misspecified trial 1: model-mismatch, truth=1686, estimate=1683.63
+Unbinned gaussian: 20 blocks, 1624 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+skew-misspecified trial 2: model-mismatch, truth=1624, estimate=1620.44
+Unbinned gaussian: 20 blocks, 1578 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+skew-misspecified trial 3: model-mismatch, truth=1578, estimate=1575.2
+Unbinned gaussian: 20 blocks, 1624 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+skew-misspecified trial 4: model-mismatch, truth=1624, estimate=1621.91
+Unbinned gaussian: 20 blocks, 1605 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+skew-misspecified trial 5: model-mismatch, truth=1605, estimate=1599.63
+Unbinned gaussian: 20 blocks, 6505 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+high-rate trial 1: ok, truth=6505, estimate=6504.96
+Unbinned gaussian: 20 blocks, 6562 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+high-rate trial 2: ok, truth=6560, estimate=6559.97
+Unbinned gaussian: 20 blocks, 6313 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+high-rate trial 3: ok, truth=6313, estimate=6312.97
+Unbinned gaussian: 20 blocks, 6596 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+high-rate trial 4: ok, truth=6595, estimate=6594.95
+Unbinned gaussian: 20 blocks, 6426 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+high-rate trial 5: ok, truth=6424, estimate=6423.98
+Unbinned gaussian: 20 blocks, 1453 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime trial 1: ok, truth=1453, estimate=1453
+Unbinned gaussian: 20 blocks, 1420 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime trial 2: ok, truth=1420, estimate=1420
+Unbinned gaussian: 20 blocks, 1382 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime trial 3: ok, truth=1382, estimate=1382
+Unbinned gaussian: 20 blocks, 1501 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime trial 4: ok, truth=1501, estimate=1501
+Unbinned gaussian: 20 blocks, 1456 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime trial 5: ok, truth=1456, estimate=1456
+Unbinned gaussian: 20 blocks, 1755 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+afterpulse trial 1: model-mismatch, truth=1671, estimate=1678.71
+Unbinned gaussian: 20 blocks, 1730 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+afterpulse trial 2: model-mismatch, truth=1650, estimate=1658.08
+Unbinned gaussian: 20 blocks, 1684 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+afterpulse trial 3: model-mismatch, truth=1609, estimate=1617.69
+Unbinned gaussian: 20 blocks, 1652 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+afterpulse trial 4: model-mismatch, truth=1571, estimate=1581.98
+Unbinned gaussian: 20 blocks, 1691 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+afterpulse trial 5: model-mismatch, truth=1614, estimate=1619.58
+Unbinned gaussian: 20 blocks, 1481 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime-afterpulse trial 1: ok, truth=1481, estimate=1481
+Unbinned gaussian: 20 blocks, 1474 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime-afterpulse trial 2: ok, truth=1474, estimate=1474
+Unbinned gaussian: 20 blocks, 1468 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime-afterpulse trial 3: ok, truth=1468, estimate=1468
+Unbinned gaussian: 20 blocks, 1393 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime-afterpulse trial 4: ok, truth=1393, estimate=1393
+Unbinned gaussian: 20 blocks, 1411 candidate pairs; starting 31 joint refits.
+Unbinned bootstrap 1/31: ok
+Unbinned bootstrap 10/31: ok
+Unbinned bootstrap 20/31: ok
+Unbinned bootstrap 30/31: ok
+Unbinned bootstrap 31/31: ok
+deadtime-afterpulse trial 5: ok, truth=1411, estimate=1411
+{错误使用 . (第 231 行)
+无法识别表变量名称 'inference_not_coverage_certified'。
+
+出错 runUnbinnedScenarioValidation (第 48 行)
+d=.3e-9*sqrt(2)*erfinv(2*u-1);
+    ^
+} 

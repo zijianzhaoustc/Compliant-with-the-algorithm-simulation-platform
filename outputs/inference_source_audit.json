@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "E:\\八通道30s\\新实验测试\\1\\dual_tdc_20261023_105207_487_swabian_CH1.bin",
+      "bytes": 45967798,
+      "sha256": "101c3281293ea3ede93331bfe8763dd915ceb87ebdde6438b9dda5d2845c3ba3"
+    },
+    {
+      "path": "E:\\八通道30s\\新实验测试\\1\\dual_tdc_20261023_105207_487_swabian_CH2.bin",
+      "bytes": 262958558,
+      "sha256": "90760874760bb9c753d7d40db277b3e5ceff3434d179094455e6b64a92f60440"
+    }
+  ],
+  "declared_exposure": null,
+  "pump_power": null,
+  "optical_group": null,
+  "herald_background": null,
+  "metadata_note": "User confirmed these metadata are unavailable."
+}
