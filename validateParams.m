@@ -92,6 +92,7 @@ finiteScalar(u.minBlocks,2,Inf,'minBlocks'); mustBeInteger(u.minBlocks);
 p.uncertainty.enabled=logical(u.enabled);
 p.uncertainty.blockMode=string(u.blockMode);
 p.optimization=validateOptimizationParams(p.optimization);
+p.inference=validateInferenceOptions(p.inference);
 end
 
 function finiteScalar(x,lo,hi,name)
