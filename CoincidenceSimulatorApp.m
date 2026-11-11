@@ -655,7 +655,9 @@ classdef CoincidenceSimulatorApp < handle
                 exportInferenceResults(app.LastResult.inference,folder,app.LastResult.params,app.LastResult.source);
                 plotInferenceDiagnostics(app.LastResult.inference,app.LastResult.params,folder);
                 app.StatusLabel.Text="推断报告已导出："+folder;
-            catch ME, app.showError(ME,'推断导出失败'); end
+            catch ME
+                app.showError(ME,'推断导出失败');
+            end
         end
 
         function analyzeInferenceManifest(app)
@@ -667,7 +669,9 @@ classdef CoincidenceSimulatorApp < handle
                 folder=fullfile(folder,'rate_efficiency_'+string(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
                 tbl=analyzeRateEfficiency(fullfile(path,file),app.readParameters(),folder);
                 app.StatusLabel.Text=sprintf('完成 %d 组独立响应分析：%s',height(tbl),folder);
-            catch ME, app.showError(ME,'多功率分析失败'); end
+            catch ME
+                app.showError(ME,'多功率分析失败');
+            end
         end
 
         function resetSweepAxes(app)

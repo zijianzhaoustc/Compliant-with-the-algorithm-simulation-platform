@@ -16,5 +16,6 @@ for k=1:numel(res.folds)
 end
 yline(ax,0); xlabel(ax,'Delay (ns)'); ylabel(ax,'Standardized residual');
 title(ax,'Held-out region diagnostics (descriptive, dependent pairs)'); grid(ax,'on');
+sgtitle(f,"Status: "+res.status+' | Exposure: '+res.exposureSource,'Interpreter','none');
 exportgraphics(f,fullfile(folder,'IRF_validation.png'),'Resolution',150);
 end

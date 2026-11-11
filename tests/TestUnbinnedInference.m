@@ -67,6 +67,10 @@ classdef TestUnbinnedInference < matlab.unittest.TestCase
             q=importTimestampFiles(fa,fb,1e-12,p,false,struct('durationSeconds',1));
             t.verifyEqual(q.B.time-q.A.time,repmat(3e-12,2,1),'AbsTol',1e-24);
             t.verifyEqual(q.params.measurementTime,1); t.verifyEqual(q.source.exposureSource,"declared");
+            writelines(["90071992547410920";"90071992547409920"],fa);
+            reordered=importTimestampFiles(fa,fb,1e-12,p,false,struct('durationSeconds',1));
+            t.verifyTrue(reordered.source.startCleanup.wasSorted);
+            t.verifyEqual(reordered.A.time,q.A.time);
             t.verifyError(@()importTimestampFiles(fa,fb,1e-12,p,false,struct('durationSeconds',1e-12)), ...
                 'CoincidenceSim:InvalidDuration');
         end
