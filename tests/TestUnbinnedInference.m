@@ -34,6 +34,10 @@ classdef TestUnbinnedInference < matlab.unittest.TestCase
             q=crossFitUnbinned(A,B,p);
             t.verifyTrue(isnan(q.Cpair)); t.verifyTrue(all(isnan(q.bootstrap.CI95),'all'));
             t.verifyEqual(q.status,"insufficient-events");
+            p.measurementTime=1; p.inference.blockSeconds=1;
+            A.time=[]; B.time=[]; q=crossFitUnbinned(A,B,p);
+            t.verifyEqual(q.status,"insufficient-blocks");
+            t.verifyEqual(q.bootstrap.status,"insufficient-blocks");
         end
         function bootstrapReproducibleAndPreservesRng(t)
             [A,B,p]=fixture(); p.inference.bootstrapCount=3; state=rng;
@@ -79,6 +83,31 @@ classdef TestUnbinnedInference < matlab.unittest.TestCase
             t.verifyEqual(result.exposure_source,"declared");
             t.verifyTrue(isfile(fullfile(root,'result','dataset_0001','settings_used.json')));
             t.verifyTrue(isfile(fullfile(root,'result','dataset_0001','IRF_validation.png')));
+        end
+        function externalSharedResponseRejectsLeakage(t)
+            [A,B,p]=fixture(); root=string(tempname); mkdir(root);
+            cleanup=onCleanup(@()rmdir(root,'s'));
+            fa=fullfile(root,'a.txt'); fb=fullfile(root,'b.txt');
+            fc=fullfile(root,'c.txt'); fd=fullfile(root,'d.txt');
+            writematrix(A.time,fa); writematrix(B.time,fb);
+            writematrix(A.time,fc); writematrix(B.time,fd);
+            calibration=table(fa,fb,1,4,0,"same-optics", ...
+                'VariableNames',{'startFile','stopFile','unitSeconds','durationSeconds','rawOrigin','opticalGroup'});
+            shared=fitSharedIRF(calibration,p); t.verifyTrue(shared.fit.valid);
+            t.verifyError(@()validateSharedIRF(calibration,shared,p),'CoincidenceSim:ValidationLeakage');
+            external=calibration; external.startFile=fc; external.stopFile=fd;
+            comparison=validateSharedIRF(external,shared,p);
+            t.verifyTrue(isfinite(comparison.shared_fixed_prediction_logLik));
+            external.opticalGroup="other-optics";
+            t.verifyError(@()validateSharedIRF(external,shared,p),'CoincidenceSim:InvalidManifest');
+        end
+        function independentResidualMismatchCannotReportOk(t)
+            [A,B,p]=fixture(); r=crossFitUnbinned(A,B,p);
+            r.diagnostics.standardized_residual(1:3)=10;
+            q=assessInferenceQuality(r);
+            t.verifyEqual(q.status,"model-mismatch");
+            t.verifyTrue(any(q.warnings=="heldout-shape-mismatch"));
+            t.verifyEqual(q.Cpair,r.Cpair);
         end
     end
 end

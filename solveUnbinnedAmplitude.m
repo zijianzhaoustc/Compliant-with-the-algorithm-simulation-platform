@@ -20,14 +20,14 @@ if impossible, r.status="zero-intensity-events"; return; end
 if n==0
     r.N=0; r.score=-F; r.logLik=-bi; r.curvature=0; r.status="no-events"; return
 end
-[s,~,~]=objective(0);
+[s,~,~]=objective(0,false);
 if s<=0
     N=0; r.status="boundary-fit";
 else
     low=0; high=max(1,n/F);
     mid=(low+high)/2;
     for j=1:60
-        [sm,~,h]=objective(mid);
+        [sm,~,h]=objective(mid,false);
         if sm>0, low=mid; else, high=mid; end
         if abs(sm)<1e-10*F || high-low<1e-10*max(1,mid), break; end
         proposal=mid-sm/h;
@@ -36,8 +36,8 @@ else
     end
     N=mid; r.status="ok";
 end
-r.N=N; [r.score,r.logLik,r.curvature]=objective(N);
-    function [score,ll,curvature]=objective(N)
+r.N=N; [r.score,r.logLik,r.curvature]=objective(N,true);
+    function [score,ll,curvature]=objective(N,computeLogLik)
         score=-F; ll=-bi-N*F; curvature=0;
         for c=1:numel(data)
             if isnumeric(data{c})
@@ -51,7 +51,8 @@ r.N=N; [r.score,r.logLik,r.curvature]=objective(N);
                 score=Inf; ll=-Inf; curvature=-Inf; return
             end
             ratio=f./intensity; score=score+sum(ratio);
-            ll=ll+sum(log(intensity)); curvature=curvature-sum(ratio.^2);
+            if computeLogLik, ll=ll+sum(log(intensity)); end
+            curvature=curvature-sum(ratio.^2);
         end
     end
 end

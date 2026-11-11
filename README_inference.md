@@ -51,7 +51,7 @@ r = crossFitUnbinned(loaded.A,loaded.B,q);
 
 无独立预告背景信息时，`etaB_given_A=NaN`，仅报告 `etaB_apparent=Cpair/RA`。只有明确提供 `heraldBackgroundRate`（cps）和 `heraldBackgroundSource` 时才计算 `Cpair/(RA-background)`；外部背景校准不确定度尚未传播。效率可能超过 1，程序告警而不截断。这里的效率包含收集、光路、探测和记录链，不能称作 DUT 本征 PDE。
 
-状态包括 `ok`、`boundary-fit`、`no-events`、`insufficient-events`、`insufficient-blocks`、`model-fail`、`unidentifiable-response`、`tail-risk`。`warnings` 独立报告曝光、背景不足、尾部残差、计数率漂移、粗 tick 及重拟合问题。`ok` 表示数值拟合完成，不保证物理模型正确。原生 tick 与宽度可比时，仅有连续近似风险诊断；尚未实现 tick 积分似然。
+状态包括 `ok`、`boundary-fit`、`no-events`、`insufficient-events`、`insufficient-blocks`、`model-fail`、`unidentifiable-response`、`tail-risk`、`model-mismatch`。`warnings` 独立报告曝光、背景不足、尾部残差、计数率漂移、粗 tick 及重拟合问题。独立残差中至少三个分区超过五个描述性标准单位时标记 `model-mismatch`；这是工程风险阈值，共享事件使其不具有独立 Poisson 卡方检验的意义。`ok` 表示数值拟合完成，不保证物理模型正确。原生 tick 与宽度可比时，仅有连续近似风险诊断；尚未实现 tick 积分似然。
 
 ## 多记录与外部共享响应
 

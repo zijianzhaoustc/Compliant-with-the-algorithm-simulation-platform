@@ -31,5 +31,6 @@ end
 tbl=vertcat(rows{:});
 if strlength(outputFolder)>0
     writeUtf8BomTable(tbl,fullfile(outputFolder,'power_rate_efficiency.csv'));
+    plotRateEfficiency(tbl,outputFolder);
 end
 end

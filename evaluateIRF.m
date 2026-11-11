@@ -30,8 +30,12 @@ y=exp(-.5*((x-m)/s).^2)/(sqrt(2*pi)*s);
 end
 function q=normalMass(d,m,s)
 z=(d-m)/(sqrt(2)*s);
-if z(1)>=0, q=.5*(erfc(z(1))-erfc(z(2)));
-elseif z(2)<=0, q=.5*(erfc(-z(2))-erfc(-z(1)));
-else, q=.5*(erf(z(2))-erf(z(1))); end
+if z(1)>=0
+    q=.5*(erfc(z(1))-erfc(z(2)));
+elseif z(2)<=0
+    q=.5*(erfc(-z(2))-erfc(-z(1)));
+else
+    q=.5*(erf(z(2))-erf(z(1)));
+end
 q=min(1,max(0,q));
 end

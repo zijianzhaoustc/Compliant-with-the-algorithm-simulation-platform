@@ -7,6 +7,8 @@ if ~any(p.algorithm.matchMethod==["many-to-many","all-pairs"])
 end
 blocks=splitTimestampBlocks(A,B,p.measurementTime,o.domain,o);
 res=fitUnbinnedBlocks(blocks,p);
+fprintf('Unbinned %s: %d blocks, %d candidate pairs; starting %d joint refits.\n', ...
+    o.model,numel(blocks.items),sum([blocks.items.pairCount]),o.bootstrapCount);
 res.bootstrap=bootstrapUnbinned(blocks,p);
 res.diagnostics=diagnoseIRFModel(blocks,res);
 res.exposureSource=o.exposureSource;
@@ -19,6 +21,7 @@ if o.tickSeconds>0 && ~isempty(res.folds) && o.quantizationDiagnostic
     widths=cellfun(@(f)f.fit.model.sigma1,res.folds);
     if o.tickSeconds>.2*min(widths), res.warnings(end+1)="coarse-tick-continuous-density-risk"; end
 end
+res=assessInferenceQuality(res);
 % Evaluation-only labels. Count unique positive recorded IDs, never candidates.
 if isfield(A,'pairID') && isfield(B,'pairID') && any(A.pairID>0) && any(B.pairID>0)
     res.truth_Nrec=numel(intersect(A.pairID(A.pairID>0),B.pairID(B.pairID>0)));

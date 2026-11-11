@@ -26,7 +26,8 @@ smin=max(scale*1e-5,o.tickSeconds/10); smax=scale/2;
 s0=min(smax*.8,max(smin*2,o.initialSigma));
 start=[(mu-origin)/scale,invlogit((s0-smin)/(smax-smin))];
 if o.model=="doublegaussian", start=[start,invlogit(.15),invlogit(.15),0]; end
-starts=[start; start+[.01 zeros(1,numel(start)-1)]];
+starts=start;
+if o.model=="doublegaussian", starts=[start;start+[.01 zeros(1,numel(start)-1)]]; end
 best=Inf; bestx=start; bestflag=0;
 for k=1:size(starts,1)
     [x,value,flag]=fminsearch(@loss,starts(k,:),optimset('Display','off', ...
@@ -43,9 +44,13 @@ if o.model=="doublegaussian"
 end
 fit.valid=isfinite(fit.N) && isfinite(fit.logLik) && bestflag>0;
 fit.status="ok";
-if ~fit.valid, fit.status="model-fail";
-elseif amplitude.status~="ok", fit.status=amplitude.status;
-elseif ~fit.identifiable, fit.status="unidentifiable-response"; end
+if ~fit.valid
+    fit.status="model-fail";
+elseif amplitude.status~="ok"
+    fit.status=amplitude.status;
+elseif ~fit.identifiable
+    fit.status="unidentifiable-response";
+end
     function v=loss(x)
         m=decode(x); r=solveUnbinnedAmplitude(data,m,bg,o.domain);
         v=-r.logLik;

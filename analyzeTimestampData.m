@@ -48,5 +48,12 @@ if p.inference.enabled
     if isfield(source,'exposureSource'), p.inference.exposureSource=source.exposureSource; end
     out.inference=crossFitUnbinned(A,B,p);
     if string(dataMode)=="imported", out.inference.truth_Nrec=NaN; end
+    if isfield(source,'precisionWarning') && source.precisionWarning~=""
+        out.inference.warnings(end+1)=source.precisionWarning;
+    end
+    if isfield(source,'gateOriginSource') && source.gateOriginSource=="first-event" && ...
+            source.exposureSource=="declared"
+        out.inference.warnings(end+1)="declared-duration-origin-assumed-first-event";
+    end
 end
 end

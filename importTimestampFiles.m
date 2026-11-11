@@ -123,7 +123,7 @@ if any(values>flintmax)
 end
 originalCount=numel(values);
 values=values(isfinite(values));
-wasSorted=any(diff(values)<0);
+wasSorted=any(values(2:end)<values(1:end-1));
 if wasSorted, values=sort(values); end
 cleanup=struct('originalCount',originalCount,'validCount',numel(values), ...
     'removedNonfiniteCount',originalCount-numel(values),'wasSorted',wasSorted);

@@ -24,7 +24,7 @@ settings=struct('params',p,'repositoryCommit',strtrim(sha),'matlabVersion',versi
     'coverageValidated',false,'backgroundDefinition',res.backgroundDefinition);
 file=fullfile(folder,'settings_used.json'); fid=fopen(file,'w','n','UTF-8');
 if fid<0, error('CoincidenceSim:ExportFailed','Cannot write settings.'); end
-cleanup=onCleanup(@()fclose(fid)); fwrite(fid,jsonencode(settings,'PrettyPrint',true),'char'); clear cleanup
+cleanup=onCleanup(@()fclose(fid)); fprintf(fid,'%s',jsonencode(settings,'PrettyPrint',true)); clear cleanup
 files(end+1,1)=file;
 manifest=table(string(datetime('now','TimeZone','UTC')),string(strtrim(sha)),string(version), ...
     string(res.status),string(res.exposureSource),res.T,res.Tcore,res.totalCandidatePairs, ...

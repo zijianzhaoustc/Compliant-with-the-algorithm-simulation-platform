@@ -50,9 +50,14 @@ if isfinite(o.heraldBackgroundRate)
 else
     res.warnings(end+1)="unknown-herald-background-apparent-efficiency-only";
 end
-rates=[items.rateA];
-if numel(rates)>1 && std(rates)>max(.1*mean(rates),3*sqrt(mean(rates)/mean([items.exposure])))
-    res.warnings(end+1)="rate-drift-check-block-sensitivity";
+if res.etaB_apparent>1 || res.etaB_given_A>1
+    res.warnings(end+1)="conditional-efficiency-above-one-model-or-background-check";
+end
+for field=["rateA","rateB"]
+    rates=[items.(field)];
+    if numel(rates)>1 && std(rates)>max(.1*mean(rates),3*sqrt(mean(rates)/mean([items.exposure])))
+        res.warnings(end+1)="rate-drift-check-block-sensitivity";
+    end
 end
 res.warnings=unique(res.warnings,'stable'); res.status="ok";
 if boundary, res.status="boundary-fit"; end
