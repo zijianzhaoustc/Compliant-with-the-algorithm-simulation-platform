@@ -35,19 +35,7 @@ trials=cell2table(rows,'VariableNames',{'scenario','trial','fitted_model','truth
     'estimated_Npair_fulltime','signed_relative_bias','CI95_low','CI95_high','covered', ...
     'Fwindow','status','failed_bootstrap_refits','elapsed_s'});
 writeUtf8BomTable(trials,fullfile(folder,'scenario_trials.csv'));
-summary=table();
-for scenario=scenarios
-    t=trials(trials.scenario==scenario,:); errorValue=t.estimated_Npair_fulltime-t.truth_Nrec;
-    valid=isfinite(t.covered); finite=isfinite(t.estimated_Npair_fulltime);
-    falsePeak=mean(t.estimated_Npair_fulltime(finite)>0);
-    row=table(scenario,height(t),nnz(isfinite(errorValue)),mean(t.signed_relative_bias,'omitnan'), ...
-        sqrt(mean(errorValue.^2,'omitnan')),nnz(valid),mean(t.covered(valid)),falsePeak, ...
-        'VariableNames',{'scenario','trial_count','finite_estimates','mean_signed_relative_bias', ...
-        'RMSE_counts','coverage_evaluable_trials','empirical_coverage','positive_area_fraction'});
-    summary=[summary;row]; %#ok<AGROW>
-end
-summary.inference_not_coverage_certified=true(height(summary),1);
-writeUtf8BomTable(summary,fullfile(folder,'scenario_summary.csv'));
+summary=summarizeUnbinnedScenarioTrials(trials,folder);
 end
 function [A,B]=controlEvents(scenario,seed,T)
 s=RandStream('mt19937ar','Seed',seed); rate=400;

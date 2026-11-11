@@ -36,6 +36,15 @@ classdef TestUnbinnedMath < matlab.unittest.TestCase
             m=model("doublegaussian"); m.alpha=0;
             [~,~,meta]=evaluateIRF([],m,[-20 20]*1e-9);
             t.verifyFalse(meta.identifiable);
+            trials=table(["independent";"gaussian";"gaussian"],[0;100;100], ...
+                [.5;99;101],[NaN;-.01;.01],[NaN;98;98],[NaN;102;102],[NaN;1;1], ...
+                'VariableNames',{'scenario','truth_Nrec','estimated_Npair_fulltime', ...
+                'signed_relative_bias','CI95_low','CI95_high','covered'});
+            report=summarizeUnbinnedScenarioTrials(trials);
+            t.verifyEqual(report.RMSE_counts(2),1);
+            t.verifyEqual(report.empirical_coverage(2),1);
+            t.verifyEqual(report.coverage_evaluable_trials(1),0);
+            t.verifyTrue(isnan(report.positive_lower_CI_fraction_among_evaluable(1)));
             t.verifyEqual(meta.status,"unidentifiable-response");
             m.alpha=.2; m.sigma2=m.sigma1*1.01;
             [~,~,meta]=evaluateIRF([],m,[-20 20]*1e-9);
