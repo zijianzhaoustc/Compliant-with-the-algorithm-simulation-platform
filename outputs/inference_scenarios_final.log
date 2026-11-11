@@ -284,4 +284,4 @@ deadtime-afterpulse trial 5: ok, truth=1411, estimate=1411
 出错 runUnbinnedScenarioValidation (第 48 行)
 d=.3e-9*sqrt(2)*erfinv(2*u-1);
     ^
-} 
+}

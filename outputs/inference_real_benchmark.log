@@ -3,5 +3,4 @@ BENCHMARK_END_TO_END_S=35.812
     inference_Cpair_cps    inference_Fwindow    elapsed_s
     ___________________    _________________    _________
 
-           22098                0.91749          15.784  
-
+           22098                0.91749          15.784
