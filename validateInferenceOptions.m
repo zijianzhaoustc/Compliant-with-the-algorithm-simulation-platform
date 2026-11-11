@@ -40,4 +40,6 @@ end
 if isfinite(o.heraldBackgroundRate) && string(o.heraldBackgroundSource)=="unknown"
     error('CoincidenceSim:InvalidInference','A measured herald background requires an explicit source.');
 end
+validateattributes(o.importDurationSeconds,{'numeric'},{'scalar','finite','nonnegative'});
+validateattributes(o.importRawOrigin,{'numeric'},{'scalar','finite','real'});
 end
