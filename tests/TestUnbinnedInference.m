@@ -17,6 +17,11 @@ classdef TestUnbinnedInference < matlab.unittest.TestCase
             p.inference.maxPairsInMemory=5e6;
             q=splitTimestampBlocks(A,B,p.measurementTime,p.inference.domain,p.inference);
             t.verifyEqual(sum([q.items.pairCount]),n);
+            for k=1:numel(q.items)
+                left=cellfun(@unbinnedDataChunk,z.items(k).delta,'UniformOutput',false);
+                right=cellfun(@unbinnedDataChunk,q.items(k).delta,'UniformOutput',false);
+                t.verifyEqual(vertcat(left{:}),vertcat(right{:}));
+            end
         end
         function labelsCannotAffectInference(t)
             [A,B,p]=fixture(); r=crossFitUnbinned(A,B,p);

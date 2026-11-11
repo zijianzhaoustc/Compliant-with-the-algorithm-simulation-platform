@@ -20,6 +20,11 @@ if impossible, r.status="zero-intensity-events"; return; end
 if n==0
     r.N=0; r.score=-F; r.logLik=-bi; r.curvature=0; r.status="no-events"; return
 end
+if bi==0
+    r.N=n/F; r.status="ok";
+    [r.score,r.logLik,r.curvature]=objective(r.N,true);
+    return
+end
 [s,~,~]=objective(0,false);
 if s<=0
     N=0; r.status="boundary-fit";
