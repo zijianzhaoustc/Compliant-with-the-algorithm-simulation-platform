@@ -47,7 +47,11 @@ if p.inference.enabled
     if string(dataMode)=="simulation", p.inference.exposureSource="simulation-gate"; end
     if isfield(source,'exposureSource'), p.inference.exposureSource=source.exposureSource; end
     out.inference=crossFitUnbinned(A,B,p);
-    if string(dataMode)=="imported", out.inference.truth_Nrec=NaN; end
+    if string(dataMode)=="imported"
+        out.inference.truth_Nrec=NaN;
+    elseif string(dataMode)=="simulation"
+        out.inference.truth_Nrec=numel(intersect(A.pairID(A.pairID>0),B.pairID(B.pairID>0)));
+    end
     if isfield(source,'precisionWarning') && source.precisionWarning~=""
         out.inference.warnings(end+1)=source.precisionWarning;
     end

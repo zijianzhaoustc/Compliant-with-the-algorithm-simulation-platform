@@ -38,6 +38,10 @@ classdef TestUnbinnedInference < matlab.unittest.TestCase
             A.time=[]; B.time=[]; q=crossFitUnbinned(A,B,p);
             t.verifyEqual(q.status,"insufficient-blocks");
             t.verifyEqual(q.bootstrap.status,"insufficient-blocks");
+            p=defaultParams(); p.source.pairRate=0; p.measurementTime=1;
+            p.optimization.mode="manual"; p.uncertainty.enabled=false;
+            p.inference.enabled=true; p.inference.bootstrapCount=0; p.inference.blockSeconds=.05;
+            q=runSimulation(p); t.verifyEqual(q.inference.truth_Nrec,0);
         end
         function bootstrapReproducibleAndPreservesRng(t)
             [A,B,p]=fixture(); p.inference.bootstrapCount=3; state=rng;

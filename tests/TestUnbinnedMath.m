@@ -33,6 +33,13 @@ classdef TestUnbinnedMath < matlab.unittest.TestCase
             t.verifyError(@()solveUnbinnedAmplitude(30e-9,m,1,[-20 20]*1e-9),'CoincidenceSim:InvalidInference');
             [b,q]=unbinnedBackground([-2 0 2],struct('intercept',10,'slope',2),[-2 2]);
             t.verifyEqual(b,[6 10 6]); t.verifyEqual(q,32);
+            m=model("doublegaussian"); m.alpha=0;
+            [~,~,meta]=evaluateIRF([],m,[-20 20]*1e-9);
+            t.verifyFalse(meta.identifiable);
+            t.verifyEqual(meta.status,"unidentifiable-response");
+            m.alpha=.2; m.sigma2=m.sigma1*1.01;
+            [~,~,meta]=evaluateIRF([],m,[-20 20]*1e-9);
+            t.verifyFalse(meta.identifiable);
         end
     end
 end

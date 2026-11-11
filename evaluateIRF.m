@@ -23,6 +23,11 @@ if string(model.type)=="doublegaussian"
 end
 pdfVal=core+wide;
 meta=struct('status',"ok",'corePdf',core,'widePdf',wide,'globallyNormalized',true);
+meta.identifiable=true;
+if string(model.type)=="doublegaussian" && ...
+        (model.alpha<.005 || model.sigma2/model.sigma1<1.1)
+    meta.identifiable=false; meta.status="unidentifiable-response";
+end
 if mass<1e-12, meta.status="unidentifiable-domain"; end
 end
 function y=normalPdf(x,m,s)
