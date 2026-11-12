@@ -7,9 +7,6 @@ function out = analyzeTimestampData(A, B, p, source, dataMode, includeBootstrap,
 if nargin<6, includeBootstrap=true; end
 if nargin<7, includeOptimization=true; end
 p=validateParams(p);
-if p.inference.enabled && ~any(p.algorithm.matchMethod==["many-to-many","all-pairs"])
-    error('CoincidenceSim:InferenceRequiresAllPairs','Unbinned inference requires many-to-many/all-pairs.');
-end
 requestedParams=p;
 matches=matchCoincidences(A,B,p);
 optimization=[];
@@ -38,26 +35,5 @@ out.uncertainty=calculateUncertainty(out,includeBootstrap);
 if includeOptimization && p.optimization.validationMode=="held-out" && ...
         p.optimization.mode~="manual"
     out.optimization.validation=validateAdaptiveSelection(A,B,matches,requestedParams,dataMode);
-end
-out.inference=[];
-if p.inference.enabled
-    if histResult.peak<p.inference.domain(1) || histResult.peak>p.inference.domain(2)
-        error('CoincidenceSim:InferencePeakOutsideDomain','Measured peak lies outside the inference domain; adjust its SI bounds.');
-    end
-    if string(dataMode)=="simulation", p.inference.exposureSource="simulation-gate"; end
-    if isfield(source,'exposureSource'), p.inference.exposureSource=source.exposureSource; end
-    out.inference=crossFitUnbinned(A,B,p);
-    if string(dataMode)=="imported"
-        out.inference.truth_Nrec=NaN;
-    elseif string(dataMode)=="simulation"
-        out.inference.truth_Nrec=numel(intersect(A.pairID(A.pairID>0),B.pairID(B.pairID>0)));
-    end
-    if isfield(source,'precisionWarning') && source.precisionWarning~=""
-        out.inference.warnings(end+1)=source.precisionWarning;
-    end
-    if isfield(source,'gateOriginSource') && source.gateOriginSource=="first-event" && ...
-            source.exposureSource=="declared"
-        out.inference.warnings(end+1)="declared-duration-origin-assumed-first-event";
-    end
 end
 end

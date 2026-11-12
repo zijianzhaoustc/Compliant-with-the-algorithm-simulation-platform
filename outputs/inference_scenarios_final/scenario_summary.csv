@@ -1,9 +1,0 @@
-﻿scenario,trial_count,finite_estimates,mean_signed_relative_bias,RMSE_counts,coverage_evaluable_trials,empirical_coverage,positive_area_fraction,positive_lower_CI_fraction_among_evaluable,inference_not_coverage_certified
-independent,5,5,NaN,1.11712573197406,0,NaN,0.6,NaN,1
-gaussian,5,5,-1.43531055178881e-06,0.00241576108303437,5,1,1,1,1
-doublegaussian,5,5,-5.67670489498311e-06,0.00909462965966487,5,1,1,1,1
-skew-misspecified,5,5,-0.00200116108483618,3.44454739815669,5,1,1,1,1
-high-rate,5,5,-5.21048914809794e-06,0.0354689766392379,5,1,1,1,1
-deadtime,5,5,-1.44418403065241e-06,0.00228952528552009,5,1,1,1,1
-afterpulse,5,5,0.00507228492172859,8.39072774673778,5,1,1,1,1
-deadtime-afterpulse,5,5,-1.16608969165413e-06,0.00168601860304793,5,1,1,1,1

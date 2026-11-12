@@ -1,4 +1,4 @@
-function out = importTimestampFiles(startFile, stopFile, unitSeconds, p, analyzeWhole, acquisition)
+function out = importTimestampFiles(startFile, stopFile, unitSeconds, p, analyzeWhole)
 %IMPORTTIMESTAMPFILES 导入 Start/Stop TXT 或 SSI DAQ 二进制时间戳。
 %   TXT 采用“每行一个整数/数值”，UNITSECONDS 指定原始单位对应的秒数；
 %   SSI_DAQ_TDC_TIMESTAMP_V1 的 BIN 文件自带格式标识，时间戳固定按 ps
@@ -6,8 +6,6 @@ function out = importTimestampFiles(startFile, stopFile, unitSeconds, p, analyze
 %   再按需升序排序；清洗信息保存在 source.startCleanup/stopCleanup。
 
 if nargin<5, analyzeWhole=true; end
-if nargin<6, acquisition=struct(); end
-validateattributes(unitSeconds,{'numeric'},{'scalar','finite','positive'});
 [startRaw,startUnit,startInfo]=readTimestampInput(startFile,unitSeconds);
 [stopRaw,stopUnit,stopInfo]=readTimestampInput(stopFile,unitSeconds);
 if isempty(startRaw) || isempty(stopRaw)
@@ -17,19 +15,8 @@ end
 % 混合 TXT/BIN 或单位不同的情况则先换算为秒。
 if startUnit==stopUnit
     t0=min(startRaw(1),stopRaw(1));
-    if isfield(acquisition,'rawOrigin'), t0=acquisition.rawOrigin; end
-    if t0>min(startRaw(1),stopRaw(1))
-        error('CoincidenceSim:InvalidDuration','Acquisition origin follows the first event.');
-    end
-    % Integer TXT ticks are differenced before conversion to seconds.
-    if isa(startRaw,'uint64') || isa(stopRaw,'uint64')
-        if any(startRaw~=fix(startRaw)) || any(stopRaw~=fix(stopRaw))
-            error('CoincidenceSim:TimestampPrecision','Mixed integer/fractional long ticks are unsupported.');
-        end
-        startRaw=uint64(startRaw); stopRaw=uint64(stopRaw); t0=uint64(t0);
-    end
-    startTime=double(startRaw-t0)*startUnit;
-    stopTime=double(stopRaw-t0)*stopUnit;
+    startTime=(startRaw-t0)*startUnit;
+    stopTime=(stopRaw-t0)*stopUnit;
     sourceOrigin=t0; sourceUnit=startUnit;
 else
     startSeconds=startRaw*startUnit; stopSeconds=stopRaw*stopUnit;
@@ -38,14 +25,6 @@ else
     sourceOrigin=t0Seconds; sourceUnit=1;
 end
 duration=max(startTime(end),stopTime(end));
-exposureSource="inferred";
-if isfield(acquisition,'durationSeconds')
-    validateattributes(acquisition.durationSeconds,{'numeric'},{'scalar','finite','positive'});
-    if duration>acquisition.durationSeconds
-        error('CoincidenceSim:InvalidDuration','Timestamps exceed the declared acquisition gate.');
-    end
-    duration=acquisition.durationSeconds; exposureSource="declared";
-end
 if duration<=0, error("CoincidenceSim:InvalidDuration","无法从时间戳推导有效采集时长。"); end
 p.measurementTime=duration;
 p.analysis.sourceCount=NaN;
@@ -56,15 +35,6 @@ source=struct("time",zeros(0,1),"pairID",zeros(0,1),"type",strings(0,1), ...
     "rawOrigin",sourceOrigin,"startFormat",startInfo.format,"stopFormat",stopInfo.format, ...
     "startChannelName",startInfo.channelName,"stopChannelName",stopInfo.channelName, ...
     "startCleanup",startInfo.cleanup,"stopCleanup",stopInfo.cleanup);
-source.exposureSource=exposureSource;
-source.gateOriginSource="first-event";
-if isfield(acquisition,'rawOrigin'), source.gateOriginSource="declared"; end
-source.precisionWarning="";
-if (isa(startRaw,'double') && max(abs(startRaw))>flintmax) || ...
-        (isa(stopRaw,'double') && max(abs(stopRaw))>flintmax)
-    source.precisionWarning="input-double-ticks-exceed-exact-integer-range";
-end
-if isfield(acquisition,'tickSeconds'), p.inference.tickSeconds=acquisition.tickSeconds; end
 % 批量逐秒模式仅载入清洗后的时间戳，避免先构造整段匹配和重复统计。
 if ~analyzeWhole
     out=struct('params',validateParams(p),'source',source,'A',A,'B',B, ...
@@ -102,28 +72,9 @@ function [values,cleanup]=readTimestampColumn(filename)
 %READTIMESTAMPCOLUMN 剔除非有限值后按需排序，保留重复事件。
 values=readmatrix(filename,'FileType','text','OutputType','double');
 values=values(:);
-% Preserve large nonnegative integer TXT ticks exactly, including uint64 >2^53.
-if any(values>flintmax)
-    lines=strip(readlines(filename)); lines(lines=="")=[];
-    if all(~cellfun('isempty',regexp(cellstr(lines),'^\d{1,20}$','once')))
-        exact=zeros(numel(lines),1,'uint64');
-        for k=1:numel(lines)
-            digits=char(lines(k)); number=uint64(0);
-            for j=1:numel(digits)
-                digit=uint64(double(digits(j))-double('0'));
-                if number>idivide(intmax('uint64')-digit,uint64(10))
-                    error('CoincidenceSim:TimestampPrecision','Integer tick exceeds uint64.');
-                end
-                number=number*uint64(10)+digit;
-            end
-            exact(k)=number;
-        end
-        values=exact;
-    end
-end
 originalCount=numel(values);
 values=values(isfinite(values));
-wasSorted=any(values(2:end)<values(1:end-1));
+wasSorted=any(diff(values)<0);
 if wasSorted, values=sort(values); end
 cleanup=struct('originalCount',originalCount,'validCount',numel(values), ...
     'removedNonfiniteCount',originalCount-numel(values),'wasSorted',wasSorted);

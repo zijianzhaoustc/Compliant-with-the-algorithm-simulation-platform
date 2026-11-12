@@ -13,8 +13,6 @@ classdef CoincidenceSimulatorApp < handle
         UncertaintyTab
         OptimizationTab
         OptimizationStatusLabel
-        InferenceTab
-        InferenceStatusLabel
         HistogramAxes
         TimestampAxes
         SweepRateAxes
@@ -59,7 +57,6 @@ classdef CoincidenceSimulatorApp < handle
             app.buildAlgorithmTab(p);
             app.buildUncertaintyTab(p);
             app.buildOptimizationTab(p);
-            app.buildInferenceTab(p);
             app.buildTimestampPanel(left);
 
             % 中栏：原局部时间戳区域重新分配给符合直方图和 Parameter Sweep。
@@ -242,37 +239,6 @@ classdef CoincidenceSimulatorApp < handle
             app.OptimizationStatusLabel.Layout.Row=16; app.OptimizationStatusLabel.Layout.Column=[1 2];
         end
 
-        function buildInferenceTab(app,p)
-            app.InferenceTab=uitab(app.ParameterTabs,'Title','无分箱推断','Scrollable','on');
-            g=uigridlayout(app.InferenceTab,[20 2]); g.ColumnWidth={'1x',155};
-            g.Scrollable='on';
-            g.RowHeight=repmat({26},1,20); g.RowSpacing=4; g.Padding=[8 8 8 8];
-            o=p.inference;
-            app.Controls.InferenceEnabled=app.addDrop(g,1,'独立推断支路',{'关闭','开启（多对多）'},{false,true},o.enabled);
-            app.Controls.InferenceModel=app.addDrop(g,2,'系统响应模型',{'高斯','偏移双高斯'}, ...
-                {'gaussian','doublegaussian'},o.model);
-            app.Controls.InferenceMin=app.addNum(g,3,'分析区间下界 (ns)',o.domain(1)*1e9);
-            app.Controls.InferenceMax=app.addNum(g,4,'分析区间上界 (ns)',o.domain(2)*1e9);
-            app.Controls.InferenceSigma=app.addNum(g,5,'初始核心宽度 (ns)',o.initialSigma*1e9);
-            app.Controls.InferenceBlock=app.addNum(g,6,'联合时间块长 (s)',o.blockSeconds);
-            app.Controls.InferenceB=app.addNum(g,7,'重拟合 Bootstrap 次数',o.bootstrapCount);
-            app.Controls.InferenceSeed=app.addNum(g,8,'Bootstrap 随机种子',o.bootstrapSeed);
-            app.Controls.InferenceWindow=app.addNum(g,9,'参考窗口全宽 (ns)',o.referenceWindow*1e9);
-            app.Controls.InferenceTick=app.addNum(g,10,'原生时间戳 tick (ps；0未知)',o.tickSeconds*1e12);
-            app.Controls.InferenceGate=app.addNum(g,11,'导入声明门长 (s；0推断)',o.importDurationSeconds);
-            app.Controls.InferenceOrigin=app.addNum(g,12,'声明门起点（原始 tick）',o.importRawOrigin);
-            note=uilabel(g,'Text','背景未知时仅报告表观条件效率；完整面积依赖响应模型。','WordWrap','on');
-            note.Layout.Row=[13 14]; note.Layout.Column=[1 2];
-            b=uibutton(g,'Text','查看推断结果与独立验证图','ButtonPushedFcn',@(~,~)app.showInference());
-            b.Layout.Row=15; b.Layout.Column=[1 2];
-            b=uibutton(g,'Text','导出无分箱报告…','ButtonPushedFcn',@(~,~)app.exportInference());
-            b.Layout.Row=16; b.Layout.Column=[1 2];
-            b=uibutton(g,'Text','分析多功率数据清单 CSV…','ButtonPushedFcn',@(~,~)app.analyzeInferenceManifest());
-            b.Layout.Row=17; b.Layout.Column=[1 2];
-            app.InferenceStatusLabel=uilabel(g,'Text','关闭时保留原有分析行为。','WordWrap','on');
-            app.InferenceStatusLabel.Layout.Row=[18 20]; app.InferenceStatusLabel.Layout.Column=[1 2];
-        end
-
         function buildTimestampPanel(app,parent)
             panel=uipanel(parent,'Title','局部时间戳与匹配');
             g=uigridlayout(panel,[2 1]); g.RowHeight={'1x',62}; g.Padding=[5 5 5 5];
@@ -358,17 +324,6 @@ classdef CoincidenceSimulatorApp < handle
             p.optimization.requireFullSideWindows=c.FullSides.Value;
             p.optimization.checkBackground=c.BackgroundCheck.Value;
             p.optimization.checkBinStability=c.BinStability.Value;
-            p.inference.enabled=c.InferenceEnabled.Value;
-            p.inference.model=string(c.InferenceModel.Value);
-            p.inference.domain=[c.InferenceMin.Value c.InferenceMax.Value]*1e-9;
-            p.inference.initialSigma=c.InferenceSigma.Value*1e-9;
-            p.inference.blockSeconds=c.InferenceBlock.Value;
-            p.inference.bootstrapCount=c.InferenceB.Value;
-            p.inference.bootstrapSeed=c.InferenceSeed.Value;
-            p.inference.referenceWindow=c.InferenceWindow.Value*1e-9;
-            p.inference.tickSeconds=c.InferenceTick.Value*1e-12;
-            p.inference.importDurationSeconds=c.InferenceGate.Value;
-            p.inference.importRawOrigin=c.InferenceOrigin.Value;
         end
 
         function populateControls(app,p)
@@ -426,18 +381,6 @@ classdef CoincidenceSimulatorApp < handle
             c.FullSides.Value=p.optimization.requireFullSideWindows;
             c.BackgroundCheck.Value=p.optimization.checkBackground;
             c.BinStability.Value=p.optimization.checkBinStability;
-            c.InferenceEnabled.Value=p.inference.enabled;
-            c.InferenceModel.Value=char(p.inference.model);
-            c.InferenceMin.Value=p.inference.domain(1)*1e9;
-            c.InferenceMax.Value=p.inference.domain(2)*1e9;
-            c.InferenceSigma.Value=p.inference.initialSigma*1e9;
-            c.InferenceBlock.Value=p.inference.blockSeconds;
-            c.InferenceB.Value=p.inference.bootstrapCount;
-            c.InferenceSeed.Value=p.inference.bootstrapSeed;
-            c.InferenceWindow.Value=p.inference.referenceWindow*1e9;
-            c.InferenceTick.Value=p.inference.tickSeconds*1e12;
-            c.InferenceGate.Value=p.inference.importDurationSeconds;
-            c.InferenceOrigin.Value=p.inference.importRawOrigin;
         end
 
         function runNewSimulation(app)
@@ -476,12 +419,7 @@ classdef CoincidenceSimulatorApp < handle
             if isnan(factor), factor=app.Controls.ImportLSB.Value*1e-12; end
             app.setBusy('正在读取并分析双通道 TXT/BIN（大文件可能需要一些时间）…');
             try
-                p=app.readParameters(); acquisition=struct();
-                if p.inference.importDurationSeconds>0
-                    acquisition=struct('durationSeconds',p.inference.importDurationSeconds, ...
-                        'rawOrigin',p.inference.importRawOrigin,'tickSeconds',p.inference.tickSeconds);
-                end
-                app.LastResult=importTimestampFiles(fullfile(sp,sf),fullfile(tp,tf),factor,p,true,acquisition);
+                app.LastResult=importTimestampFiles(fullfile(sp,sf),fullfile(tp,tf),factor,app.readParameters());
                 app.Controls.Time.Value=app.LastResult.params.measurementTime;
                 app.refreshAll();
                 if isfield(app.LastResult,'timeWindows')
@@ -630,48 +568,6 @@ classdef CoincidenceSimulatorApp < handle
             end
             app.updateHistogram(); app.updateTimestampPlot(); app.updateResultTable();
             app.updateOptimizationPlot();
-            app.InferenceStatusLabel.Text='无分箱支路关闭。';
-            if isfield(app.LastResult,'inference') && ~isempty(app.LastResult.inference)
-                r=app.LastResult.inference;
-                app.InferenceStatusLabel.Text=sprintf('%s：C = %.6g cps；FD = %.4f；FW = %.4f；%s', ...
-                    r.status,r.Cpair,r.Fdomain,r.Fwindow,strjoin(r.warnings,'；'));
-            end
-        end
-
-        function showInference(app)
-            if isempty(app.LastResult) || ~isfield(app.LastResult,'inference') || isempty(app.LastResult.inference)
-                uialert(app.UIFigure,'请开启无分箱推断后运行或重新计算。','无推断结果'); return
-            end
-            showInferenceResult(app.LastResult.inference,app.LastResult.params);
-        end
-
-        function exportInference(app)
-            if isempty(app.LastResult) || ~isfield(app.LastResult,'inference') || isempty(app.LastResult.inference)
-                uialert(app.UIFigure,'请开启无分箱推断后运行或重新计算。','无推断结果'); return
-            end
-            folder=uigetdir(pwd,'选择报告目录'); if isequal(folder,0), return; end
-            try
-                folder=fullfile(folder,'inference_'+string(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
-                exportInferenceResults(app.LastResult.inference,folder,app.LastResult.params,app.LastResult.source);
-                plotInferenceDiagnostics(app.LastResult.inference,app.LastResult.params,folder);
-                app.StatusLabel.Text="推断报告已导出："+folder;
-            catch ME
-                app.showError(ME,'推断导出失败');
-            end
-        end
-
-        function analyzeInferenceManifest(app)
-            [file,path]=uigetfile('*.csv','选择含 startFile / stopFile / unitSeconds 的数据清单');
-            if isequal(file,0), return; end
-            folder=uigetdir(pwd,'选择多功率报告目录'); if isequal(folder,0), return; end
-            app.setBusy('正在逐组拟合清单中的真实时间戳…');
-            try
-                folder=fullfile(folder,'rate_efficiency_'+string(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
-                tbl=analyzeRateEfficiency(fullfile(path,file),app.readParameters(),folder);
-                app.StatusLabel.Text=sprintf('完成 %d 组独立响应分析：%s',height(tbl),folder);
-            catch ME
-                app.showError(ME,'多功率分析失败');
-            end
         end
 
         function resetSweepAxes(app)
