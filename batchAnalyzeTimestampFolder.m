@@ -4,24 +4,30 @@ function report = batchAnalyzeTimestampFolder(inputFolder, outputFolder, unitSec
 %   每批生成独立目录，保留输入子目录；错误与未配对文件写入清单。
 if nargin<5, progress=@(~,~,~)true; end
 if nargin<6, exportOptions=struct(); end
+jointFitSpecified=isfield(exportOptions,'jointFit');
 defaults=struct('perSecond',false,'histogram',true,'results',true, ...
-    'uncertainty',true,'optimization',true,'evaluation',false,'unitSeconds',1e-12);
+    'uncertainty',true,'optimization',true,'evaluation',false,'jointFit',false,'unitSeconds',1e-12);
 for name=string(fieldnames(defaults))'
     if ~isfield(exportOptions,name), exportOptions.(name)=defaults.(name); end
 end
-for name=["perSecond","histogram","results","uncertainty","optimization","evaluation"]
+for name=["perSecond","histogram","results","uncertainty","optimization","evaluation","jointFit"]
     value=exportOptions.(name);
     if ~(islogical(value) || isnumeric(value)) || ~isscalar(value) || ~ismember(value,[0 1])
         error('CoincidenceSim:InvalidBatchExport','导出选项 %s 必须为逻辑标量。',name);
     end
 end
 if ~any([exportOptions.histogram exportOptions.results exportOptions.uncertainty ...
-        exportOptions.optimization exportOptions.evaluation])
+        exportOptions.optimization exportOptions.evaluation exportOptions.jointFit])
     error('CoincidenceSim:NoBatchExports','至少选择一种批处理导出内容。');
 end
 validateattributes(exportOptions.unitSeconds,{'numeric'},{'scalar','real','finite','positive'});
 exportOptions.batchSummary=true;
 p=validateParams(p);
+if exportOptions.jointFit && ~p.jointFit.enabled
+    error('CoincidenceSim:MissingJointFit','请先在主界面启用联合无分箱拟合，或取消该项导出。');
+end
+% 旧 API 未提供新选项时保留“普通结果附带两个联合 CSV”的行为。
+if ~jointFitSpecified, exportOptions=rmfield(exportOptions,'jointFit'); end
 if exportOptions.evaluation && p.optimization.mode=="manual"
     error('CoincidenceSim:MissingOptimization','请先选择自适应推荐或自动应用，再导出评价函数值。');
 end

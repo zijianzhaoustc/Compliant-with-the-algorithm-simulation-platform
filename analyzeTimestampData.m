@@ -31,6 +31,10 @@ metrics=calculateMetrics(A,B,matches,raw,acc,histResult,p,dataMode);
 out=struct("params",p,"source",source,"A",A,"B",B,"matches",matches, ...
     "hist",histResult,"raw",raw,"acc",acc,"metrics",metrics,"dataMode",dataMode);
 out.optimization=optimization;
+out.jointFit=[];
+if p.jointFit.enabled
+    out.jointFit=analyzeJointCoincidence(out,requestedParams);
+end
 out.uncertainty=calculateUncertainty(out,includeBootstrap);
 if includeOptimization && p.optimization.validationMode=="held-out" && ...
         p.optimization.mode~="manual"

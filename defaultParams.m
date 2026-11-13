@@ -112,4 +112,14 @@ p.optimization.bootstrapCandidates = 5;
 p.optimization.candidateResamples = 300;
 p.optimization.baggingResamples = 101; % 稳定聚合的共享时间块重抽样次数
 p.optimization.validationMode = "none"; % held-out：交替时间块训练/独立评价
+% 联合无分箱点估计（改编自 analyze_real_spdc_1_mult.m），不执行 Bootstrap。
+p.jointFit.enabled = false;
+p.jointFit.primaryModel = "doublegaussian";
+p.jointFit.initialSigma = .45e-9;
+p.jointFit.minSigma = .05e-9;
+p.jointFit.maxTailSigma = 5e-9;
+p.jointFit.blockSize = 1;
+p.jointFit.maxShapeFitPairs = 90000;
+p.jointFit.streamChunkPairs = 500000;
+p.jointFit.seed = 20261112;
 end

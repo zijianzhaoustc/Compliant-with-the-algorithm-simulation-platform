@@ -38,8 +38,8 @@ dialog=showExportDialog(app.UIFigure,app.LastResult);
 exportCleanup=onCleanup(@()delete(dialog));
 box=findall(dialog,'Tag','ExportChoice_diagnostics');
 assert(strcmp(box.Enable,'on') && box.Value);
-boxes=findall(dialog,'Type','uicheckbox'); assert(numel(boxes)==11);
-rows=arrayfun(@(box)box.Layout.Row,boxes); assert(numel(unique(rows))==11);
+boxes=findall(dialog,'Type','uicheckbox'); assert(numel(boxes)==12);
+rows=arrayfun(@(box)box.Layout.Row,boxes); assert(numel(unique(rows))==12);
 drawnow; exportapp(dialog,fullfile(folder,'diagnostics_export_dialog.png'));
 clear exportCleanup
 dialog=showSeedSweepDialog(app.UIFigure,app.LastResult.params,@(~,~,~,~)[]);

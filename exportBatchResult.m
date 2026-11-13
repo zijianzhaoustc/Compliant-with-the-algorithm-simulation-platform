@@ -1,5 +1,10 @@
 function files = exportBatchResult(out, folder, baseName, options)
 %EXPORTBATCHRESULT 按选择导出四类批处理结果，仅导出汇总，不附加抽样明细。
+jointFit=isfield(options,'jointFit') && options.jointFit;
+jointFitSpecified=isfield(options,'jointFit');
+if jointFit && (~isfield(out,'jointFit') || isempty(out.jointFit))
+    error('CoincidenceSim:MissingJointFit','请先启用联合无分箱拟合。');
+end
 if ~isfolder(folder), mkdir(folder); end
 histOptions=struct('settings',false,'histogram',options.histogram,'results',false, ...
     'timestamps',false,'unitSeconds',options.unitSeconds);
@@ -16,7 +21,9 @@ if options.results
     summary=[summary;cell2table(rows,'VariableNames',summary.Properties.VariableNames)];
     file=fullfile(folder,baseName+"_results.csv");
     writeUtf8BomTable(summary,file); files(end+1,1)=file;
+    if ~jointFitSpecified, files=[files;exportJointFitResults(out,folder,baseName)]; end
 end
+if jointFit, files=[files;exportJointFitResults(out,folder,baseName,true)]; end
 if options.uncertainty
     file=fullfile(folder,baseName+"_uncertainty_summary.csv");
     writeUtf8BomTable(out.uncertainty.summary,file); files(end+1,1)=file;

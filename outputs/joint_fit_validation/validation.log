@@ -1,0 +1,85 @@
+正在运行 TestBootstrapBagging
+..........
+已完成 TestBootstrapBagging
+__________
+
+正在运行 TestDetectorTiming
+..........
+已完成 TestDetectorTiming
+__________
+
+正在运行 TestJointFit
+.......... ..
+已完成 TestJointFit
+__________
+
+正在运行 TestOptimization
+.......... .
+已完成 TestOptimization
+__________
+
+正在运行 TestRandomSeedSweep
+....
+已完成 TestRandomSeedSweep
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampBatch
+.......... .
+已完成 TestTimestampBatch
+__________
+
+正在运行 TestTimestampSeconds
+...
+已完成 TestTimestampSeconds
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+TOTAL=102 PASSED=102 FAILED=0 INCOMPLETE=0
+[SPDC] A: C:\Users\lenovo\AppData\Local\Temp\tpd36a5361_7577_4e88_b761_be14f6c8f43c\A.mat (MAT vector; unit s)
+[SPDC] B: C:\Users\lenovo\AppData\Local\Temp\tpd36a5361_7577_4e88_b761_be14f6c8f43c\B.mat (MAT vector; unit s)
+[SPDC] T=0.5 s | NA=54299 | NB=54851 | RA=1.086e+05 cps | RB=1.097e+05 cps
+[SPDC] Enumerating all candidate delays to scratch storage...
+[SPDC] Found 2244 candidate event pairs in [-20.000, 20.000] ns (anchor A).
+[SPDC] Peak initial guess: 4.9500 ns (histogram is diagnostics only).
+[SPDC] Fitting model: gaussian
+[SPDC] gaussian: Npair=2003.92 | shape.valid=1 | fitExitFlag=1 | fitMethod=fminsearch_joint_mixture | status=fewer_than_four_blocks|joint_N_b_profiled_full_data
+[SPDC] Fitting model: doublegaussian
+[SPDC] doublegaussian: Npair=2003.92 | shape.valid=1 | fitExitFlag=1 | fitMethod=fminsearch_joint_mixture | status=fewer_than_four_blocks|joint_N_b_profiled_full_data
+
+--- CW-SPDC analysis results ---
+Model: doublegaussian; status: fewer_than_four_blocks|joint_N_b_profiled_full_data
+Estimated recorded correlated peak area: 2003.9 pairs
+Estimated correlated rate: 4007.8 pairs/s
+JOINT MLE background: 6.00195 counts/ns (theory: 5.95671, ratio 1.00760)
+Total candidate closure (expected - observed): 0
+Joint profile: converged=1, iterations=3; shape fitted on 2244 sampled lags
+Reference window 1.100 ns: Nraw=1994, Nacc(MLE)=6.602, Nnet(MLE)=1987.398
+Reference window: Nacc(theory)=6.552, Nnet(theory)=1987.448
+Model capture fraction at 1.100 ns: 0.9906
+Raw Npair/NA=0.036905, Npair/NB=0.036534 (NOT detector PDE)
+EtaB|A is not reported: opts.backgroundRateA is unknown.
+Saved outputs: C:\Users\lenovo\AppData\Local\Temp\tpd36a5361_7577_4e88_b761_be14f6c8f43c\result
+JOINT_GUI_AND_INTEGRATION_PASSED
+     adaptiveWindow_s: 1.1000e-09
+    algorithmWindow_s: 7.0000e-10
+     referenceChecked: 1
+
+CHECK fitUnbinnedCoincidence.m: 0
+CHECK analyzeJointCoincidence.m: 0
+CHECK resolveJointFitWindow.m: 0
+CHECK buildJointFitSummaryTable.m: 0
+CHECK validateJointFitParams.m: 0
+CHECK exportJointFitResults.m: 0
+CHECK CoincidenceSimulatorApp.m: 0
+CHECK tests/TestJointFit.m: 0
+CHECK examples/validateJointFitIntegration.m: 0
+FINAL_JOINT_VALIDATION_PASSED

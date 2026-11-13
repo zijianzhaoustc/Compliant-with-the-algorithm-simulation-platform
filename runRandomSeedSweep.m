@@ -4,8 +4,9 @@ function report = runRandomSeedSweep(p, spec, folder, baseName, options, progres
 if nargin<6, progress=@(~,~,~)true; end
 seeds=buildSeedSequence(spec.start,spec.step,spec.count);
 p=validateParams(p);
+jointFitSpecified=isfield(options,'jointFit');
 names=["settings","histogram","results","sweep","timeWindows","countRates", ...
-    "uncertainty","timestamps","optimization","evaluation","diagnostics"];
+    "uncertainty","timestamps","optimization","evaluation","diagnostics","jointFit"];
 for name=names
     if ~isfield(options,name), options.(name)=false; end
 end
@@ -13,6 +14,10 @@ if ~any(cellfun(@(name)logical(options.(name)),cellstr(names)))
     error('CoincidenceSim:NoSeedSweepExports','至少选择一种导出内容。');
 end
 if ~isfield(options,'unitSeconds'), options.unitSeconds=1e-12; end
+if options.jointFit && ~p.jointFit.enabled
+    error('CoincidenceSim:MissingJointFit','请先启用联合无分箱拟合，或取消该项导出。');
+end
+if ~jointFitSpecified, options=rmfield(options,'jointFit'); end
 validateattributes(options.unitSeconds,{'numeric'},{'scalar','real','finite','positive'});
 if (options.optimization || options.evaluation) && p.optimization.mode=="manual"
     error('CoincidenceSim:MissingOptimization','请先在主界面选择自适应推荐或自动应用，或取消自适应导出。');

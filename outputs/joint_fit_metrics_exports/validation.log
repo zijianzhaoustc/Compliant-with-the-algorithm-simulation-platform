@@ -1,0 +1,73 @@
+正在运行 TestBootstrapBagging
+..........
+已完成 TestBootstrapBagging
+__________
+
+正在运行 TestDetectorTiming
+..........
+已完成 TestDetectorTiming
+__________
+
+正在运行 TestJointFit
+.......... ..
+已完成 TestJointFit
+__________
+
+正在运行 TestJointFitExports
+..........
+已完成 TestJointFitExports
+__________
+
+正在运行 TestOptimization
+.......... .
+已完成 TestOptimization
+__________
+
+正在运行 TestRandomSeedSweep
+....
+已完成 TestRandomSeedSweep
+__________
+
+正在运行 TestSimulation
+.......... .......... .......... .
+已完成 TestSimulation
+__________
+
+正在运行 TestTimestampBatch
+.......... .
+已完成 TestTimestampBatch
+__________
+
+正在运行 TestTimestampSeconds
+...
+已完成 TestTimestampSeconds
+__________
+
+正在运行 TestUncertainty
+..........
+已完成 TestUncertainty
+__________
+
+TOTAL=112 PASSED=112 FAILED=0 INCOMPLETE=0
+JOINT_GUI_AND_INTEGRATION_PASSED
+     adaptiveWindow_s: 1.1000e-09
+    algorithmWindow_s: 7.0000e-10
+     referenceChecked: 0
+
+CHECK buildJointFitMetricRows.m: 0
+CHECK buildJointFitSummaryTable.m: 0
+CHECK exportJointFitResults.m: 0
+CHECK exportSelectedResults.m: 2
+L74 变量的大小似乎在每个循环迭代都会更改。请考虑进行预分配以提升速度。
+L130 变量的大小似乎在每个循环迭代都会更改。请考虑进行预分配以提升速度。
+CHECK exportBatchResult.m: 0
+CHECK exportSimulationResult.m: 0
+CHECK createExportSelectionControls.m: 0
+CHECK showExportDialog.m: 0
+CHECK showSeedSweepDialog.m: 0
+CHECK showBatchExportDialog.m: 0
+CHECK batchAnalyzeTimestampFolder.m: 0
+CHECK runRandomSeedSweep.m: 0
+CHECK examples/validateJointFitIntegration.m: 0
+CHECK tests/TestJointFitExports.m: 0
+METRICS_EXPORT_VALIDATION_PASSED

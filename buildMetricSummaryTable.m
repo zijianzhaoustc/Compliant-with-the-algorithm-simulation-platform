@@ -46,6 +46,11 @@ rows={
     '符合估计双路联合探测效率',fmt(m.EtaJointEstimate),'Rnet/Rpair（仅仿真）'};
 
 summary=cell2table(rows,'VariableNames',{'参数','数值','作用'});
+if isfield(out,'jointFit') && ~isempty(out.jointFit)
+    jointRows=buildJointFitMetricRows(out.jointFit,includeIntermediate);
+    % 启用联合拟合时先展示该组，避免被原指标挤到结果表下方。
+    summary=[cell2table(jointRows,'VariableNames',summary.Properties.VariableNames);summary];
+end
 if isfield(out,'optimization') && ~isempty(out.optimization)
     o=out.optimization;
     state='不可用'; stateInfo=['沿用当前参数；' char(o.status)];

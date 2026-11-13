@@ -3,7 +3,7 @@ function dialogFigure = showSeedSweepDialog(parent, p, runSweep)
 position=parent.Position;
 dialogFigure=uifigure('Name','随机种子步进扫描','WindowStyle','modal', ...
     'Position',[position(1)+(position(3)-620)/2 position(2)+(position(4)-730)/2 620 730]);
-outer=uigridlayout(dialogFigure,[3 1]); outer.RowHeight={94,380,'1x'};
+outer=uigridlayout(dialogFigure,[3 1]); outer.RowHeight={94,415,'1x'};
 outer.Padding=[12 12 12 12]; outer.RowSpacing=8;
 top=uigridlayout(outer,[3 6]); top.Padding=[0 0 0 0]; top.RowHeight={30,28,24};
 top.ColumnWidth={70,110,50,100,50,'1x'}; top.RowSpacing=6;
@@ -19,11 +19,11 @@ label=uilabel(top,'Text','每次仅改变主随机种子；其他输入参数及
 label.Layout.Row=2; label.Layout.Column=[1 6];
 preview=uilabel(top,'Text',''); preview.Layout.Row=3; preview.Layout.Column=[1 6];
 start.ValueChangedFcn=@updatePreview; step.ValueChangedFcn=@updatePreview; count.ValueChangedFcn=@updatePreview;
-grid=uigridlayout(outer,[11 2]); grid.Padding=[0 0 0 0];
-grid.RowHeight=repmat({30},1,11); grid.RowSpacing=5;
+grid=uigridlayout(outer,[12 2]); grid.Padding=[0 0 0 0];
+grid.RowHeight=repmat({30},1,12); grid.RowSpacing=5;
 available=struct('sweep',true,'timeWindows',true,'uncertainty',true, ...
     'optimization',string(p.optimization.mode)~="manual",'defaultTimeWindows',p.algorithm.timestampWindowMode, ...
-    'diagnostics',true);
+    'diagnostics',true,'jointFit',p.jointFit.enabled);
 choices=createExportSelectionControls(grid,available);
 bottom=uigridlayout(outer,[5 3]); bottom.ColumnWidth={110,'1x',80}; bottom.Padding=[0 0 0 0];
 bottom.RowHeight={30,30,30,36,24}; bottom.RowSpacing=5;

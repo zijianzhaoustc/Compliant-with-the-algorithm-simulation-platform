@@ -7,6 +7,9 @@ function exportSimulationResult(out, filename)
 [~,~,ext]=fileparts(filename);
 if strcmpi(ext,".csv")
     writeUtf8BomTable(buildMetricSummaryTable(out),filename);
+    [folder,baseName]=fileparts(filename);
+    if isempty(folder), folder=pwd; end
+    exportJointFitResults(out,folder,string(baseName),true);
 else
     % v7.3 支持包含大量时间戳的结果文件。
     save(filename,"out","-v7.3");

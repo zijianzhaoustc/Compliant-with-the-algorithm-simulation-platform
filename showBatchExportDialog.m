@@ -1,10 +1,11 @@
-function dialogFigure = showBatchExportDialog(parent, runBatch)
+function dialogFigure = showBatchExportDialog(parent, runBatch, jointFitAvailable)
 %SHOWBATCHEXPORTDIALOG 在批处理入口选择输入/输出目录、分析范围和导出内容。
+if nargin<3, jointFitAvailable=false; end
 position=parent.Position;
 dialogFigure=uifigure('Name','文件夹批量计算并导出','WindowStyle','modal', ...
-    'Position',[position(1)+(position(3)-640)/2 position(2)+(position(4)-496)/2 640 496]);
-g=uigridlayout(dialogFigure,[12 3]); g.ColumnWidth={100,'1x',82};
-g.RowHeight={30,30,30,46,28,28,28,28,28,30,36,22}; g.Padding=[12 12 12 12]; g.RowSpacing=8;
+    'Position',[position(1)+(position(3)-640)/2 position(2)+(position(4)-532)/2 640 532]);
+g=uigridlayout(dialogFigure,[13 3]); g.ColumnWidth={100,'1x',82};
+g.RowHeight={30,30,30,46,28,28,28,28,28,28,30,36,22}; g.Padding=[12 12 12 12]; g.RowSpacing=8;
 label=uilabel(g,'Text','输入文件夹'); label.Layout.Row=1;
 input=uieditfield(g,'text','Value',pwd,'Tag','BatchInputFolder'); input.Layout.Row=1; input.Layout.Column=2;
 button=uibutton(g,'Text','选择…','ButtonPushedFcn',@(~,~)browse(input,'选择时间戳文件夹（包含子目录）'));
@@ -23,21 +24,26 @@ histogram=uicheckbox(g,'Text','符合直方图 CSV','Value',true,'Tag','BatchHis
 histogram.Layout.Row=5; histogram.Layout.Column=[1 3];
 results=uicheckbox(g,'Text','符合结果与参数列表 CSV','Value',true,'Tag','BatchResults');
 results.Layout.Row=6; results.Layout.Column=[1 3];
+state='off'; if jointFitAvailable, state='on'; end
+jointFit=uicheckbox(g,'Text','联合无分箱拟合汇总、曲线与完整结果（CSV/MAT）', ...
+    'Value',logical(jointFitAvailable),'Enable',state,'Tag','BatchJointFit', ...
+    'Tooltip','在主界面启用联合无分箱拟合后可独立导出，无需勾选普通结果。');
+jointFit.Layout.Row=7; jointFit.Layout.Column=[1 3];
 uncertainty=uicheckbox(g,'Text','不确定度汇总 CSV','Value',true,'Tag','BatchUncertainty');
-uncertainty.Layout.Row=7; uncertainty.Layout.Column=[1 3];
+uncertainty.Layout.Row=8; uncertainty.Layout.Column=[1 3];
 optimization=uicheckbox(g,'Text','自适应优化推荐 CSV','Value',true,'Tag','BatchOptimization');
-optimization.Layout.Row=8; optimization.Layout.Column=[1 3];
+optimization.Layout.Row=9; optimization.Layout.Column=[1 3];
 evaluation=uicheckbox(g,'Text','评价函数值 CSV','Value',false,'Tag','BatchEvaluation', ...
     'Tooltip','使用自适应分析的候选窗口，导出方差和评分。');
-evaluation.Layout.Row=9; evaluation.Layout.Column=[1 3];
-label=uilabel(g,'Text','直方图单位'); label.Layout.Row=10; label.Layout.Column=1;
+evaluation.Layout.Row=10; evaluation.Layout.Column=[1 3];
+label=uilabel(g,'Text','直方图单位'); label.Layout.Row=11; label.Layout.Column=1;
 unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12);
-unit.Layout.Row=10; unit.Layout.Column=[2 3];
+unit.Layout.Row=11; unit.Layout.Column=[2 3];
 start=uibutton(g,'Text','开始批量计算并导出','FontWeight','bold', ...
     'BackgroundColor',[.16 .52 .35],'FontColor','white','Tag','BatchStart','ButtonPushedFcn',@beginBatch);
-start.Layout.Row=11; start.Layout.Column=[1 3];
+start.Layout.Row=12; start.Layout.Column=[1 3];
 status=uilabel(g,'Text','每批创建独立输出目录，失败与跳过文件写入日志。');
-status.Layout.Row=12; status.Layout.Column=[1 3];
+status.Layout.Row=13; status.Layout.Column=[1 3];
 
     function browse(field,title)
         folder=uigetdir(field.Value,title);
@@ -54,8 +60,8 @@ status.Layout.Row=12; status.Layout.Column=[1 3];
         options=struct('perSecond',strcmp(mode.Value,'per-second'), ...
             'histogram',histogram.Value,'results',results.Value, ...
             'uncertainty',uncertainty.Value,'optimization',optimization.Value, ...
-            'evaluation',evaluation.Value,'unitSeconds',unit.Value);
-        if ~any([options.histogram options.results options.uncertainty options.optimization options.evaluation])
+            'evaluation',evaluation.Value,'jointFit',jointFit.Value,'unitSeconds',unit.Value);
+        if ~any([options.histogram options.results options.uncertainty options.optimization options.evaluation options.jointFit])
             uialert(dialogFigure,'至少选择一种导出内容。','未选择导出内容'); return
         end
         dialogFigure.Visible='off';

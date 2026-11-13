@@ -12,6 +12,10 @@ classdef CoincidenceSimulatorApp < handle
         AlgorithmTab
         UncertaintyTab
         OptimizationTab
+        JointFitTab
+        JointFitAxes
+        JointFitLabel
+        JointFitTable
         OptimizationStatusLabel
         HistogramAxes
         TruthAxes
@@ -52,7 +56,7 @@ classdef CoincidenceSimulatorApp < handle
             main=uigridlayout(app.UIFigure,[1 3]);
             main.ColumnWidth={520,'1x',430}; main.Padding=[8 8 8 8]; main.ColumnSpacing=8;
 
-            % 左栏：五个参数页，下方局部时间戳及时间范围设置。
+            % 左栏：参数页，下方局部时间戳及时间范围设置。
             left=uigridlayout(main,[2 1]); left.RowHeight={'3x','2x'}; left.RowSpacing=8;
             app.ParameterTabs=uitabgroup(left);
             app.buildSourceTab(p);
@@ -60,6 +64,7 @@ classdef CoincidenceSimulatorApp < handle
             app.buildAlgorithmTab(p);
             app.buildUncertaintyTab(p);
             app.buildOptimizationTab(p);
+            app.buildJointFitTab(p);
             app.buildTimestampPanel(left);
 
             % 中栏：原局部时间戳区域重新分配给符合直方图和 Parameter Sweep。
@@ -80,6 +85,15 @@ classdef CoincidenceSimulatorApp < handle
             app.DiagnosticsTable=uitable(truthGrid,'ColumnName', ...
                 {'通道','原始丢弃','后脉冲候选','死时拒绝','探测器接受','TDC后记录','记录比例'}, ...
                 'ColumnWidth',{42,72,82,72,78,78,72},'RowName',[]);
+            jointTab=uitab(plots,'Title','联合无分箱拟合','Tag','JointFitPlotTab');
+            jointGrid=uigridlayout(jointTab,[3 1]); jointGrid.RowHeight={'1x',64,92};
+            jointGrid.Padding=[4 4 4 4]; jointGrid.RowSpacing=3;
+            app.JointFitAxes=uiaxes(jointGrid);
+            app.JointFitLabel=uilabel(jointGrid,'Text','在左侧“联合无分箱”页启用后运行仿真、导入或重新计算。', ...
+                'WordWrap','on','FontSize',11);
+            app.JointFitTable=uitable(jointGrid,'ColumnName', ...
+                {'模型','完整峰面积','窗内净计数','捕获率','面积收敛'}, ...
+                'ColumnWidth',{120,100,100,90,80},'RowName',[]);
             % 扫描图直接放在无标题、无边框容器中，减少界面杂项。
             sweepPanel=uipanel(center,'Title','','BorderType','none');
             sweepGrid=uigridlayout(sweepPanel,[1 2]); sweepGrid.Padding=[4 4 4 4];
@@ -95,7 +109,7 @@ classdef CoincidenceSimulatorApp < handle
             app.Controls.RecalculateButton=app.addActionButton(right,3,'按当前设置重新计算', ...
                 [0.18 0.58 0.42],@(~,~)app.recalculate());
             app.Controls.RecalculateButton.Tooltip= ...
-                '复用当前时间戳，按“算法设置”“统计不确定度”“自适应符合”三页的当前配置重新计算。';
+                '复用当前时间戳，按算法、统计、自适应及联合无分箱页的当前配置重新计算。';
             app.addActionButton(right,4,'导入 Start/Stop TXT/BIN',[0.36 0.50 0.70],@(~,~)app.importTimestamps());
             app.addActionButton(right,5,'导入设置参数 MAT',[0.42 0.50 0.58],@(~,~)app.importSettings());
             app.addActionButton(right,6,'扫描符合窗口',[0.58 0.42 0.68],@(~,~)app.runSweep());
@@ -311,6 +325,30 @@ classdef CoincidenceSimulatorApp < handle
                 'FontColor',[.35 .4 .48]); note.Layout.Row=2; note.Layout.Column=[3 5];
         end
 
+        function buildJointFitTab(app,p)
+            app.JointFitTab=uitab(app.ParameterTabs,'Title','联合无分箱','Scrollable','off');
+            g=uigridlayout(app.JointFitTab,[12 2]); g.ColumnWidth={'1x',180};
+            g.RowHeight=[repmat({26},1,9),{48,48,'1x'}];
+            g.Padding=[8 8 8 8]; g.RowSpacing=4; g.Scrollable='on'; j=p.jointFit;
+            app.Controls.JointFitEnabled=app.addDrop(g,1,'联合无分箱点估计', ...
+                {'关闭','启用（与原结果并行）'},{false,true},j.enabled);
+            app.Controls.JointFitModel=app.addDrop(g,2,'主报告模型', ...
+                {'单高斯','非对称双高斯'},{'gaussian','doublegaussian'},j.primaryModel);
+            app.Controls.JointFitSigma=app.addNum(g,3,'初始核心 σ (ps)',j.initialSigma*1e12);
+            app.Controls.JointFitMinSigma=app.addNum(g,4,'最小核心 σ (ps)',j.minSigma*1e12);
+            app.Controls.JointFitTailSigma=app.addNum(g,5,'尾部 σ 上限 (ns)',j.maxTailSigma*1e9);
+            app.Controls.JointFitBlock=app.addNum(g,6,'交叉拟合时间块 (s)',j.blockSize);
+            app.Controls.JointFitSample=app.addNum(g,7,'形状拟合抽样对数',j.maxShapeFitPairs);
+            app.Controls.JointFitChunk=app.addNum(g,8,'流式分块候选对数',j.streamChunkPairs);
+            app.Controls.JointFitSeed=app.addNum(g,9,'形状抽样独立种子',j.seed);
+            notes={'最窄有效自适应窗优先（含仅推荐）；否则使用算法设置的实际窗口。', ...
+                '本分支仅点估计，不执行 Bootstrap。完整峰面积与窗内净计数分别报告。'};
+            for k=1:2
+                note=uilabel(g,'Text',notes{k},'WordWrap','on','FontColor',[.2 .35 .45]);
+                note.Layout.Row=9+k; note.Layout.Column=[1 2];
+            end
+        end
+
         function p=readParameters(app)
             c=app.Controls; p=mergeParamsWithDefaults(defaultParams(),app.SettingsTemplate);
             p.source.mode=string(c.SourceMode.Value); p.source.pairRate=c.PairRate.Value;
@@ -372,6 +410,15 @@ classdef CoincidenceSimulatorApp < handle
             p.optimization.requireFullSideWindows=c.FullSides.Value;
             p.optimization.checkBackground=c.BackgroundCheck.Value;
             p.optimization.checkBinStability=c.BinStability.Value;
+            p.jointFit.enabled=logical(c.JointFitEnabled.Value);
+            p.jointFit.primaryModel=string(c.JointFitModel.Value);
+            p.jointFit.initialSigma=c.JointFitSigma.Value*1e-12;
+            p.jointFit.minSigma=c.JointFitMinSigma.Value*1e-12;
+            p.jointFit.maxTailSigma=c.JointFitTailSigma.Value*1e-9;
+            p.jointFit.blockSize=c.JointFitBlock.Value;
+            p.jointFit.maxShapeFitPairs=c.JointFitSample.Value;
+            p.jointFit.streamChunkPairs=c.JointFitChunk.Value;
+            p.jointFit.seed=c.JointFitSeed.Value;
         end
 
         function populateControls(app,p)
@@ -432,6 +479,15 @@ classdef CoincidenceSimulatorApp < handle
             c.FullSides.Value=p.optimization.requireFullSideWindows;
             c.BackgroundCheck.Value=p.optimization.checkBackground;
             c.BinStability.Value=p.optimization.checkBinStability;
+            c.JointFitEnabled.Value=p.jointFit.enabled;
+            c.JointFitModel.Value=char(p.jointFit.primaryModel);
+            c.JointFitSigma.Value=p.jointFit.initialSigma*1e12;
+            c.JointFitMinSigma.Value=p.jointFit.minSigma*1e12;
+            c.JointFitTailSigma.Value=p.jointFit.maxTailSigma*1e9;
+            c.JointFitBlock.Value=p.jointFit.blockSize;
+            c.JointFitSample.Value=p.jointFit.maxShapeFitPairs;
+            c.JointFitChunk.Value=p.jointFit.streamChunkPairs;
+            c.JointFitSeed.Value=p.jointFit.seed;
             app.updateTimingControls();
         end
 
@@ -495,7 +551,7 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function batchImport(app)
-            showBatchExportDialog(app.UIFigure,@runBatch);
+            showBatchExportDialog(app.UIFigure,@runBatch,logical(app.Controls.JointFitEnabled.Value));
 
             function runBatch(input,output,options)
             try
@@ -620,6 +676,7 @@ classdef CoincidenceSimulatorApp < handle
             end
             app.updateHistogram(); app.updateTimestampPlot(); app.updateResultTable();
             app.updateSimulationDiagnostics();
+            app.updateJointFitPlot();
             app.updateOptimizationPlot();
         end
 
@@ -796,6 +853,42 @@ classdef CoincidenceSimulatorApp < handle
             end
         end
 
+        function updateJointFitPlot(app)
+            ax=app.JointFitAxes; legend(ax,'off'); cla(ax,'reset'); app.JointFitTable.Data={};
+            xlabel(ax,'t_B-t_A (ns)'); ylabel(ax,'候选对数');
+            if ~isfield(app.LastResult,'jointFit') || isempty(app.LastResult.jointFit)
+                title(ax,'联合无分箱点估计未启用');
+                app.JointFitLabel.Text='在左侧“联合无分箱”页启用后运行、导入或重新计算。'; return
+            end
+            j=app.LastResult.jointFit; w=j.window; origin='算法设置';
+            if w.source=="narrowest-adaptive", origin='最窄自适应'; end
+            if ~isempty(j.histogram)
+                h=j.histogram; bar(ax,h.TimeDifference_s*1e9,h.ObservedCounts,1, ...
+                    'FaceColor',[.78 .83 .88],'EdgeColor','none'); hold(ax,'on');
+                plot(ax,h.TimeDifference_s*1e9,h.GaussianExpectedCounts,'LineWidth',1.3);
+                plot(ax,h.TimeDifference_s*1e9,h.DoubleGaussianExpectedCounts,'LineWidth',1.3);
+                xline(ax,w.lowerEdge*1e9,'--k','所用窗口','HandleVisibility','off');
+                xline(ax,w.upperEdge*1e9,'--k','HandleVisibility','off'); hold(ax,'off');
+                legend(ax,{'all-pairs','单高斯','双高斯'},'Location','best');
+            end
+            xlabel(ax,'t_B-t_A (ns)'); ylabel(ax,'候选对数'); grid(ax,'on');
+            title(ax,'全谱联合拟合与实际符合窗口');
+            modelName='非对称双高斯'; if j.primaryModel=="gaussian", modelName='单高斯'; end
+            state='点估计完成，无 Bootstrap';
+            if ~j.valid
+                state=char(j.message);
+                if isempty(state), state='拟合不可用，请检查参数与数据'; end
+            end
+            app.JointFitLabel.Text=sprintf('%s窗：%.4g ns，[%.4g, %.4g] ns；%s。\n%s', ...
+                origin,w.width*1e9,w.lowerEdge*1e9,w.upperEdge*1e9,modelName,state);
+            t=j.summary; data=cell(2,5);
+            for k=1:2
+                data(k,:)={char(t.Model(k)),sprintf('%.6g',t.NpairFull(k)), ...
+                    sprintf('%.6g',t.NnetWindow(k)),sprintf('%.4g',t.CaptureFraction(k)),t.Converged(k)};
+            end
+            app.JointFitTable.Data=data;
+        end
+
         function resetTimestampAxes(app,titleText)
             %RESETTIMESTAMPAXES 彻底清空局部时间戳图并恢复固定坐标设置。
             ax=app.TimestampAxes;
@@ -824,6 +917,8 @@ classdef CoincidenceSimulatorApp < handle
             backgroundColors={[.88 .93 1.00],[1.00 .94 .86],[.88 .97 .91],[.95 .89 .99], ...
                 [1 .95 .86],[.88 .96 .97],[.93 .93 1]};
             parameters=string(summary.('参数'));
+            sectionNames(end+1)="【联合无分箱点估计】";
+            fontColors{end+1}=[.45 .20 .12]; backgroundColors{end+1}=[1 .94 .89];
             for k=1:numel(sectionNames)
                 row=find(parameters==sectionNames(k),1);
                 if ~isempty(row)

@@ -1,7 +1,7 @@
 function files = exportSelectedResults(out, folder, baseName, options)
 %EXPORTSELECTEDRESULTS 按用户选择导出设置、直方图、结果表、扫描和时间戳。
 %   OPTIONS 包含 settings、histogram、results、sweep、timeWindows、countRates、
-%   timestamps、uncertainty、optimization、evaluation、diagnostics、unitSeconds 字段。
+%   timestamps、uncertainty、optimization、evaluation、diagnostics、jointFit、unitSeconds 字段。
 %   缺少新增字段时默认不导出，以兼容旧调用。
 %   时间戳文件采用与实测样例相同的“每行一个数值、无表头”格式。
 
@@ -10,6 +10,11 @@ if isfield(options,'perSecond') && options.perSecond
     return
 end
 evaluation=isfield(options,'evaluation') && options.evaluation;
+jointFitSpecified=isfield(options,'jointFit');
+jointFit=isfield(options,'jointFit') && options.jointFit;
+if jointFit && (~isfield(out,'jointFit') || isempty(out.jointFit))
+    error('CoincidenceSim:MissingJointFit','请先启用联合无分箱拟合并运行或重新计算。');
+end
 diagnostics=isfield(options,'diagnostics') && options.diagnostics;
 if diagnostics && (~isfield(out,'simulationDiagnostics') || string(out.dataMode)~="simulation")
     error('CoincidenceSim:NoSimulationTruth','请先运行仿真以生成真实峰形诊断。');
@@ -36,7 +41,9 @@ if options.results
     resultsTable=buildMetricSummaryTable(out,true);
     file=fullfile(folder,baseName+"_results.csv");
     writeUtf8BomTable(resultsTable,file); files(end+1,1)=file;
+    if ~jointFitSpecified, files=[files;exportJointFitResults(out,folder,baseName)]; end
 end
+if jointFit, files=[files;exportJointFitResults(out,folder,baseName,true)]; end
 if isfield(options,'sweep') && options.sweep
     if ~isfield(out,'sweep') || ~isfield(out.sweep,'window')
         error('CoincidenceSim:MissingSweep','当前结果没有窗口扫描数据，请先点击“扫描符合窗口”。');
@@ -65,6 +72,10 @@ if isfield(options,'timeWindows') && options.timeWindows
             baseName,k));
         writeUtf8BomTable(histogramTable,histogramFile);
         files(end+1,1)=histogramFile;
+        if ~jointFitSpecified || jointFit
+            files=[files;exportJointFitResults(result,windowFolder, ...
+                baseName+sprintf('_time_window_%04d',k),jointFit)]; %#ok<AGROW>
+        end
     end
 end
 if isfield(options,'countRates') && options.countRates
