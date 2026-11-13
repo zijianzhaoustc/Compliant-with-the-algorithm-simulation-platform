@@ -6,9 +6,9 @@ function dialogFigure = showExportDialog(parent, out)
 
 parentPos=parent.Position;
 dialogFigure=uifigure('Name','选择导出内容','WindowStyle','modal', ...
-    'Position',[parentPos(1)+parentPos(3)/2-220 parentPos(2)+parentPos(4)/2-298 440 596]);
-g=uigridlayout(dialogFigure,[16 2]); g.ColumnWidth={145,'1x'};
-g.RowHeight=[repmat({30},1,14),{36,24}];
+    'Position',[parentPos(1)+parentPos(3)/2-230 parentPos(2)+parentPos(4)/2-316 460 632]);
+g=uigridlayout(dialogFigure,[17 2]); g.ColumnWidth={145,'1x'};
+g.RowHeight=[repmat({30},1,15),{36,24}];
 g.Padding=[12 12 12 12]; g.RowSpacing=5;
 
 hasSweep=isfield(out,'sweep') && isstruct(out.sweep) && isfield(out.sweep,'window');
@@ -17,19 +17,20 @@ hasTimeWindows=isfield(out,'timeWindows') && isstruct(out.timeWindows) && ...
 hasUncertainty=isfield(out,'uncertainty');
 hasOptimization=isfield(out,'optimization') && ~isempty(out.optimization);
 available=struct('sweep',hasSweep,'timeWindows',hasTimeWindows, ...
-    'uncertainty',hasUncertainty,'optimization',hasOptimization);
+    'uncertainty',hasUncertainty,'optimization',hasOptimization, ...
+    'diagnostics',isfield(out,'simulationDiagnostics'));
 choices=createExportSelectionControls(g,available);
 
-l=uilabel(g,'Text','时间戳/直方图单位'); l.Layout.Row=11; l.Layout.Column=1;
-unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12); unit.Layout.Row=11; unit.Layout.Column=2;
-l=uilabel(g,'Text','文件名前缀'); l.Layout.Row=12; l.Layout.Column=1;
-base=uieditfield(g,'text','Value','coincidence_result','Tag','ExportBaseName'); base.Layout.Row=12; base.Layout.Column=2;
-l=uilabel(g,'Text','导出目录'); l.Layout.Row=13; l.Layout.Column=1;
-folder=uieditfield(g,'text','Value',pwd,'Tag','ExportFolder'); folder.Layout.Row=13; folder.Layout.Column=2;
-browse=uibutton(g,'Text','选择目录…','ButtonPushedFcn',@browseFolder); browse.Layout.Row=14; browse.Layout.Column=[1 2];
+l=uilabel(g,'Text','时间戳/直方图单位'); l.Layout.Row=12; l.Layout.Column=1;
+unit=uidropdown(g,'Items',{'ps','ns','s'},'ItemsData',{1e-12,1e-9,1},'Value',1e-12); unit.Layout.Row=12; unit.Layout.Column=2;
+l=uilabel(g,'Text','文件名前缀'); l.Layout.Row=13; l.Layout.Column=1;
+base=uieditfield(g,'text','Value','coincidence_result','Tag','ExportBaseName'); base.Layout.Row=13; base.Layout.Column=2;
+l=uilabel(g,'Text','导出目录'); l.Layout.Row=14; l.Layout.Column=1;
+folder=uieditfield(g,'text','Value',pwd,'Tag','ExportFolder'); folder.Layout.Row=14; folder.Layout.Column=2;
+browse=uibutton(g,'Text','选择目录…','ButtonPushedFcn',@browseFolder); browse.Layout.Row=15; browse.Layout.Column=[1 2];
 exportButton=uibutton(g,'Text','开始导出','FontWeight','bold','BackgroundColor',[.16 .52 .35], ...
-    'FontColor','white','ButtonPushedFcn',@doExport,'Tag','ExportStart'); exportButton.Layout.Row=15; exportButton.Layout.Column=[1 2];
-status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=16; status.Layout.Column=[1 2];
+    'FontColor','white','ButtonPushedFcn',@doExport,'Tag','ExportStart'); exportButton.Layout.Row=16; exportButton.Layout.Column=[1 2];
+status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=17; status.Layout.Column=[1 2];
 
     function browseFolder(~,~)
         selected=uigetdir(folder.Value,'选择导出目录');
@@ -41,7 +42,7 @@ status=uilabel(g,'Text','请选择内容和保存位置'); status.Layout.Row=16;
         options=readExportSelection(choices,unit.Value);
         if ~any([options.settings options.histogram options.results options.sweep ...
                 options.timeWindows options.countRates options.timestamps options.uncertainty ...
-                options.optimization options.evaluation])
+                options.optimization options.evaluation options.diagnostics])
             uialert(dialogFigure,'至少选择一种导出内容。','导出错误'); return
         end
         try

@@ -1,14 +1,14 @@
-function events = simulateDetector(photons, p, channel)
+function [events,diagnostics] = simulateDetector(photons, p, channel)
 %SIMULATEDETECTOR 模拟单通道探测器及记录电子学。
 %   EVENTS = SIMULATEDETECTOR(PHOTONS,P,CHANNEL) 依次施加 PDE/记录效率、
-%   探测器 Gaussian 抖动、暗计数/背景和采集区间裁剪，再按时间顺序处理
+%   独立探测器 IRF、暗计数/背景和采集区间裁剪，再按时间顺序处理
 %   非延长型死时间与后脉冲；只有被接受的雪崩才可生成下一代后脉冲。
 %   信号事件保留原 pairID；暗计数和后脉冲的 pairID 固定为 0。
 
 cfg = p.detector.(channel);
 % 光子探测和后端成功记录合并成一次独立 Bernoulli 试验。
 keep = rand(size(photons.time)) < cfg.efficiency*cfg.recordEfficiency;
-time = photons.time(keep) + cfg.jitter*randn(nnz(keep),1);
+time = photons.time(keep) + sampleDetectorTiming(nnz(keep),cfg);
 pairID = photons.pairID(keep);
 type = repmat("signal", nnz(keep), 1);
 
@@ -30,16 +30,39 @@ end
 inside = time >= 0 & time <= p.measurementTime;
 time = time(inside); pairID = pairID(inside); type = type(inside);
 events = struct("time",time,"pairID",pairID,"type",type);
+diagnostics=struct('incidentPhotons',numel(photons.time), ...
+    'detectedPhotons',nnz(keep),'primaryCandidates',numel(time), ...
+    'primaryAccepted',numel(time),'primaryRejectedDeadTime',0, ...
+    'afterpulseCandidates',0,'afterpulseOutsideAcquisition',0, ...
+    'afterpulseRejectedDeadTime',0,'afterpulseAccepted',0);
 if p.detector.enableAfterpulse && cfg.afterpulseProbability > 0
     deadTime=0;
     if p.detector.enableDeadTime, deadTime=cfg.deadTime; end
-    events=processDetectorAvalanches(events,deadTime,cfg.afterpulseProbability, ...
+    [events,avalanche]=processDetectorAvalanches(events,deadTime,cfg.afterpulseProbability, ...
         cfg.afterpulseLifetime,p.measurementTime);
+    for name=string(fieldnames(avalanche))'
+        diagnostics.(name)=avalanche.(name);
+    end
 elseif p.detector.enableDeadTime && cfg.deadTime > 0
     % 非延长型模型只由最近一次“被接受”事件开启死时间。
     keep = nonParalyzableKeep(time, cfg.deadTime);
     time = time(keep); pairID = pairID(keep); type = type(keep);
     events = struct("time",time,"pairID",pairID,"type",type);
+    diagnostics.primaryAccepted=nnz(keep);
+    diagnostics.primaryRejectedDeadTime=nnz(~keep);
+end
+diagnostics.acceptedAvalanches=numel(events.time);
+diagnostics.generationProbability=0;
+if p.detector.enableAfterpulse, diagnostics.generationProbability=cfg.afterpulseProbability; end
+diagnostics.isolatedSurvivalProbability=1;
+if p.detector.enableDeadTime
+    diagnostics.isolatedSurvivalProbability=exp(-cfg.deadTime/cfg.afterpulseLifetime);
+end
+diagnostics.isolatedObservedProbability=diagnostics.generationProbability* ...
+    diagnostics.isolatedSurvivalProbability;
+diagnostics.observedProbability=NaN;
+if diagnostics.acceptedAvalanches>0
+    diagnostics.observedProbability=diagnostics.afterpulseAccepted/diagnostics.acceptedAvalanches;
 end
 end
 

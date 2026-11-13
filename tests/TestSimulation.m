@@ -652,6 +652,7 @@ end
 function p=idealParams()
 %IDEALPARAMS 构造关闭所有非理想因素的公共测试基线。
 p=defaultParams(); p.seed=17;
+p.detector.A.timingModel="gaussian"; p.detector.B.timingModel="gaussian";
 p.optics.A.transmission=1; p.optics.B.transmission=1;
 p.detector.A.efficiency=1; p.detector.B.efficiency=1;
 p.detector.A.recordEfficiency=1; p.detector.B.recordEfficiency=1;

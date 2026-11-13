@@ -30,8 +30,14 @@ p.detector.A.darkRate = 500; p.detector.B.darkRate = 500;
 % 背景光与暗计数都是独立 Poisson 事件，但保留不同事件标签供可视化区分。
 p.detector.A.backgroundRate = 0; p.detector.B.backgroundRate = 0;
 p.detector.A.jitter = 150e-12; p.detector.B.jitter = 150e-12;
+% jitter 表示快速高斯核心的标准差；尾部参数仅作敏感性示例，非器件标定值。
+p.detector.A.timingModel = "gaussian-exp-tail";
+p.detector.B.timingModel = "gaussian-exp-tail";
+p.detector.A.tailFraction = 0.10; p.detector.B.tailFraction = 0.15;
+p.detector.A.tailTau = 0.8e-9; p.detector.B.tailTau = 1.2e-9;
 p.detector.A.deadTime = 50e-9; p.detector.B.deadTime = 50e-9;
-% 每个通过死时间判定的雪崩，以给定概率生成一个指数延迟后脉冲。
+% 每个通过死时间判定的雪崩，以给定候选生成概率产生一个指数延迟后脉冲。
+% 该概率包含可能落入死时间而无法记录的候选，不是 hold-off 后实测概率。
 % 后脉冲同样接受死时间判定；只有被接受时才可能继续生成下一代。
 p.detector.A.afterpulseProbability = 0.05; p.detector.B.afterpulseProbability = 0.05;
 p.detector.A.afterpulseLifetime = 50e-9; p.detector.B.afterpulseLifetime = 50e-9;

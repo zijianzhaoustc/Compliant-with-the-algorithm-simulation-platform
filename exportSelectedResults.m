@@ -1,7 +1,7 @@
 function files = exportSelectedResults(out, folder, baseName, options)
 %EXPORTSELECTEDRESULTS 按用户选择导出设置、直方图、结果表、扫描和时间戳。
 %   OPTIONS 包含 settings、histogram、results、sweep、timeWindows、countRates、
-%   timestamps、uncertainty、optimization、evaluation、unitSeconds 字段。
+%   timestamps、uncertainty、optimization、evaluation、diagnostics、unitSeconds 字段。
 %   缺少新增字段时默认不导出，以兼容旧调用。
 %   时间戳文件采用与实测样例相同的“每行一个数值、无表头”格式。
 
@@ -10,6 +10,10 @@ if isfield(options,'perSecond') && options.perSecond
     return
 end
 evaluation=isfield(options,'evaluation') && options.evaluation;
+diagnostics=isfield(options,'diagnostics') && options.diagnostics;
+if diagnostics && (~isfield(out,'simulationDiagnostics') || string(out.dataMode)~="simulation")
+    error('CoincidenceSim:NoSimulationTruth','请先运行仿真以生成真实峰形诊断。');
+end
 if evaluation && (~isfield(out,'optimization') || isempty(out.optimization))
     error('CoincidenceSim:MissingOptimization','请先运行自适应分析，再导出评价函数值。');
 end
@@ -151,5 +155,8 @@ if isfield(options,'optimization') && options.optimization
 end
 if evaluation
     files(end+1,1)=exportWindowEvaluation(out,folder,baseName);
+end
+if diagnostics
+    files=[files;exportSimulationDiagnostics(out,folder,baseName)];
 end
 end

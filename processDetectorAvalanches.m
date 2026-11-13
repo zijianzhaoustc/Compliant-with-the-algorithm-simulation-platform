@@ -1,4 +1,4 @@
-function events = processDetectorAvalanches(primary,deadTime,probability,lifetime,duration)
+function [events,diagnostics] = processDetectorAvalanches(primary,deadTime,probability,lifetime,duration)
 %PROCESSDETECTORAVALANCHES 耦合处理非延长型死时间和递归后脉冲。
 %   PRIMARY 是已排序、已裁剪至 [0,duration] 的原始候选事件。
 %   每次取最早候选，通过死时间判定才记录、更新死时间并以 probability
@@ -11,6 +11,9 @@ capacity=max(16,nPrimary);
 time=zeros(capacity,1); pairID=zeros(capacity,1); type=strings(capacity,1);
 heap=zeros(max(16,nPrimary),1); heapSize=0;
 nextPrimary=1; accepted=0; lastAccepted=-inf;
+diagnostics=struct('primaryAccepted',0,'primaryRejectedDeadTime',0, ...
+    'afterpulseCandidates',0,'afterpulseOutsideAcquisition',0, ...
+    'afterpulseRejectedDeadTime',0,'afterpulseAccepted',0);
 while nextPrimary<=nPrimary || heapSize>0
     % 同时刻优先处理原始事件；保证结果和事件标签选择可重复。
     isPrimary=nextPrimary<=nPrimary;
@@ -37,7 +40,19 @@ while nextPrimary<=nPrimary || heapSize>0
             heap(pos)=tail;
         end
     end
-    if candidate-lastAccepted<deadTime, continue; end
+    if candidate-lastAccepted<deadTime
+        if isPrimary
+            diagnostics.primaryRejectedDeadTime=diagnostics.primaryRejectedDeadTime+1;
+        else
+            diagnostics.afterpulseRejectedDeadTime=diagnostics.afterpulseRejectedDeadTime+1;
+        end
+        continue
+    end
+    if isPrimary
+        diagnostics.primaryAccepted=diagnostics.primaryAccepted+1;
+    else
+        diagnostics.afterpulseAccepted=diagnostics.afterpulseAccepted+1;
+    end
     lastAccepted=candidate;
     accepted=accepted+1;
     if accepted>capacity
@@ -48,6 +63,7 @@ while nextPrimary<=nPrimary || heapSize>0
 
     % 只有已接受的雪崩才抽样；后脉冲若位于死时间内，会在出堆时被拒绝。
     if rand<probability
+        diagnostics.afterpulseCandidates=diagnostics.afterpulseCandidates+1;
         delay=-lifetime*log(max(rand,realmin));
         % 防止浮点舍入使极短延迟变成零，确保递归时间严格前进。
         afterTime=candidate+max(delay,eps(candidate));
@@ -61,6 +77,8 @@ while nextPrimary<=nPrimary || heapSize>0
                 heap(pos)=heap(parent); pos=parent;
             end
             heap(pos)=afterTime;
+        else
+            diagnostics.afterpulseOutsideAcquisition=diagnostics.afterpulseOutsideAcquisition+1;
         end
     end
 end

@@ -10,20 +10,67 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
             writeBin(fullfile(input,'nested','beta_CH1.bin'),"CH1.bin",values);
             writeBin(fullfile(input,'nested','beta_CH2.bin'),"CH2.bin",values);
             p=parameters(); p.optimization.mode="manual";
+            p.algorithm.accidentalMethod="theory";
             options=struct('perSecond',true,'histogram',true,'results',false,'uncertainty',false,'optimization',false);
             report=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
             t.verifyEqual(report.successCount,2); t.verifyEqual(report.log.SecondCount,[10;3]);
             t.verifyEqual(report.log.CompletedSeconds,[10;3]);
             t.verifyEqual(report.log.ExportedFiles,[11;4]);
             t.verifyTrue(all(report.log.AnalysisMode=="per-second"));
-            index=readtable(fullfile(report.log.OutputFolder(1),'alpha_per_second_results','alpha_second_index.csv'));
-            t.verifyEqual(index.Nraw,[2;ones(8,1);2]);
-            folder=index.OutputFolder{1};
+            index=readtable(fullfile(report.log.OutputFolder(1),'alpha_per_second_results','alpha_second_index.csv'), ...
+                'TextType','string');
+            expected=[2;ones(8,1);2];
+            t.verifyEqual(index.Nraw,expected);
+            t.verifyEqual(index.Nacc,expected.^2*p.algorithm.window,'RelTol',1e-12);
+            t.verifyEqual(index.Nnet,expected-index.Nacc,'AbsTol',1e-12);
+            t.verifyEqual(index.AccidentalMethod,repmat("理论法",10,1));
+            batchLog=readtable(fullfile(report.outputFolder,'batch_log.csv'),'TextType','string', ...
+                'ReadVariableNames',true,'NumHeaderLines',0,'Delimiter',',','Encoding','UTF-8');
+            t.verifyEqual(batchLog.Nraw(1),sum(index.Nraw));
+            t.verifyEqual(batchLog.Nacc(1),sum(index.Nacc),'RelTol',1e-12);
+            t.verifyEqual(batchLog.Nnet(1),sum(index.Nnet),'AbsTol',1e-12);
+            t.verifyEqual(batchLog.AccidentalMethod(1),"理论法");
+            folder=index.OutputFolder(1);
             t.verifyEqual(numel(dir(fullfile(folder,'*.csv'))),1);
             t.verifyFalse(isfile(fullfile(report.log.OutputFolder(1),'alpha_histogram.csv')));
             snapshot=load(fullfile(report.outputFolder,'batch_settings.mat'));
             t.verifyTrue(snapshot.exportOptions.perSecond);
             t.verifyFalse(snapshot.exportOptions.results);
+            clear cleanup
+        end
+
+        function batchSecondsApplyEachSecondsOwnNarrowestWindow(t)
+            root=string(tempname); mkdir(root); cleanup=onCleanup(@()rmdir(root,'s'));
+            input=fullfile(root,'input'); mkdir(input);
+            n=2048;
+            localTime=.01+(0:n-1)'/2200;
+            quantiles=sqrt(2)*erfinv(2*((1:n)'-.5)/n-1);
+            start=[0;localTime;1+localTime;2];
+            stop=[0;localTime+5e-9+.12e-9*quantiles;1+localTime+5e-9+.32e-9*quantiles;2];
+            writeBin(fullfile(input,'vary_CH1.bin'),"CH1.bin",start*1e12);
+            writeBin(fullfile(input,'vary_CH2.bin'),"CH2.bin",stop*1e12);
+            p=parameters();
+            p.algorithm.accidentalMethod="theory";
+            p.optimization.mode="apply"; p.optimization.selection="narrowest";
+            p.optimization.checkBackground=false;
+            p.uncertainty.enabled=false;
+            options=struct('perSecond',true,'histogram',false,'results',false, ...
+                'uncertainty',false,'optimization',true);
+            report=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
+            t.assertEqual(report.successCount,1,report.log.Message(1));
+            index=readtable(fullfile(report.log.OutputFolder(1),'vary_per_second_results','vary_second_index.csv'), ...
+                'TextType','string','ReadVariableNames',true,'NumHeaderLines',0,'Delimiter',',');
+            widths=nan(2,1);
+            for k=1:2
+                name=sprintf('vary_second_%04d_optimization_summary.csv',k);
+                optimization=readtable(fullfile(index.OutputFolder(k),name),'TextType','string');
+                t.verifyTrue(logical(optimization.Applied));
+                widths(k)=optimization.EffectiveWindow_s;
+                t.verifyEqual(widths(k),optimization.Window_s,'AbsTol',1e-15);
+            end
+            t.verifyGreaterThan(widths(2),1.5*widths(1));
+            t.verifyEqual(index.Nacc,index.CountA.*index.CountB.*widths./index.Duration_s,'RelTol',1e-12);
+            t.verifyEqual(index.Nnet,index.Nraw-index.Nacc,'AbsTol',1e-11);
             clear cleanup
         end
 
@@ -59,6 +106,10 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
             whole=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
             t.verifyEqual(whole.successCount,1);
             t.verifyEqual(numel(dir(fullfile(whole.log.OutputFolder(1),'*.csv'))),2);
+            t.verifyEqual(whole.log.Nraw,6);
+            t.verifyEqual(whole.log.Nacc,0);
+            t.verifyEqual(whole.log.Nnet,6);
+            t.verifyEqual(whole.log.AccidentalMethod,"旁窗法");
             options=struct('perSecond',true,'histogram',false,'results',false, ...
                 'uncertainty',false,'optimization',false,'evaluation',true);
             scores=batchAnalyzeTimestampFolder(input,fullfile(root,'output'),1,p,@(~,~,~)true,options);
@@ -88,6 +139,9 @@ classdef TestTimestampBatch < matlab.unittest.TestCase
             index=readtable(fullfile(report.log.OutputFolder(1),'a_per_second_results','a_second_index.csv'), ...
                 'ReadVariableNames',true,'NumHeaderLines',0,'Delimiter',',','Encoding','UTF-8');
             t.verifyEqual(height(index),2); t.verifyEqual(index.Nraw,[2;2]);
+            t.verifyEqual(report.log.Nraw(1),sum(index.Nraw));
+            t.verifyEqual(report.log.Nnet(1),sum(index.Nnet));
+            t.verifyTrue(isnan(report.log.Nraw(2)));
             t.verifyTrue(isfile(fullfile(index.OutputFolder{2},'a_second_0002_histogram.csv')));
             clear cleanup
         end

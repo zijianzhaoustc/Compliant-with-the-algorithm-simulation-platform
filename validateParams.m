@@ -4,6 +4,13 @@ function p = validateParams(p)
 %   进行检查。发现不合法输入时立即报错，避免错误单位或概率进入仿真内核。
 
 % 采集时间必须为正；seed 必须为整数以确保 rng 可重复。
+% 缺少 timingModel 的旧参数沿用原高斯模型，不默默改变历史仿真配置。
+for ch=["A","B"]
+    if isfield(p,'detector') && isfield(p.detector,ch) && ...
+            ~isfield(p.detector.(ch),'timingModel')
+        p.detector.(ch).timingModel="gaussian";
+    end
+end
 p=mergeParamsWithDefaults(defaultParams(),p);
 mustBePositive(p.measurementTime);
 if ~isscalar(p.measurementTime) || ~isfinite(p.measurementTime)
@@ -27,6 +34,17 @@ for ch = ["A","B"]
     mustBeNonnegative(p.detector.(ch).darkRate);
     mustBeNonnegative(p.detector.(ch).backgroundRate);
     mustBeNonnegative(p.detector.(ch).jitter);
+    cfg=p.detector.(ch);
+    if ~isscalar(string(cfg.timingModel)) || ...
+            ~any(string(cfg.timingModel)==["gaussian","gaussian-exp-tail"])
+        error('CoincidenceSim:InvalidTimingModel','时间响应类型必须为 gaussian 或 gaussian-exp-tail。');
+    end
+    p.detector.(ch).timingModel=string(cfg.timingModel);
+    unitInterval(cfg.tailFraction,"IRF tail fraction");
+    if ~isnumeric(cfg.tailTau) || ~isreal(cfg.tailTau) || ~isscalar(cfg.tailTau) || ...
+            ~isfinite(cfg.tailTau) || cfg.tailTau<=0
+        error('CoincidenceSim:InvalidTailTau','IRF 尾部时间常数必须为有限正标量（秒）。');
+    end
     mustBeNonnegative(p.detector.(ch).deadTime);
     unitInterval(p.detector.(ch).afterpulseProbability, "afterpulse probability");
     mustBePositive(p.detector.(ch).afterpulseLifetime);

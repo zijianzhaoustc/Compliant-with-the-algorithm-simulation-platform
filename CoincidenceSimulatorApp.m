@@ -14,6 +14,9 @@ classdef CoincidenceSimulatorApp < handle
         OptimizationTab
         OptimizationStatusLabel
         HistogramAxes
+        TruthAxes
+        DiagnosticsLabel
+        DiagnosticsTable
         TimestampAxes
         SweepRateAxes
         SweepMetricAxes
@@ -61,8 +64,22 @@ classdef CoincidenceSimulatorApp < handle
 
             % 中栏：原局部时间戳区域重新分配给符合直方图和 Parameter Sweep。
             center=uigridlayout(main,[2 1]); center.RowHeight={'1.15x','1x'}; center.RowSpacing=8;
-            app.HistogramAxes=uiaxes(center); title(app.HistogramAxes,'符合时间差直方图');
+            plots=uitabgroup(center);
+            histogramTab=uitab(plots,'Title','符合直方图');
+            histogramGrid=uigridlayout(histogramTab,[1 1]); histogramGrid.Padding=[0 0 0 0];
+            app.HistogramAxes=uiaxes(histogramGrid); title(app.HistogramAxes,'符合时间差直方图');
             xlabel(app.HistogramAxes,'t_{Stop}-t_{Start} (ns)'); ylabel(app.HistogramAxes,'计数'); grid(app.HistogramAxes,'on');
+            truthTab=uitab(plots,'Title','仿真真实峰形诊断','Tag','SimulationDiagnosticsTab');
+            truthGrid=uigridlayout(truthTab,[3 1]); truthGrid.RowHeight={'1x',64,92};
+            truthGrid.Padding=[4 4 4 4]; truthGrid.RowSpacing=3;
+            app.TruthAxes=uiaxes(truthGrid);
+            title(app.TruthAxes,'相同 pairID 的完整时间差分布');
+            xlabel(app.TruthAxes,'t_B-t_A (ns)'); ylabel(app.TruthAxes,'真实对数');
+            app.DiagnosticsLabel=uilabel(truthGrid,'Text','运行新仿真后显示；实测数据没有 pairID 真值。', ...
+                'WordWrap','on','FontSize',11);
+            app.DiagnosticsTable=uitable(truthGrid,'ColumnName', ...
+                {'通道','原始丢弃','后脉冲候选','死时拒绝','探测器接受','TDC后记录','记录比例'}, ...
+                'ColumnWidth',{42,72,82,72,78,78,72},'RowName',[]);
             % 扫描图直接放在无标题、无边框容器中，减少界面杂项。
             sweepPanel=uipanel(center,'Title','','BorderType','none');
             sweepGrid=uigridlayout(sweepPanel,[1 2]); sweepGrid.Padding=[4 4 4 4];
@@ -115,28 +132,56 @@ classdef CoincidenceSimulatorApp < handle
 
         function buildDetectorTab(app,p)
             app.DetectorTab=uitab(app.ParameterTabs,'Title','探测器TDC参数','Scrollable','off');
-            g=uigridlayout(app.DetectorTab,[17 4]);
-            g.ColumnWidth={120,'1x',120,'1x'}; g.RowHeight=repmat({23},1,17); g.RowSpacing=2; g.ColumnSpacing=4; g.Padding=[6 6 6 6];
+            g=uigridlayout(app.DetectorTab,[21 4]);
+            g.Scrollable='on';
+            g.ColumnWidth={120,'1x',120,'1x'}; g.RowHeight=repmat({23},1,21); g.RowSpacing=2; g.ColumnSpacing=4; g.Padding=[6 6 6 6];
             app.addPairHeader(g);
             [app.Controls.PDEA,app.Controls.PDEB]=app.addPair(g,2,'探测效率 ηdet',p.detector.A.efficiency,p.detector.B.efficiency);
             [app.Controls.RecA,app.Controls.RecB]=app.addPair(g,3,'记录效率 ηrec',p.detector.A.recordEfficiency,p.detector.B.recordEfficiency);
             [app.Controls.DarkA,app.Controls.DarkB]=app.addPair(g,4,'暗计数 Rd (cps)',p.detector.A.darkRate,p.detector.B.darkRate);
             [app.Controls.BgA,app.Controls.BgB]=app.addPair(g,5,'背景计数 Rbg (cps)',p.detector.A.backgroundRate,p.detector.B.backgroundRate);
-            [app.Controls.JitterA,app.Controls.JitterB]=app.addPair(g,6,'探测抖动 σ (ps)',p.detector.A.jitter*1e12,p.detector.B.jitter*1e12);
-            [app.Controls.DeadA,app.Controls.DeadB]=app.addPair(g,7,'探测器死时间 (ns)',p.detector.A.deadTime*1e9,p.detector.B.deadTime*1e9);
-            [app.Controls.ApA,app.Controls.ApB]=app.addPair(g,8,'后脉冲概率 Pap',p.detector.A.afterpulseProbability,p.detector.B.afterpulseProbability);
-            [app.Controls.ApTauA,app.Controls.ApTauB]=app.addPair(g,9,'后脉冲常数 (ns)',p.detector.A.afterpulseLifetime*1e9,p.detector.B.afterpulseLifetime*1e9);
-            [app.Controls.TdcJitterA,app.Controls.TdcJitterB]=app.addPair(g,10,'TDC抖动 (ps)',p.tdc.A.jitter*1e12,p.tdc.B.jitter*1e12);
-            [app.Controls.TdcDeadA,app.Controls.TdcDeadB]=app.addPair(g,11,'TDC死时间 (ns)',p.tdc.A.deadTime*1e9,p.tdc.B.deadTime*1e9);
-            [app.Controls.BiasA,app.Controls.BiasB]=app.addPair(g,12,'通道偏置 (ps)',p.tdc.A.bias*1e12,p.tdc.B.bias*1e12);
-            app.Controls.Resolution=app.addWideNum(g,13,'TDC分辨率 LSB (ps)',p.tdc.resolution*1e12);
-            app.Controls.DNL=app.addHalfNum(g,14,1,'DNL (LSB)',p.tdc.dnl);
-            app.Controls.INL=app.addHalfNum(g,14,3,'INL (LSB)',p.tdc.inl);
-            app.Controls.EnableDark=app.addHalfCheck(g,15,1,'启用暗计数',p.detector.enableDark);
-            app.Controls.EnableDead=app.addHalfCheck(g,15,3,'启用探测器死时间',p.detector.enableDeadTime);
-            app.Controls.EnableAfter=app.addHalfCheck(g,16,1,'启用后脉冲',p.detector.enableAfterpulse);
-            app.Controls.EnableTdcJitter=app.addHalfCheck(g,16,3,'启用TDC抖动',p.tdc.enableJitter);
-            app.Controls.EnableTdcDead=app.addHalfCheck(g,17,1,'启用TDC死时间',p.tdc.enableDeadTime);
+            [app.Controls.JitterA,app.Controls.JitterB]=app.addPair(g,6,'高斯核心 σ (ps)',p.detector.A.jitter*1e12,p.detector.B.jitter*1e12);
+            [app.Controls.DeadA,app.Controls.DeadB]=app.addPair(g,10,'探测器死时间 (ns)',p.detector.A.deadTime*1e9,p.detector.B.deadTime*1e9);
+            [app.Controls.ApA,app.Controls.ApB]=app.addPair(g,11,'后脉冲生成概率',p.detector.A.afterpulseProbability,p.detector.B.afterpulseProbability);
+            app.Controls.ApA.Tooltip='每个接受的雪崩产生一个候选的概率，包含死时间内被拒绝的候选；不是 hold-off 后实测概率。';
+            app.Controls.ApB.Tooltip=app.Controls.ApA.Tooltip;
+            [app.Controls.ApTauA,app.Controls.ApTauB]=app.addPair(g,12,'后脉冲常数 (ns)',p.detector.A.afterpulseLifetime*1e9,p.detector.B.afterpulseLifetime*1e9);
+            [app.Controls.TdcJitterA,app.Controls.TdcJitterB]=app.addPair(g,13,'TDC抖动 (ps)',p.tdc.A.jitter*1e12,p.tdc.B.jitter*1e12);
+            [app.Controls.TdcDeadA,app.Controls.TdcDeadB]=app.addPair(g,14,'TDC死时间 (ns)',p.tdc.A.deadTime*1e9,p.tdc.B.deadTime*1e9);
+            [app.Controls.BiasA,app.Controls.BiasB]=app.addPair(g,15,'通道偏置 (ps)',p.tdc.A.bias*1e12,p.tdc.B.bias*1e12);
+            app.Controls.Resolution=app.addWideNum(g,16,'TDC分辨率 LSB (ps)',p.tdc.resolution*1e12);
+            app.Controls.DNL=app.addHalfNum(g,17,1,'DNL (LSB)',p.tdc.dnl);
+            app.Controls.INL=app.addHalfNum(g,17,3,'INL (LSB)',p.tdc.inl);
+            app.Controls.EnableDark=app.addHalfCheck(g,18,1,'启用暗计数',p.detector.enableDark);
+            app.Controls.EnableDead=app.addHalfCheck(g,18,3,'启用探测器死时间',p.detector.enableDeadTime);
+            app.Controls.EnableAfter=app.addHalfCheck(g,19,1,'启用后脉冲',p.detector.enableAfterpulse);
+            app.Controls.EnableTdcJitter=app.addHalfCheck(g,19,3,'启用TDC抖动',p.tdc.enableJitter);
+            app.Controls.EnableTdcDead=app.addHalfCheck(g,20,1,'启用TDC死时间',p.tdc.enableDeadTime);
+            [app.Controls.TimingModelA,app.Controls.TimingModelB]=app.addPairDrop(g,7,'时间响应 IRF', ...
+                {'高斯','高斯+指数'},{'gaussian','gaussian-exp-tail'}, ...
+                p.detector.A.timingModel,p.detector.B.timingModel);
+            app.Controls.TimingModelA.Tooltip='高斯+指数：高斯核心加 Bernoulli 指数延迟尾部；每路减去解析平均延迟。';
+            app.Controls.TimingModelB.Tooltip=app.Controls.TimingModelA.Tooltip;
+            [app.Controls.TailFractionA,app.Controls.TailFractionB]=app.addPair(g,8,'尾部事件比例 (%)', ...
+                p.detector.A.tailFraction*100,p.detector.B.tailFraction*100);
+            app.Controls.TailFractionA.Limits=[0 100]; app.Controls.TailFractionB.Limits=[0 100];
+            [app.Controls.TailTauA,app.Controls.TailTauB]=app.addPair(g,9,'IRF尾部常数 (ns)', ...
+                p.detector.A.tailTau*1e9,p.detector.B.tailTau*1e9);
+            note=uilabel(g,'Text','尾部参数为敏感性示例，非器件标定；每路响应已去均值。', ...
+                'FontSize',10,'FontColor',[.35 .4 .48]);
+            note.Layout.Row=21; note.Layout.Column=[1 4];
+            app.Controls.TimingModelA.ValueChangedFcn=@(~,~)app.updateTimingControls();
+            app.Controls.TimingModelB.ValueChangedFcn=@(~,~)app.updateTimingControls();
+            app.updateTimingControls();
+        end
+
+        function updateTimingControls(app)
+            for ch={'A','B'}
+                suffix=ch{1}; enabled='off';
+                if string(app.Controls.(['TimingModel' suffix]).Value)=="gaussian-exp-tail", enabled='on'; end
+                app.Controls.(['TailFraction' suffix]).Enable=enabled;
+                app.Controls.(['TailTau' suffix]).Enable=enabled;
+            end
         end
 
         function buildAlgorithmTab(app,p)
@@ -281,6 +326,9 @@ classdef CoincidenceSimulatorApp < handle
                 p.detector.(ch).darkRate=c.(['Dark' suffix]).Value;
                 p.detector.(ch).backgroundRate=c.(['Bg' suffix]).Value;
                 p.detector.(ch).jitter=c.(['Jitter' suffix]).Value*1e-12;
+                p.detector.(ch).timingModel=string(c.(['TimingModel' suffix]).Value);
+                p.detector.(ch).tailFraction=c.(['TailFraction' suffix]).Value/100;
+                p.detector.(ch).tailTau=c.(['TailTau' suffix]).Value*1e-9;
                 p.detector.(ch).deadTime=c.(['Dead' suffix]).Value*1e-9;
                 p.detector.(ch).afterpulseProbability=c.(['Ap' suffix]).Value;
                 p.detector.(ch).afterpulseLifetime=c.(['ApTau' suffix]).Value*1e-9;
@@ -341,6 +389,9 @@ classdef CoincidenceSimulatorApp < handle
                 c.(['Rec' s]).Value=p.detector.(ch).recordEfficiency;
                 c.(['Dark' s]).Value=p.detector.(ch).darkRate; c.(['Bg' s]).Value=p.detector.(ch).backgroundRate;
                 c.(['Jitter' s]).Value=p.detector.(ch).jitter*1e12; c.(['Dead' s]).Value=p.detector.(ch).deadTime*1e9;
+                c.(['TimingModel' s]).Value=char(p.detector.(ch).timingModel);
+                c.(['TailFraction' s]).Value=p.detector.(ch).tailFraction*100;
+                c.(['TailTau' s]).Value=p.detector.(ch).tailTau*1e9;
                 c.(['Ap' s]).Value=p.detector.(ch).afterpulseProbability; c.(['ApTau' s]).Value=p.detector.(ch).afterpulseLifetime*1e9;
                 c.(['TdcJitter' s]).Value=p.tdc.(ch).jitter*1e12;
                 c.(['TdcDead' s]).Value=p.tdc.(ch).deadTime*1e9;
@@ -381,6 +432,7 @@ classdef CoincidenceSimulatorApp < handle
             c.FullSides.Value=p.optimization.requireFullSideWindows;
             c.BackgroundCheck.Value=p.optimization.checkBackground;
             c.BinStability.Value=p.optimization.checkBinStability;
+            app.updateTimingControls();
         end
 
         function runNewSimulation(app)
@@ -525,7 +577,7 @@ classdef CoincidenceSimulatorApp < handle
                         ~isfield(p.algorithm,'timeShiftStart')
                     p.algorithm.timeShiftStart=p.algorithm.timeShift;
                 end
-                p=mergeParamsWithDefaults(defaultParams(),p);
+                p=validateParams(p);
                 if string(p.algorithm.matchMethod)=="all-pairs", p.algorithm.matchMethod="many-to-many"; end
                 if string(p.algorithm.matchMethod)=="nearest", p.algorithm.matchMethod="nearest-reuse"; end
                 p=validateParams(p); app.populateControls(p); app.StatusLabel.Text='设置参数已导入；点击运行或重新计算生效';
@@ -567,6 +619,7 @@ classdef CoincidenceSimulatorApp < handle
                 app.Controls.SideGuard.Value=p.algorithm.sidebandGuard*1e9;
             end
             app.updateHistogram(); app.updateTimestampPlot(); app.updateResultTable();
+            app.updateSimulationDiagnostics();
             app.updateOptimizationPlot();
         end
 
@@ -637,6 +690,37 @@ classdef CoincidenceSimulatorApp < handle
             xline(ax,windowRight*1e9,'--k'); hold(ax,'off');
             title(ax,sprintf('符合直方图：峰值 %.4f ns，σ %.3f ps，窗口全宽 %.3f ns', ...
                 h.peak*1e9,h.sigma*1e12,o.raw.window*1e9));
+        end
+
+        function updateSimulationDiagnostics(app)
+            ax=app.TruthAxes; cla(ax,'reset'); grid(ax,'on');
+            xlabel(ax,'t_B-t_A (ns)'); ylabel(ax,'真实对数');
+            app.DiagnosticsTable.Data={};
+            if ~isfield(app.LastResult,'simulationDiagnostics')
+                title(ax,'无仿真真值');
+                app.DiagnosticsLabel.Text='实测 TXT/BIN 没有 pairID，无法构造真实峰形诊断。';
+                return
+            end
+            d=app.LastResult.simulationDiagnostics;
+            stairs(ax,d.histogram.TimeDifference_s*1e9,d.histogram.Counts, ...
+                'Color',[.10 .55 .38],'LineWidth',1.2);
+            xlabel(ax,'t_B-t_A (ns)'); ylabel(ax,'真实对数'); grid(ax,'on');
+            xline(ax,d.referenceCenter*1e9,':','配置均值');
+            title(ax,'相同 pairID 的完整时间差分布（独立于匹配/搜索范围）');
+            app.DiagnosticsLabel.Text=sprintf(['产生对 %.0f，双路记录 %.0f；均值 %.4g ns，σ %.4g ps；' ...
+                '偏度 %.3g，三核心σ外 %.3g%%；谱外 %.0f。\n' ...
+                '记录比例=探测器接受后脉冲/全部接受雪崩；后脉冲生成概率含死时间内候选。'], ...
+                d.generatedPairCount,d.recordedPairCount,d.mean*1e9,d.sigma*1e12, ...
+                d.skewness,d.tailFraction*100,d.outsideAnalysisRange);
+            c=d.channels;
+            data=table2cell(c(:,{'Channel','primaryRejectedDeadTime', ...
+                'afterpulseCandidates','afterpulseRejectedDeadTime','afterpulseAccepted', ...
+                'recordedAfterpulses','observedProbability'}));
+            % uitable 的混合 cell 数据要求文本为 char，而非 string 标量。
+            data(:,1)=cellstr(c.Channel);
+            data(:,2:6)=cellfun(@(x)sprintf('%.0f',x),data(:,2:6),'UniformOutput',false);
+            data(:,7)=cellfun(@(x)sprintf('%.4g',x),data(:,7),'UniformOutput',false);
+            app.DiagnosticsTable.Data=data;
         end
 
         function updateTimestampPlot(app)
@@ -756,6 +840,7 @@ classdef CoincidenceSimulatorApp < handle
         end
 
         function showError(app,ME,titleText)
+            warning('CoincidenceSim:UIError','%s',getReport(ME,'extended','hyperlinks','off'));
             app.StatusLabel.Text=titleText; uialert(app.UIFigure,ME.message,titleText);
         end
 
@@ -784,6 +869,15 @@ classdef CoincidenceSimulatorApp < handle
             a=uieditfield(g,'numeric','Value',va); a.Layout.Row=row; a.Layout.Column=2;
             lb=uilabel(g,'Text',label); lb.Layout.Row=row; lb.Layout.Column=3;
             b=uieditfield(g,'numeric','Value',vb); b.Layout.Row=row; b.Layout.Column=4;
+        end
+
+        function [a,b]=addPairDrop(~,g,row,label,items,data,va,vb)
+            la=uilabel(g,'Text',label); la.Layout.Row=row; la.Layout.Column=1;
+            a=uidropdown(g,'Items',items,'ItemsData',data,'Value',char(va));
+            a.Layout.Row=row; a.Layout.Column=2;
+            lb=uilabel(g,'Text',label); lb.Layout.Row=row; lb.Layout.Column=3;
+            b=uidropdown(g,'Items',items,'ItemsData',data,'Value',char(vb));
+            b.Layout.Row=row; b.Layout.Column=4;
         end
 
         function f=addWideNum(~,g,row,label,value)

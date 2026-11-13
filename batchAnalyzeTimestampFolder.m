@@ -56,6 +56,10 @@ mode="whole"; if exportOptions.perSecond, mode="per-second"; end
 log.AnalysisMode=repmat(mode,height(log),1);
 log.SecondCount=zeros(height(log),1); log.CompletedSeconds=zeros(height(log),1);
 log.ExportedFiles=zeros(height(log),1);
+log.Nraw=nan(height(log),1);
+log.Nacc=nan(height(log),1);
+log.Nnet=nan(height(log),1);
+log.AccidentalMethod=strings(height(log),1);
 logFile=fullfile(runFolder,'batch_log.csv');
 writeUtf8BomTable(log,logFile);
 cancelled=false;
@@ -77,11 +81,19 @@ for k=1:height(pairs)
             [files,details]=exportTimestampSeconds(out,folder,pairs.BaseName(k),exportOptions,callback);
             log.SecondCount(k)=details.count; log.CompletedSeconds(k)=details.completedCount;
             log.OptimizationStatus(k)=details.optimizationStatus;
+            log.Nraw(k)=details.Nraw;
+            log.Nacc(k)=details.Nacc;
+            log.Nnet(k)=details.Nnet;
+            log.AccidentalMethod(k)=details.AccidentalMethod;
             cancelled=details.cancelled;
         else
             files=exportBatchResult(out,folder,pairs.BaseName(k),exportOptions);
             log.OptimizationStatus(k)="disabled";
             if ~isempty(out.optimization), log.OptimizationStatus(k)=out.optimization.status; end
+            log.Nraw(k)=out.metrics.Nraw;
+            log.Nacc(k)=out.metrics.Nacc;
+            log.Nnet(k)=out.metrics.Nnet;
+            log.AccidentalMethod(k)=accidentalMethodDisplayName(out.metrics.AccidentalMethod);
         end
         log.ExportedFiles(k)=numel(files);
         log.Status(k)="success";

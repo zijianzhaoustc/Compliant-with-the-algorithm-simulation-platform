@@ -29,7 +29,9 @@ end
 options.perSecond=false;
 nextA=1; nextB=1;
 startSeconds=(0:count-1)'; stopSeconds=min((1:count)',duration);
-countA=zeros(count,1); countB=countA; nRaw=countA;
+countA=zeros(count,1); countB=countA;
+nRaw=nan(count,1); nAcc=nRaw; nNet=nRaw;
+accidentalMethod=strings(count,1);
 outputFolders=strings(count,1);
 completed=0; cancelled=false; optimizationStatus=strings(count,1);
 for k=1:count
@@ -64,7 +66,11 @@ for k=1:count
         writeUtf8BomTable(recommendation,file); exported(end+1,1)=file; %#ok<AGROW>
     end
     files=[files;exported]; %#ok<AGROW>
-    countA(k)=numel(a.time); countB(k)=numel(b.time); nRaw(k)=result.metrics.Nraw;
+    countA(k)=numel(a.time); countB(k)=numel(b.time);
+    nRaw(k)=result.metrics.Nraw;
+    nAcc(k)=result.metrics.Nacc;
+    nNet(k)=result.metrics.Nnet;
+    accidentalMethod(k)=accidentalMethodDisplayName(result.metrics.AccidentalMethod);
     outputFolders(k)=target;
     optimizationStatus(k)="disabled";
     if ~isempty(result.optimization), optimizationStatus(k)=result.optimization.status; end
@@ -73,12 +79,21 @@ for k=1:count
 end
 indices=(1:completed)';
 index=table(indices,startSeconds(indices),stopSeconds(indices),stopSeconds(indices)-startSeconds(indices), ...
-    countA(indices),countB(indices),nRaw(indices),outputFolders(indices), ...
-    'VariableNames',{'SecondIndex','Start_s','Stop_s','Duration_s','CountA','CountB','Nraw','OutputFolder'});
+    countA(indices),countB(indices),nRaw(indices),nAcc(indices),nNet(indices), ...
+    accidentalMethod(indices),outputFolders(indices), ...
+    'VariableNames',{'SecondIndex','Start_s','Stop_s','Duration_s','CountA','CountB', ...
+    'Nraw','Nacc','Nnet','AccidentalMethod','OutputFolder'});
 file=fullfile(secondsFolder,baseName+"_second_index.csv");
 writeUtf8BomTable(index,file); files(end+1,1)=file;
 details=struct('count',count,'completedCount',completed,'cancelled',cancelled, ...
-    'optimizationStatus',strjoin(unique(optimizationStatus(indices)),";"));
+    'optimizationStatus',strjoin(unique(optimizationStatus(indices)),";"), ...
+    'Nraw',NaN,'Nacc',NaN,'Nnet',NaN,'AccidentalMethod',"");
+if completed>0
+    details.Nraw=sum(nRaw(indices));
+    details.Nacc=sum(nAcc(indices));
+    details.Nnet=sum(nNet(indices));
+    details.AccidentalMethod=strjoin(unique(accidentalMethod(indices),'stable')," / ");
+end
 end
 
 function [segment,next]=takeWindow(events,next,first,last,isLast)

@@ -4,8 +4,22 @@ function out = recalculateAnalysis(previous, p)
 %   仿真源计数沿用 previous，以便算法参数修改后快速“重载”。
 
 p.measurementTime=previous.params.measurementTime;
+if string(previous.dataMode)=="simulation"
+    % 已生成事件的物理配置与诊断必须可追溯，重算只更新分析参数。
+    for name=["source","optics","detector","tdc","seed"]
+        p.(name)=previous.params.(name);
+    end
+end
 if isfield(previous.params,"analysis"), p.analysis=previous.params.analysis; end
 out=analyzeTimestampData(previous.A,previous.B,p,previous.source,previous.dataMode);
+if string(previous.dataMode)=="simulation"
+    detector=struct(); tdc=struct();
+    if isfield(previous,'simulationDiagnostics')
+        detector=previous.simulationDiagnostics.detector;
+        tdc=previous.simulationDiagnostics.tdc;
+    end
+    out.simulationDiagnostics=buildSimulationDiagnostics(out,detector,tdc);
+end
 % 对导入数据重新计算时，也按当前界面的分窗开关、窗长和算法参数重建逐窗结果。
 if string(previous.dataMode)=="imported" && p.algorithm.timestampWindowMode
     out.timeWindows=analyzeTimestampWindows(previous.A,previous.B,p,previous.source,"imported");

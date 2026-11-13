@@ -10,10 +10,11 @@ src=generatePhotonPairs(p);
 % 2. 两路独立经历光学传输损耗和固定延迟。
 A=simulateOpticalPath(src,p,"A"); B=simulateOpticalPath(src,p,"B");
 % 3. 模拟探测器非理想因素和记录过程。
-A=simulateDetector(A,p,"A"); B=simulateDetector(B,p,"B");
+[A,detector.A]=simulateDetector(A,p,"A"); [B,detector.B]=simulateDetector(B,p,"B");
 % 4. 模拟 TDC 电子学抖动及量化。
-A=simulateTDC(A,p,"A"); B=simulateTDC(B,p,"B");
+[A,tdc.A]=simulateTDC(A,p,"A"); [B,tdc.B]=simulateTDC(B,p,"B");
 % 5. 仿真和实测时间戳从这里开始进入完全相同的分析管线。
 p.analysis.sourceCount=numel(src.time);
 out=analyzeTimestampData(A,B,p,src,"simulation");
+out.simulationDiagnostics=buildSimulationDiagnostics(out,detector,tdc);
 end

@@ -5,7 +5,7 @@ if nargin<6, progress=@(~,~,~)true; end
 seeds=buildSeedSequence(spec.start,spec.step,spec.count);
 p=validateParams(p);
 names=["settings","histogram","results","sweep","timeWindows","countRates", ...
-    "uncertainty","timestamps","optimization","evaluation"];
+    "uncertainty","timestamps","optimization","evaluation","diagnostics"];
 for name=names
     if ~isfield(options,name), options.(name)=false; end
 end
